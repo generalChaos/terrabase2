@@ -1,0 +1,71 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Game {
+  id        String   @id @default(cuid())
+  roomCode  String   @unique
+  status    String   @default("lobby")
+  round     Int      @default(0)
+  maxRounds Int      @default(5)
+  hostId    String
+  createdAt DateTime @default(now())
+  players   Player[]
+  rounds    Round[]
+}
+
+model Player {
+  id        String   @id @default(cuid())
+  gameId    String
+  nickname  String
+  avatar    String
+  score     Int      @default(0)
+  connected Boolean  @default(true)
+  seat      Int
+  game      Game     @relation(fields: [gameId], references: [id])
+  bluffs    Bluff[]
+  votes     Vote[]
+}
+
+model Prompt {
+  id        String   @id @default(cuid())
+  question  String
+  answer    String
+  category  String?
+  rounds    Round[]
+}
+
+model Round {
+  id        String   @id @default(cuid())
+  gameId    String
+  number    Int
+  promptId  String
+  phase     String
+  game      Game     @relation(fields: [gameId], references: [id])
+  prompt    Prompt   @relation(fields: [promptId], references: [id])
+  bluffs    Bluff[]
+  votes     Vote[]
+}
+
+model Bluff {
+  id        String   @id @default(cuid())
+  roundId   String
+  playerId  String
+  text      String
+  round     Round    @relation(fields: [roundId], references: [id])
+  player    Player   @relation(fields: [playerId], references: [id])
+}
+
+model Vote {
+  id        String   @id @default(cuid())
+  roundId   String
+  voterId   String
+  choice    String
+  round     Round    @relation(fields: [roundId], references: [id])
+  voter     Player   @relation(fields: [voterId], references: [id])
+}

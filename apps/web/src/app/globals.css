@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #0b0f14;
+  --panel: #121826;
+  --text: #e5e7eb;
+  --muted: #9ca3af;
+  --border: #374151;
+  --primary: #7c3aed;
+  --accent: #22d3ee;
+  --accent-hover: #06b6d4;
+  --success: #22c55e;
+  --danger: #ef4444;
+  --warning: #f59e0b;
+}
+
+* { outline-color: var(--accent); }
+body { background: var(--bg); color: var(--text); }
+
+/* Timer component color variables */
+[data-theme="dark"] {
+  --danger: #ef4444;
+  --warning: #f59e0b;
+  --accent: #22d3ee;
+}
+
+.h1 { font-family: var(--font-bangers), system-ui; letter-spacing: .5px; }
