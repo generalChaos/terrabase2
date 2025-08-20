@@ -1,7 +1,10 @@
-import { Room, Player, Bluff, Vote } from './state';
-import { TRUE, uid, shuffle } from './utils';
+import { RoomManager } from './room-manager';
+import { TimerService } from './timer.service';
+import { GameAction, GameEvent, Player } from './game-engine.interface';
+import { BluffTriviaState } from './games/bluff-trivia.engine';
+import { GAME_PHASE_DURATIONS, EventType, EventTarget, GAME_TYPES } from './constants';
+import { GameError, InsufficientPlayersError } from './errors';
 import { Namespace, Socket } from 'socket.io';
-import { prompts } from './prompts.seed'; // simple in-memory array for now
 import {
   WebSocketGateway,
   WebSocketServer,
@@ -13,107 +16,6 @@ import {
   OnGatewayInit,
 } from '@nestjs/websockets';
 
-// Local DUR config that matches the shared types
-const DUR = {
-  PROMPT: 15, // seconds to submit bluff
-  CHOOSE: 20, // seconds to vote
-  SCORING: 6, // reveal + tally
-} as const;
-
-type Choice = { id: string; by: string; text: string };
-
-const rooms = new Map<string, Room>();
-
-function broadcast(nsp: Namespace, room: Room) {
-  nsp.emit('room', {
-    code: room.code,
-    phase: room.phase,
-    round: room.round,
-    maxRounds: room.maxRounds,
-    timeLeft: room.timeLeft,
-    players: room.players.map((p: Player) => ({ ...p })),
-    current: room.current,
-    // host-only detail events are sent separately
-  });
-}
-
-function broadcastTimer(nsp: Namespace, room: Room) {
-  console.log(`⏰ Broadcasting timer: ${room.timeLeft}s for room ${room.code}`);
-  nsp.emit('timer', { timeLeft: room.timeLeft });
-}
-
-function tick(nsp: Namespace, room: Room, onExpire: () => void) {
-  console.log(`⏰ Starting timer for room ${room.code}, timeLeft: ${room.timeLeft}`);
-  
-  if (room.timer) {
-    console.log(`⏰ Clearing existing timer for room ${room.code}`);
-    clearInterval(room.timer);
-  }
-  
-  room.timer = setInterval(() => {
-    room.timeLeft = Math.max(0, room.timeLeft - 1);
-    console.log(`⏰ Timer tick for room ${room.code}: ${room.timeLeft}s remaining`);
-    
-    // Send timer updates every second, but only broadcast full room state occasionally
-    broadcastTimer(nsp, room);
-    
-    if (room.timeLeft === 0) {
-      console.log(`⏰ Timer expired for room ${room.code}`);
-      clearInterval(room.timer);
-      onExpire();
-    }
-  }, 1000);
-  
-  console.log(`⏰ Timer started for room ${room.code}`);
-}
-
-function nextPrompt(room: Room) {
-  const pool = prompts.filter((p) => !room.usedPromptIds.has(p.id));
-  const p = pool[(Math.random() * pool.length) | 0];
-  room.usedPromptIds.add(p.id);
-  room.current = {
-    number: room.round,
-    promptId: p.id,
-    question: p.question,
-    answer: p.answer,
-    bluffs: [],
-    votes: [],
-  };
-}
-
-function toChoices(room: Room): Choice[] {
-  const r = room.current!;
-  const truth: Choice = { id: TRUE(r.promptId), by: 'server', text: r.answer };
-  return shuffle([truth, ...r.bluffs], room.round);
-}
-
-function scoreRound(room: Room) {
-  const r = room.current!;
-  // +1000 for picking truth; +500 per fooled player
-  const fooledCount: Record<string, number> = {};
-  for (const v of r.votes) {
-    if (v.choiceId.startsWith('TRUE::')) {
-      const p = room.players.find((p: Player) => p.id === v.voter);
-      if (p) {
-        p.score += 1000;
-      } else {
-        console.warn(`⚠️ Voter ${v.voter} not found in players list during scoring`);
-      }
-    } else {
-      const bluff = r.bluffs.find((b: Bluff) => b.id === v.choiceId);
-      if (bluff) fooledCount[bluff.by] = (fooledCount[bluff.by] ?? 0) + 1;
-    }
-  }
-  for (const pid in fooledCount) {
-    const p = room.players.find((p: Player) => p.id === pid);
-    if (p) {
-      p.score += fooledCount[pid] * 500;
-    } else {
-      console.warn(`⚠️ Player ${pid} not found in players list during scoring`);
-    }
-  }
-}
-
 @WebSocketGateway({ namespace: '/rooms', cors: { origin: '*' } })
 export class RoomsGateway
   implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit
@@ -121,9 +23,14 @@ export class RoomsGateway
   @WebSocketServer() nsp!: Namespace;
   private isReady = false;
 
+  constructor(
+    private roomManager: RoomManager,
+    private timerService: TimerService
+  ) {}
+
   afterInit(nsp: Namespace) {
     console.log('🚀 afterInit');
-    console.log('nsp.constructor:', nsp?.constructor?.name); // ParentNamespace
+    console.log('nsp.constructor:', nsp?.constructor?.name);
     this.isReady = true;
 
     nsp.use((socket, next) => next());
@@ -137,7 +44,6 @@ export class RoomsGateway
       console.log('❌ nsp not ready');
       return null;
     }
-
     return this.nsp;
   }
 
@@ -145,24 +51,39 @@ export class RoomsGateway
     try {
       const code = this.codeFromNs(client);
       console.log(`🔌 Player connected to room ${code} (ID: ${client.id})`);
-      console.log(`🔌 Handshake query:`, client.handshake.query);
       
-      if (!rooms.has(code)) {
+      if (!this.roomManager.hasRoom(code)) {
         console.log(`🏠 Creating new room: ${code}`);
-        rooms.set(code, {
-          code,
-          phase: 'lobby',
-          players: [],
-          round: 0,
-          maxRounds: 5,
-          timeLeft: 0,
-          usedPromptIds: new Set(),
-        });
+        this.roomManager.createRoom(code, GAME_TYPES.BLUFF_TRIVIA);
       }
       
-      const room = rooms.get(code);
-      console.log(`🏠 Sending room state to ${client.id}:`, room);
-      client.emit('room', room);
+      const room = this.roomManager.getRoom(code);
+      if (room) {
+        // Check if this is a reconnection of the host
+        if (room.hostId && room.players.some(p => p.id === room.hostId && !p.connected)) {
+          const hostPlayer = room.players.find(p => p.id === room.hostId);
+          if (hostPlayer) {
+            console.log(`🔄 Host ${hostPlayer.name} reconnecting, updating socket ID from ${room.hostId} to ${client.id}`);
+            hostPlayer.id = client.id;
+            hostPlayer.connected = true;
+            room.hostId = client.id;
+            this.broadcastRoomUpdate(code);
+          }
+        }
+        
+        // Check if this is a reconnection of any other player
+        // Look for disconnected players and update their socket ID
+        const disconnectedPlayer = room.players.find(p => !p.connected);
+        if (disconnectedPlayer) {
+          console.log(`🔄 Player ${disconnectedPlayer.name} reconnecting, updating socket ID from ${disconnectedPlayer.id} to ${client.id}`);
+          disconnectedPlayer.id = client.id;
+          disconnectedPlayer.connected = true;
+          this.broadcastRoomUpdate(code);
+        }
+        
+        console.log(`🏠 Sending room state to ${client.id}:`, room);
+        client.emit('room', this.serializeRoom(room));
+      }
     } catch (error) {
       console.error(`❌ Error in handleConnection:`, error);
       client.emit('error', { msg: 'CONNECTION_ERROR' });
@@ -172,14 +93,14 @@ export class RoomsGateway
   handleDisconnect(client: Socket) {
     const code = this.codeFromNs(client);
     console.log(`🔌 Player disconnected from room ${code} (ID: ${client.id})`);
-    const state = rooms.get(code);
-    if (!state) return;
-    const p = state.players.find((p: Player) => p.id === client.id);
-    if (p) p.connected = false;
-
-    const nsp = this.getMainServer();
-    if (nsp) {
-      broadcast(nsp, state);
+    
+    const room = this.roomManager.getRoom(code);
+    if (room) {
+      const player = room.players.find(p => p.id === client.id);
+      if (player) {
+        player.connected = false;
+        this.broadcastRoomUpdate(code);
+      }
     }
   }
 
@@ -190,69 +111,63 @@ export class RoomsGateway
   ) {
     try {
       const code = this.codeFromNs(client);
-      console.log(
-        `👋 Player ${body.nickname} joining room ${code} (ID: ${client.id})`,
-      );
-      console.log(`👋 Join request body:`, body);
+      console.log(`👋 Player ${body.nickname} joining room ${code} (ID: ${client.id})`);
       
-      const state = rooms.get(code);
-      if (!state) {
-        console.error(`❌ Room ${code} not found!`);
+      const room = this.roomManager.getRoom(code);
+      if (!room) {
         return client.emit('error', { msg: 'ROOM_NOT_FOUND' });
       }
       
-      const exists = state.players.find((p: Player) => p.name === body.nickname);
-      if (exists) {
-        console.log(`❌ Name ${body.nickname} already taken in room ${code}`);
+      // Check if this is a reconnection of an existing player
+      const existingPlayer = room.players.find(p => p.name === body.nickname);
+      if (existingPlayer && !existingPlayer.connected) {
+        // Player is reconnecting - update their socket ID and connection status
+        console.log(`🔄 Player ${body.nickname} reconnecting, updating socket ID from ${existingPlayer.id} to ${client.id}`);
+        existingPlayer.id = client.id;
+        existingPlayer.connected = true;
+        existingPlayer.avatar = body.avatar || existingPlayer.avatar;
+        
+        console.log(`✅ Player ${body.nickname} reconnected to room ${code}`);
+        client.emit('joined', { ok: true });
+        
+        this.broadcastRoomUpdate(code);
+        
+        // Send additional context for mid-game joins
+        if (room.gameState.phase !== 'lobby') {
+          this.sendMidGameContext(client, room);
+        }
+        return;
+      }
+      
+      // Check if name is already taken by a connected player
+      if (existingPlayer && existingPlayer.connected) {
         return client.emit('error', { msg: 'NAME_TAKEN' });
       }
-
-      state.players.push({
+      
+      // New player joining
+      const newPlayer: Player = {
         id: client.id,
         name: body.nickname,
         avatar: body.avatar,
         connected: true,
         score: 0,
-      });
-      console.log(
-        `✅ Player ${body.nickname} joined room ${code}. Total players: ${state.players.length}`,
-      );
-      client.emit('joined', { ok: true });
-
-      const nsp = this.getMainServer();
-      if (nsp) {
-        // Send current room state to all clients
-        broadcast(nsp, state);
-        
-        // If game is in progress, also send additional context to the joining player
-        if (state.phase !== 'lobby') {
-          console.log(`🎮 Player ${body.nickname} joining mid-game in phase: ${state.phase}`);
-          
-          // Send prompt if we're in prompt or later phases
-          if (state.current && (state.phase === 'prompt' || state.phase === 'choose' || state.phase === 'scoring')) {
-            client.emit('prompt', { question: state.current.question });
-          }
-          
-          // Send choices if we're in choose or scoring phase
-          if (state.phase === 'choose' || state.phase === 'scoring') {
-            const choices = toChoices(state).map((c: Choice) => ({
-              id: c.id,
-              text: c.text,
-            }));
-            client.emit('choices', { choices });
-          }
-          
-          // Send scores if we're in scoring phase
-          if (state.phase === 'scoring') {
-            client.emit('scores', {
-              totals: state.players.map((p: Player) => ({
-                playerId: p.id,
-                score: p.score,
-              })),
-            });
-          }
-        }
+      };
+      
+      const success = this.roomManager.addPlayer(code, newPlayer);
+      if (!success) {
+        return client.emit('error', { msg: 'JOIN_FAILED' });
       }
+      
+      console.log(`✅ Player ${body.nickname} joined room ${code}`);
+      client.emit('joined', { ok: true });
+      
+      this.broadcastRoomUpdate(code);
+      
+      // Send additional context for mid-game joins
+      if (room.gameState.phase !== 'lobby') {
+        this.sendMidGameContext(client, room);
+      }
+      
     } catch (error) {
       console.error(`❌ Error in join method:`, error);
       client.emit('error', { msg: 'JOIN_ERROR' });
@@ -261,94 +176,58 @@ export class RoomsGateway
 
   @SubscribeMessage('startGame')
   start(@ConnectedSocket() client: Socket) {
-    const code = this.codeFromNs(client);
-    const room = rooms.get(code)!;
-    console.log(`🎮 Game started in room ${code}`, room);
-    room.round = 1;
-    this.enterPrompt(room);
-  }
-
-  private enterPrompt(room: Room) {
-    const nsp = this.getMainServer();
-    if (!nsp) {
-      console.error('WebSocket server not ready - cannot start game');
-      return;
-    }
-
-    room.phase = 'prompt';
-    nextPrompt(room);
-    room.timeLeft = DUR.PROMPT;
-    console.log(`🎮 Prompt in room ${room.code}`, room);
-
-    nsp.emit('prompt', { question: room.current!.question });
-    tick(nsp, room, () => this.enterChoose(room));
-    broadcast(nsp, room);
-  }
-
-  private enterChoose(room: Room) {
-    const nsp = this.getMainServer();
-    if (!nsp) {
-      console.error('WebSocket server not ready - cannot continue game');
-      return;
-    }
-
-    room.phase = 'choose';
-    room.timeLeft = DUR.CHOOSE;
-    const choices = toChoices(room).map((c: Choice) => ({
-      id: c.id,
-      text: c.text,
-    }));
-    nsp.emit('choices', { choices });
-    tick(nsp, room, () => this.enterScoring(room));
-    broadcast(nsp, room);
-  }
-
-  private enterScoring(room: Room) {
-    const nsp = this.getMainServer();
-    if (!nsp) {
-      console.error('WebSocket server not ready - cannot continue game');
-      return;
-    }
-
-    room.phase = 'scoring';
-    room.timeLeft = DUR.SCORING;
-    scoreRound(room);
-    // emit score deltas + totals (simple totals for MVP)
-    nsp.emit('scores', {
-      totals: room.players.map((p: Player) => ({
-        playerId: p.id,
-        score: p.score,
-      })),
-    });
-    tick(nsp, room, () => this.advanceOrEnd(room));
-    broadcast(nsp, room);
-  }
-
-  private advanceOrEnd(room: Room) {
-    const nsp = this.getMainServer();
-    if (!nsp) {
-      console.error('WebSocket server not ready - cannot continue game');
-      return;
-    }
-
-    if (room.round >= room.maxRounds) {
-      room.phase = 'over';
-      broadcast(nsp, room);
-      nsp.emit('gameOver', {
-        winners: [...room.players]
-          .sort((a: Player, b: Player) => b.score - a.score)
-          .slice(0, 3)
-          .map((p: Player) => ({ id: p.id, name: p.name, score: p.score })),
+    try {
+      console.log(`🎮 startGame called by client ${client.id}`);
+      const code = this.codeFromNs(client);
+      console.log(`🎮 Room code: ${code}`);
+      
+      const room = this.roomManager.getRoom(code);
+      if (!room) {
+        console.log(`❌ Room ${code} not found`);
+        return client.emit('error', { msg: 'ROOM_NOT_FOUND' });
+      }
+      
+      console.log(`🎮 Room found, players:`, room.players.map(p => ({ id: p.id, name: p.name, connected: p.connected })));
+      console.log(`🎮 Client ID: ${client.id}`);
+      
+      // Check if player has actually joined the room
+      const currentPlayer = room.players.find(p => p.id === client.id);
+      if (!currentPlayer) {
+        throw new GameError('Player has not joined the room yet', 'NOT_JOINED', 400);
+      }
+      
+      // Check if player is the host using the hostId
+      if (room.hostId !== client.id) {
+        throw new GameError('Player is not the host', 'NOT_HOST', 403);
+      }
+      
+      // Check if there are enough players to start
+      if (room.players.length < 2) {
+        throw new InsufficientPlayersError(2, room.players.length);
+      }
+      
+      console.log(`✅ Starting game in room ${code}`);
+      
+      const action: GameAction = {
+        type: 'start',
+        playerId: client.id,
+        data: {}
+      };
+      
+      const events = this.roomManager.processGameAction(code, client.id, action);
+      console.log(`🎮 Game started, events generated:`, events.length);
+      this.handleGameEvents(code, events);
+      
+      // Start timer for prompt phase
+      this.timerService.startTimer(code, GAME_PHASE_DURATIONS.PROMPT, {
+        onExpire: () => this.handlePhaseTransition(code),
+        onTick: (events) => this.handleTimerEvents(code, events)
       });
-      return;
+      
+    } catch (error) {
+      console.error(`❌ Error in startGame:`, error);
+      client.emit('error', { msg: 'START_ERROR' });
     }
-    
-    room.round += 1;
-    
-    // Add a small delay before starting the next round to prevent recursion
-    setTimeout(() => {
-      this.enterPrompt(room);
-    }, 1000);
   }
 
   @SubscribeMessage('submitAnswer')
@@ -356,26 +235,26 @@ export class RoomsGateway
     @ConnectedSocket() client: Socket,
     @MessageBody() body: { answer: string },
   ) {
-    const room = rooms.get(this.codeFromNs(client))!;
-    if (room.phase !== 'prompt') return;
-    const text = (body.answer ?? '').trim();
-    if (!text) return client.emit('error', { msg: 'EMPTY_ANSWER' });
-
-    // Check if this player has already submitted an answer
-    if (room.current!.bluffs.some((b: Bluff) => b.by === client.id)) {
-      return client.emit('submitted', { kind: 'answer' });
-    }
-
-    // Add the answer as a bluff (this is how the game works)
-    room.current!.bluffs.push({ id: uid(), by: client.id, text });
-    client.emit('submitted', { kind: 'answer' });
-    
-    console.log(`📝 Player ${client.id} submitted answer: "${text}"`);
-    
-    // Broadcast updated room state to all clients
-    const nsp = this.getMainServer();
-    if (nsp) {
-      broadcast(nsp, room);
+    try {
+      const code = this.codeFromNs(client);
+      const room = this.roomManager.getRoom(code);
+      
+      if (!room || room.gameState.phase !== 'prompt') {
+        return client.emit('error', { msg: 'INVALID_PHASE' });
+      }
+      
+      const action: GameAction = {
+        type: 'submitAnswer',
+        playerId: client.id,
+        data: { answer: body.answer }
+      };
+      
+      const events = this.roomManager.processGameAction(code, client.id, action);
+      this.handleGameEvents(code, events);
+      
+    } catch (error) {
+      console.error(`❌ Error in submitAnswer:`, error);
+      client.emit('error', { msg: 'SUBMIT_ERROR' });
     }
   }
 
@@ -384,21 +263,27 @@ export class RoomsGateway
     @ConnectedSocket() client: Socket,
     @MessageBody() body: { text: string },
   ) {
-    const room = rooms.get(this.codeFromNs(client))!;
-    if (room.phase !== 'prompt') return;
-    const text = (body.text ?? '').trim();
-    if (!text) return client.emit('error', { msg: 'EMPTY_BLUFF' });
-
-    // de-dupe identical bluffs
-    if (
-      room.current!.bluffs.some(
-        (b: Bluff) => b.text.toLowerCase() === text.toLowerCase(),
-      )
-    )
-      return client.emit('submitted', { kind: 'bluff' });
-    room.current!.bluffs.push({ id: uid(), by: client.id, text });
-    client.emit('submitted', { kind: 'bluff' });
-    // host could display submitted count (broadcast as room again if you like)
+    try {
+      const code = this.codeFromNs(client);
+      const room = this.roomManager.getRoom(code);
+      
+      if (!room || room.gameState.phase !== 'prompt') {
+        return client.emit('error', { msg: 'INVALID_PHASE' });
+      }
+      
+      const action: GameAction = {
+        type: 'submitBluff',
+        playerId: client.id,
+        data: { text: body.text }
+      };
+      
+      const events = this.roomManager.processGameAction(code, client.id, action);
+      this.handleGameEvents(code, events);
+      
+    } catch (error) {
+      console.error(`❌ Error in submitBluff:`, error);
+      client.emit('error', { msg: 'SUBMIT_ERROR' });
+    }
   }
 
   @SubscribeMessage('submitVote')
@@ -406,24 +291,149 @@ export class RoomsGateway
     @ConnectedSocket() client: Socket,
     @MessageBody() body: { choiceId: string },
   ) {
-    const room = rooms.get(this.codeFromNs(client))!;
-    if (room.phase !== 'choose') return;
-    const r = room.current!;
-    if (r.votes.find((v: Vote) => v.voter === client.id)) return; // no double vote
-    r.votes.push({ voter: client.id, choiceId: body.choiceId });
-    client.emit('submitted', { kind: 'vote' });
-    
-    console.log(`🗳️ Player ${client.id} submitted vote: ${body.choiceId}`);
-    
-    // Broadcast updated room state to all clients
-    const nsp = this.getMainServer();
-    if (nsp) {
-      broadcast(nsp, room);
+    try {
+      const code = this.codeFromNs(client);
+      const room = this.roomManager.getRoom(code);
+      
+      if (!room || room.gameState.phase !== 'choose') {
+        return client.emit('error', { msg: 'INVALID_PHASE' });
+      }
+      
+      const action: GameAction = {
+        type: 'submitVote',
+        playerId: client.id,
+        data: { choiceId: body.choiceId }
+      };
+      
+      const events = this.roomManager.processGameAction(code, client.id, action);
+      this.handleGameEvents(code, events);
+      
+    } catch (error) {
+      console.error(`❌ Error in submitVote:`, error);
+      client.emit('error', { msg: 'SUBMIT_ERROR' });
     }
   }
 
-  private codeFromNs(client: Socket) {
-    // Extract room code from query parameters since we're connecting to /rooms namespace
+  private handlePhaseTransition(roomCode: string) {
+    try {
+      const events = this.roomManager.advanceGamePhase(roomCode);
+      this.handleGameEvents(roomCode, events);
+      
+      // Start timer for next phase
+      const room = this.roomManager.getRoom(roomCode);
+      if (room && room.gameState.timeLeft > 0) {
+        this.timerService.startTimer(roomCode, room.gameState.timeLeft, {
+          onExpire: () => this.handlePhaseTransition(roomCode),
+          onTick: (events) => this.handleTimerEvents(roomCode, events)
+        });
+      }
+      
+    } catch (error) {
+      console.error(`❌ Error in phase transition:`, error);
+    }
+  }
+
+  private handleGameEvents(roomCode: string, events: GameEvent[]) {
+    const nsp = this.getMainServer();
+    if (!nsp) return;
+    
+    for (const event of events) {
+      switch (event.target) {
+        case 'all':
+          nsp.emit(event.type, event.data);
+          break;
+        case 'player':
+          if (event.playerId) {
+            nsp.to(event.playerId).emit(event.type, event.data);
+          }
+          break;
+        case 'host':
+          // Send to first player (host)
+          const room = this.roomManager.getRoom(roomCode);
+          if (room?.players[0]) {
+            nsp.to(room.players[0].id).emit(event.type, event.data);
+          }
+          break;
+      }
+    }
+    
+    // Always broadcast room update after events
+    this.broadcastRoomUpdate(roomCode);
+  }
+
+  private handleTimerEvents(roomCode: string, events: GameEvent[]) {
+    const nsp = this.getMainServer();
+    if (!nsp) return;
+    
+    // Only send timer events, not full room updates
+    for (const event of events) {
+      if (event.type === EventType.TIMER) {
+        nsp.emit(event.type, event.data);
+      }
+    }
+  }
+
+  private broadcastRoomUpdate(roomCode: string) {
+    const nsp = this.getMainServer();
+    if (!nsp) return;
+    
+    const room = this.roomManager.getRoom(roomCode);
+    if (room) {
+      nsp.emit('room', this.serializeRoom(room));
+    }
+  }
+
+  private serializeRoom(room: any) {
+    return {
+      code: room.code,
+      phase: room.gameState.phase,
+      round: room.gameState.round,
+      maxRounds: room.gameState.maxRounds,
+      timeLeft: room.gameState.timeLeft,
+      players: room.players.map((p: Player) => ({ ...p })),
+      current: room.gameState.currentRound, // Use currentRound instead of current
+      hostId: room.hostId,
+    };
+  }
+
+  private sendMidGameContext(client: Socket, room: any) {
+    if (room.gameState.current) {
+      client.emit('prompt', { question: room.gameState.current.question });
+      
+      if (room.gameState.phase === 'choose' || room.gameState.phase === 'scoring') {
+        // Generate choices for the current round
+        const choices = this.generateChoices(room.gameState.current);
+        client.emit('choices', { choices });
+      }
+      
+      if (room.gameState.phase === 'scoring') {
+        client.emit('scores', {
+          totals: room.players.map((p: Player) => ({
+            playerId: p.id,
+            score: p.score,
+          })),
+        });
+      }
+    }
+  }
+
+  private generateChoices(round: any): Array<{ id: string; text: string }> {
+    if (!round) return [];
+    
+    const truth = { id: `TRUE::${round.promptId}`, text: round.answer };
+    const bluffChoices = round.bluffs.map((b: any) => ({ id: b.id, text: b.text }));
+    
+    // Simple shuffle for now
+    const allChoices = [truth, ...bluffChoices];
+    for (let i = allChoices.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [allChoices[i], allChoices[j]] = [allChoices[j], allChoices[i]];
+    }
+    
+    return allChoices;
+  }
+
+  private codeFromNs(client: Socket): string {
     const roomCode = client.handshake.query.roomCode as string;
     if (!roomCode) {
       console.error('❌ No room code provided in query parameters');

@@ -20,6 +20,12 @@ export function HostClient({ code }: { code: string }) {
     const s = connectToRoom(code);
     socketRef.current = s;
     
+    // Host must join the room to control the game
+    s.on("connect", () => {
+      console.log("🔌 Host connected, joining room as player...");
+      s.emit("join", { nickname: "Host", avatar: "👑" });
+    });
+    
     // Listen for room state updates
     s.on("room", (st: RoomState) => {
       console.log("🏠 Room state updated:", st);
@@ -59,8 +65,8 @@ export function HostClient({ code }: { code: string }) {
   }, [code]);
 
   const start = () => {
-    const action: GameAction = { type: 'startGame' };
-    socketRef.current?.emit("startGame", action);
+    console.log("🎮 Starting game...");
+    socketRef.current?.emit("startGame");
   };
 
   return (
