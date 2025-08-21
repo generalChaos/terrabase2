@@ -19,6 +19,7 @@ export interface BluffTriviaRound {
   answer: string;
   bluffs: Bluff[];
   votes: Map<string, string>; // playerId -> choiceId
+  correctAnswerPlayers: Set<string>; // Players who got the answer right
   timeLeft: number;
   phase: 'prompt' | 'choose' | 'scoring';
 }
@@ -27,6 +28,7 @@ export interface Bluff {
   id: string;
   by: string;
   text: string;
+  isCorrect?: boolean; // Optional flag for correct answers
 }
 
 export interface BluffTriviaAction extends GameAction {
@@ -351,6 +353,51 @@ export class BluffTriviaEngine implements GameEngine<BluffTriviaState, BluffTriv
       };
     }
     
+    // Check if this is the correct answer
+    const isCorrectAnswer = text.toLowerCase() === state.currentRound.answer.toLowerCase();
+    
+    if (isCorrectAnswer) {
+      // Player got the answer right - award points and track submission
+      const player = state.players.find(p => p.id === action.playerId);
+      if (player) {
+        const newPlayers = state.players.map(p => 
+          p.id === action.playerId 
+            ? { ...p, score: p.score + GameConfig.RULES.SCORING.CORRECT_ANSWER }
+            : p
+        );
+        
+        // Create a special "correct answer" entry that doesn't get mixed with bluffs
+        const correctAnswerEntry: Bluff = { 
+          id: `CORRECT::${action.playerId}`, 
+          by: action.playerId, 
+          text: text,
+          isCorrect: true // Mark this as a correct answer
+        };
+        
+        const newCurrentRound = {
+          ...state.currentRound,
+          bluffs: [...state.currentRound.bluffs, correctAnswerEntry],
+          correctAnswerPlayers: new Set([...state.currentRound.correctAnswerPlayers, action.playerId])
+        };
+        
+        const newState: BluffTriviaState = {
+          ...state,
+          players: newPlayers,
+          currentRound: newCurrentRound
+        };
+        
+        return {
+          newState,
+          events: [
+            { type: 'roomUpdate', data: newState, target: 'all' },
+            { type: 'submitted', data: { kind: 'correct_answer' }, target: 'player', playerId: action.playerId }
+          ],
+          isValid: true
+        };
+      }
+    }
+    
+    // This is a bluff - add it to the bluffs array
     const newBluff: Bluff = { id: uid(), by: action.playerId, text };
     const newCurrentRound = {
       ...state.currentRound,
@@ -366,7 +413,7 @@ export class BluffTriviaEngine implements GameEngine<BluffTriviaState, BluffTriv
       newState,
       events: [
         { type: 'roomUpdate', data: newState, target: 'all' },
-        { type: 'submitted', data: { kind: 'answer' }, target: 'player', playerId: action.playerId }
+        { type: 'submitted', data: { kind: 'bluff' }, target: 'player', playerId: action.playerId }
       ],
       isValid: true
     };
@@ -405,6 +452,27 @@ export class BluffTriviaEngine implements GameEngine<BluffTriviaState, BluffTriv
       };
     }
     
+    // Check if player got the answer correct - they can't vote
+    if (state.currentRound.correctAnswerPlayers.has(action.playerId)) {
+      return {
+        newState: state,
+        isValid: false,
+        events: [],
+        error: 'You already know the correct answer - you cannot vote!'
+      };
+    }
+    
+    // Check if player is trying to vote for their own bluff
+    const playerBluff = state.currentRound.bluffs.find(b => b.by === action.playerId);
+    if (playerBluff && action.choiceId === playerBluff.id) {
+      return {
+        newState: state,
+        isValid: false,
+        events: [],
+        error: 'Cannot vote for your own bluff'
+      };
+    }
+    
     const newVote: Map<string, string> = new Map(state.currentRound.votes);
     newVote.set(action.playerId, choiceId);
     
@@ -438,6 +506,7 @@ export class BluffTriviaEngine implements GameEngine<BluffTriviaState, BluffTriv
       answer: prompt.answer,
       bluffs: [],
       votes: new Map(),
+      correctAnswerPlayers: new Set(),
       timeLeft: GameConfig.TIMING.PHASES.PROMPT,
       phase: 'prompt' as const
     };
@@ -473,6 +542,7 @@ export class BluffTriviaEngine implements GameEngine<BluffTriviaState, BluffTriv
       answer: prompt.answer,
       bluffs: [],
       votes: new Map(),
+      correctAnswerPlayers: new Set(),
       timeLeft: GameConfig.TIMING.PHASES.PROMPT,
       phase: 'prompt' as const
     };
@@ -527,9 +597,29 @@ export class BluffTriviaEngine implements GameEngine<BluffTriviaState, BluffTriv
   }
 
   private generateChoices(round: BluffTriviaRound): Array<{ id: string; text: string }> {
-    const truth = { id: TRUE(round.promptId), text: round.answer };
-    const bluffChoices = round.bluffs.map(b => ({ id: b.id, text: b.text }));
-    return shuffle([truth, ...bluffChoices], round.roundNumber);
+    // Start with the truth - normalize text to prevent capitalization hints
+    const choices = [{ id: TRUE(round.promptId), text: this.normalizeText(round.answer) }];
+    
+    // Add all bluffs, but skip duplicates of the correct answer
+    for (const bluff of round.bluffs) {
+      // If this is a correct answer submission, skip it to avoid duplication
+      if (bluff.isCorrect) {
+        continue;
+      }
+      // If this bluff text matches the correct answer, skip it
+      if (bluff.text.toLowerCase() === round.answer.toLowerCase()) {
+        continue;
+      }
+      // Normalize bluff text as well
+      choices.push({ id: bluff.id, text: this.normalizeText(bluff.text) });
+    }
+    
+    return shuffle(choices, round.roundNumber);
+  }
+  
+  private normalizeText(text: string): string {
+    // Convert to lowercase and trim, but preserve some readability
+    return text.toLowerCase().trim();
   }
 
   private getRandomPrompt() {

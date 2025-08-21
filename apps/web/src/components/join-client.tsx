@@ -105,10 +105,14 @@ export function JoinClient({ code }: { code: string }) {
 
     s.on('submitted', (data: { kind: string }) => {
       console.log('✅ Action submitted:', data);
-      if (data.kind === 'answer') {
-        console.log('📝 Setting hasSubmittedAnswer to true');
+      if (data.kind === 'correct_answer') {
+        console.log('🎯 Setting hasSubmittedAnswer to true (correct answer)');
         setHasSubmittedAnswer(true);
-        notify.success('Answer submitted successfully!');
+        notify.success('🎯 Correct answer! +1000 points! You cannot vote since you know the truth!');
+      } else if (data.kind === 'bluff') {
+        console.log('🎭 Setting hasSubmittedAnswer to true (bluff)');
+        setHasSubmittedAnswer(true);
+        notify.success('🎭 Bluff submitted successfully!');
       } else if (data.kind === 'vote') {
         console.log('🗳️ Setting hasVoted to true');
         setHasVoted(true);
@@ -198,6 +202,7 @@ export function JoinClient({ code }: { code: string }) {
         votes={roomState.current?.votes || []}
         scores={scores}
         playerId={playerId}
+        current={roomState.current}
         onSubmitAnswer={handleSubmitAnswer}
         onSubmitVote={handleSubmitVote}
         hasSubmittedAnswer={hasSubmittedAnswer}

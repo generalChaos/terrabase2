@@ -13,6 +13,7 @@ type PlayerVotingViewProps = {
   onSubmitVote: (choiceId: string) => void;
   hasVoted: boolean;
   selectedChoiceId?: string;
+  gotAnswerCorrect?: boolean;
 };
 
 export function PlayerVotingView({ 
@@ -24,7 +25,8 @@ export function PlayerVotingView({
   maxRounds,
   onSubmitVote,
   hasVoted,
-  selectedChoiceId
+  selectedChoiceId,
+  gotAnswerCorrect = false
 }: PlayerVotingViewProps) {
   const [selectedChoice, setSelectedChoice] = useState<string | undefined>(selectedChoiceId);
 
@@ -65,15 +67,31 @@ export function PlayerVotingView({
           <h1 className="text-3xl md:text-4xl font-bold text-[--text] leading-tight mb-4">
             {question}
           </h1>
-          <p className="text-[--muted] text-lg">
-            {hasVoted ? 'You have voted!' : 'Choose the correct answer:'}
-          </p>
+          {gotAnswerCorrect ? (
+            <div className="text-center">
+              <p className="text-[--success] text-xl font-semibold mb-2">
+                🎯 You got the answer correct!
+              </p>
+              <p className="text-[--muted] text-lg">
+                You cannot vote since you already know the truth.
+              </p>
+            </div>
+          ) : (
+            <p className="text-[--muted] text-lg">
+              {hasVoted ? 'You have voted!' : 'Choose the correct answer:'}
+            </p>
+          )}
         </div>
       </div>
 
       {/* Choices */}
       <div className="w-full max-w-2xl">
-        {!hasVoted ? (
+        {gotAnswerCorrect ? (
+          <div className="text-center">
+            <div className="text-2xl font-semibold text-[--success] mb-2">🎯 You're Done!</div>
+            <div className="text-[--muted]">You already know the answer, so you can just watch and see how many people you fooled!</div>
+          </div>
+        ) : !hasVoted ? (
           <div className="grid gap-4">
             {choices.map((choice) => {
               const isSelected = selectedChoice === choice.id;
@@ -96,7 +114,7 @@ export function PlayerVotingView({
                     <span className={`text-sm px-2 py-1 rounded-full ${
                       isTruth 
                         ? 'bg-[--success] text-black font-semibold' 
-                        : 'bg-[--muted] text-[--text]'
+                        : 'border-[--border] bg-[--panel]'
                     }`}>
                       {isTruth ? 'TRUTH' : 'BLUFF'}
                     </span>
@@ -138,7 +156,7 @@ export function PlayerVotingView({
       </div>
 
       {/* Submit Button */}
-      {!hasVoted && (
+      {!gotAnswerCorrect && !hasVoted && (
         <div className="mt-8">
           <button
             onClick={handleSubmitVote}

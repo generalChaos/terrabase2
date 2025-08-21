@@ -32,6 +32,7 @@ export type RoundState = {
   answer: string;
   bluffs: Bluff[];
   votes: Vote[];
+  correctAnswerPlayers?: string[]; // Array of player IDs who got the answer correct
   timeLeft: number;
   phase: string;
 };

@@ -196,6 +196,11 @@ export class EventBroadcasterService {
       current = { ...current, votes: votesArray };
     }
     
+    // Convert correctAnswerPlayers Set to array for frontend
+    if (current && current.correctAnswerPlayers instanceof Set) {
+      current = { ...current, correctAnswerPlayers: Array.from(current.correctAnswerPlayers) };
+    }
+    
     return {
       code: roomState.code,
       phase: roomState.phase,
