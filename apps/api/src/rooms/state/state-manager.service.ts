@@ -9,7 +9,7 @@ import { RoomNotFoundError, PlayerNotFoundError } from '../errors';
 export class StateManagerService {
   private readonly logger = new Logger(StateManagerService.name);
   private readonly rooms = new Map<string, ImmutableRoomState>();
-  private readonly stateLocks = new Map<string, Promise<void>>();
+  private readonly stateLocks = new Map<string, Promise<any>>();
 
   constructor(private readonly gameRegistry: GameRegistry) {}
 
@@ -76,7 +76,7 @@ export class StateManagerService {
       if (engine) {
         // Only initialize if this is the first player, otherwise preserve game state
         if (currentState.players.length === 0) {
-          const newGameState = engine.initialize(newState.players);
+          const newGameState = engine.initialize([...newState.players]);
           const finalState = newState.withGameStateUpdated(newGameState);
           this.rooms.set(roomCode, finalState);
           return finalState;
@@ -116,7 +116,7 @@ export class StateManagerService {
       // Update game state for remaining players
       const engine = this.gameRegistry.getGame(currentState.gameType);
       if (engine) {
-        const newGameState = engine.initialize(newState.players);
+        const newGameState = engine.initialize([...newState.players]);
         const finalState = newState.withGameStateUpdated(newGameState);
         this.rooms.set(roomCode, finalState);
         return finalState;
