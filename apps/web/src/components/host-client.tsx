@@ -6,7 +6,7 @@ import { RoomCodeChip } from "@/components/room-code-chip";
 import { PlayerAvatar } from "@/components/player-avatar";
 import { GamePhaseManager } from "./game-phase-manager";
 import { RoomStateDebug } from "./room-state-debug";
-import type { RoomState, GameAction, Choice } from "@party/types";
+import type { RoomState, Choice } from "@party/types";
 import { DUR } from "@party/types";
 
 export function HostClient({ code }: { code: string }) {
@@ -33,7 +33,7 @@ export function HostClient({ code }: { code: string }) {
     });
     
     // Listen for join errors
-    s.on("error", (error: any) => {
+    s.on("error", (error: Error) => {
       console.error("❌ Host join error:", error);
     });
     
@@ -98,7 +98,14 @@ export function HostClient({ code }: { code: string }) {
             question={state.current?.prompt}
             correctAnswer={state.current?.answer}
             timeLeft={timer}
-            totalTime={state.phase === 'prompt' ? DUR.PROMPT : state.phase === 'choose' ? DUR.CHOOSE : DUR.SCORING}
+            totalTime={(() => {
+              switch (state.phase) {
+                case 'prompt': return DUR.PROMPT;
+                case 'choose': return DUR.CHOOSE;
+                case 'scoring': return DUR.SCORING;
+                default: return 30;
+              }
+            })()}
             round={state.round || 1}
             maxRounds={state.maxRounds || 5}
             choices={choices}

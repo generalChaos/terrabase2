@@ -21,7 +21,7 @@ export function RoomStateDebug({ roomState, hasSubmittedAnswer, hasVoted }: Room
         <div><span className="text-[--muted]">Current:</span> {roomState.current ? 'Yes' : 'No'}</div>
         {roomState.current && (
           <>
-            <div><span className="text-[--muted]">Question:</span> {roomState.current.question}</div>
+            <div><span className="text-[--muted]">Question:</span> {roomState.current.prompt}</div>
             <div><span className="text-[--muted]">Bluffs:</span> {roomState.current.bluffs.length}</div>
             <div><span className="text-[--muted]">Votes:</span> {roomState.current.votes.length}</div>
           </>

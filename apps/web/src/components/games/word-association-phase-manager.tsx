@@ -1,6 +1,5 @@
 "use client";
 import { BaseGamePhaseManager, BaseGamePhaseManagerProps } from "./game-phase-manager.interface";
-import type { Phase } from "@party/types";
 
 type WordAssociationPhaseManagerProps = BaseGamePhaseManagerProps & {
   word?: string;
@@ -22,7 +21,6 @@ export class WordAssociationPhaseManager extends BaseGamePhaseManager {
       word,
       associations = [],
       timeLeft = 0,
-      totalTime = this.getDefaultTimeForPhase(phase),
       round = 1,
       maxRounds = 5,
       hasSubmitted = false,
@@ -55,7 +53,7 @@ export class WordAssociationPhaseManager extends BaseGamePhaseManager {
               <h2 className="text-2xl font-bold mb-4">Round {round} of {maxRounds}</h2>
               <div className="text-4xl font-bold mb-8">{word || "Loading word..."}</div>
               <div className="text-lg mb-6">
-                What word comes to mind when you think of "{word}"?
+                What word comes to mind when you think of &quot;{word}&quot;?
               </div>
               {!hasSubmitted ? (
                 <div className="w-full max-w-md">
@@ -124,7 +122,7 @@ export class WordAssociationPhaseManager extends BaseGamePhaseManager {
             <h2 className="text-2xl font-bold mb-4">Round {round} Results</h2>
             <div className="text-4xl font-bold mb-8">{word}</div>
             <div className="text-lg mb-6">
-              Here's how everyone voted:
+              Here&apos;s how everyone voted:
             </div>
             <div className="w-full max-w-md">
               {associations.map((association) => (

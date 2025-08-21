@@ -18,7 +18,7 @@ type GamePhaseManagerProps = {
   players?: Array<{ id: string; name: string; avatar?: string; score: number; connected?: boolean }>;
   scores?: Array<{ playerId: string; score: number }>;
   playerId?: string; // Current player's ID for player-specific views
-  current?: any; // Current round state including correctAnswerPlayers
+  current?: Record<string, unknown>; // Current round state including correctAnswerPlayers
   onSubmitAnswer?: (answer: string) => void;
   onSubmitVote?: (choiceId: string) => void;
   hasSubmittedAnswer?: boolean;

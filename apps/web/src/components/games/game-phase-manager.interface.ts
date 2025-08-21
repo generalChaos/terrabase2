@@ -1,4 +1,4 @@
-import type { Phase, Choice } from "@party/types";
+import type { Phase } from "@party/types";
 
 /**
  * Base interface that all game-specific phase managers must implement.
@@ -29,7 +29,7 @@ export interface BaseGamePhaseManagerProps {
   maxRounds?: number;
   players?: Array<{ id: string; name: string; avatar?: string; score: number; connected?: boolean }>;
   playerId?: string;
-  [key: string]: any; // Allow game-specific props
+  [key: string]: unknown; // Allow game-specific props
 }
 
 /**

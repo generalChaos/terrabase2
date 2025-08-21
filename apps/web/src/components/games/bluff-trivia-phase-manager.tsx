@@ -5,8 +5,8 @@ import { VotingView } from "../voting-view";
 import { PlayerVotingView } from "../player-voting-view";
 import { ScoringView } from "../scoring-view";
 import { PlayerScoringView } from "../player-scoring-view";
-import type { Phase, Choice } from "@party/types";
 import { BaseGamePhaseManager, BaseGamePhaseManagerProps } from "./game-phase-manager.interface";
+import type { Choice } from "@party/types";
 
 type BluffTriviaPhaseManagerProps = BaseGamePhaseManagerProps & {
   question?: string;
@@ -14,7 +14,7 @@ type BluffTriviaPhaseManagerProps = BaseGamePhaseManagerProps & {
   choices?: Choice[];
   votes?: Array<{ voter: string; choiceId: string }>;
   scores?: Array<{ playerId: string; score: number }>;
-  current?: any; // Current round state including correctAnswerPlayers
+  current?: Record<string, unknown>; // Current round state including correctAnswerPlayers
   onSubmitAnswer?: (answer: string) => void;
   onSubmitVote?: (choiceId: string) => void;
   hasSubmittedAnswer?: boolean;
@@ -105,7 +105,16 @@ export class BluffTriviaPhaseManager extends BaseGamePhaseManager {
               onSubmitVote={onSubmitVote || (() => {})}
               hasVoted={hasVoted}
               selectedChoiceId={selectedChoiceId}
-              gotAnswerCorrect={current?.correctAnswerPlayers?.includes(playerId || "") || false}
+              gotAnswerCorrect={(() => {
+                const correctPlayers = current?.correctAnswerPlayers;
+                if (Array.isArray(correctPlayers)) {
+                  return correctPlayers.includes(playerId || "");
+                } else if (correctPlayers && typeof correctPlayers === 'object') {
+                  // Handle case where it might be a Set-like object
+                  return Object.values(correctPlayers).includes(playerId || "");
+                }
+                return false;
+              })()}
             />
           );
         }

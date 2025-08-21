@@ -83,12 +83,6 @@ export class GameCommandHandler {
 
       const events = await this.roomManager.processGameAction(roomCode, playerId, action);
 
-      // Start timer for prompt phase
-      this.timerService.startTimer(roomCode, GAME_PHASE_DURATIONS.PROMPT, {
-        onExpire: () => this.handlePhaseTransition(roomCode),
-        onTick: () => this.handleTimerTick(roomCode)
-      });
-
       return {
         success: true,
         events
@@ -241,40 +235,6 @@ export class GameCommandHandler {
         events: [],
         error: error instanceof Error ? error.message : 'Unknown error'
       };
-    }
-  }
-
-  /**
-   * Handle phase transition
-   */
-  private async handlePhaseTransition(roomCode: string): Promise<void> {
-    try {
-      const events = await this.roomManager.advanceGamePhase(roomCode);
-      
-      // Start timer for next phase if needed
-      const room = this.roomManager.getRoomSafe(roomCode);
-      if (room && room.gameState.timeLeft > 0) {
-        this.timerService.startTimer(roomCode, room.gameState.timeLeft, {
-          onExpire: () => this.handlePhaseTransition(roomCode),
-          onTick: () => this.handleTimerTick(roomCode)
-        });
-      }
-    } catch (error) {
-      console.error(`❌ Error in phase transition:`, error);
-    }
-  }
-
-  /**
-   * Handle timer tick
-   */
-  private async handleTimerTick(roomCode: string): Promise<void> {
-    try {
-      const events = await this.roomManager.updateTimer(roomCode, 1);
-      // Events will be handled by the gateway
-    } catch (error) {
-      console.error(`❌ Error in timer tick for room ${roomCode}:`, error);
-      // Stop the timer if there's an error
-      this.timerService.stopTimerForRoom(roomCode);
     }
   }
 }

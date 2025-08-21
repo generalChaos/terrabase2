@@ -88,7 +88,7 @@ export function PlayerVotingView({
       <div className="w-full max-w-2xl">
         {gotAnswerCorrect ? (
           <div className="text-center">
-            <div className="text-2xl font-semibold text-[--success] mb-2">🎯 You're Done!</div>
+            <div className="text-2xl font-semibold text-[--success] mb-2">🎯 You&apos;re Done!</div>
             <div className="text-[--muted]">You already know the answer, so you can just watch and see how many people you fooled!</div>
           </div>
         ) : !hasVoted ? (

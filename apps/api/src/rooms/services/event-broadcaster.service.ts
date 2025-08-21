@@ -216,11 +216,25 @@ export class EventBroadcasterService {
   /**
    * Generate choices for voting
    */
-  private generateChoices(round: any): Array<{ id: string; text: string }> {
+  private generateChoices(round: any): Array<{ id: string; text: string; by: string }> {
     if (!round) return [];
     
-    const truth = { id: `TRUE::${round.promptId}`, text: round.answer };
-    const bluffChoices = round.bluffs.map((b: any) => ({ id: b.id, text: b.text }));
+    // Find players who got the correct answer
+    let correctAnswerPlayers: string[] = [];
+    if (round.correctAnswerPlayers instanceof Set) {
+      correctAnswerPlayers = Array.from(round.correctAnswerPlayers);
+    } else if (Array.isArray(round.correctAnswerPlayers)) {
+      correctAnswerPlayers = round.correctAnswerPlayers;
+    }
+    
+    // Create truth choice - show who got it right, or 'system' if no one did
+    const truth = { 
+      id: `TRUE::${round.promptId}`, 
+      text: round.answer, 
+      by: correctAnswerPlayers.length > 0 ? correctAnswerPlayers[0] : 'system' 
+    };
+    
+    const bluffChoices = round.bluffs.map((b: any) => ({ id: b.id, text: b.text, by: b.by }));
     
     // Simple shuffle for now
     const allChoices = [truth, ...bluffChoices];

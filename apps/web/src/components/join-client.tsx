@@ -99,8 +99,9 @@ export function JoinClient({ code }: { code: string }) {
     s.on('choices', (data: { choices: Choice[] }) => {
       console.log('🎲 Choices received:', data);
       setChoices(data.choices);
-      setHasVoted(false);
-      setSelectedChoiceId(undefined);
+      // Don't reset vote state here - it should persist through the phase
+      // setHasVoted(false);
+      // setSelectedChoiceId(undefined);
     });
 
     s.on('submitted', (data: { kind: string }) => {
@@ -182,11 +183,23 @@ export function JoinClient({ code }: { code: string }) {
     const submitData: SubmitVoteData = { choiceId };
     console.log('🗳️ Submitting vote:', submitData);
     socketRef.current.emit('submitVote', submitData);
-    // Don't set hasVoted here - wait for server confirmation
+    // Set local state immediately for better UX
+    setHasVoted(true);
+    setSelectedChoiceId(choiceId);
   };
 
   // Show game phase manager if in a game phase
   if (roomState?.phase && roomState.phase !== 'lobby' && (joined || roomState.players?.some(p => p.id === playerId))) {
+    // Get the correct total time for the current phase
+    const getTotalTimeForPhase = (phase: string) => {
+      switch (phase) {
+        case 'prompt': return DUR.PROMPT;
+        case 'choose': return DUR.CHOOSE;
+        case 'scoring': return DUR.SCORING;
+        default: return 30;
+      }
+    };
+
     return (
       <GamePhaseManager
         gameType="bluff-trivia" // You can change this to test different games
@@ -196,7 +209,7 @@ export function JoinClient({ code }: { code: string }) {
         correctAnswer={roomState.current?.answer || ""}
         choices={choices}
         timeLeft={timer}
-        totalTime={DUR.PROMPT}
+        totalTime={getTotalTimeForPhase(roomState.phase)}
         round={roomState.round || 0}
         maxRounds={roomState.maxRounds || 5}
         players={roomState.players || []}

@@ -138,60 +138,83 @@ export class BluffTriviaEngine implements GameEngine<BluffTriviaState, BluffTriv
   }
 
   advancePhase(state: BluffTriviaState): BluffTriviaState {
-    const currentPhaseIndex = this.phases.findIndex(p => p.name === state.phase);
-    const nextPhaseIndex = currentPhaseIndex + 1;
-    
-    if (nextPhaseIndex >= this.phases.length) {
-      return { ...state, phase: 'over' };
-    }
-    
-    const nextPhase = this.phases[nextPhaseIndex];
-    let newState: BluffTriviaState = { ...state, phase: nextPhase.name, timeLeft: nextPhase.duration };
-    
-    // Handle game-specific phase transitions
-    switch (nextPhase.name) {
+    // Handle phase transitions based on current phase
+    switch (state.phase) {
+      case 'lobby':
+        // Lobby → Prompt (start first round)
+        return {
+          ...state,
+          phase: PHASE_NAMES.PROMPT,
+          round: 1,
+          timeLeft: GAME_PHASE_DURATIONS.PROMPT,
+          currentRound: this.initializeRound(state.players, 1)
+        };
+        
       case 'prompt':
-        if (state.round < state.maxRounds) {
-          newState = {
-            ...newState,
-            round: state.round + 1,
-            currentRound: this.initializeRound(newState.players, state.round + 1)
-          };
-        }
-        break;
-      case 'choose':
-        // Update current round phase and generate choices
+        // Prompt → Choose
         if (state.currentRound) {
-          newState = {
-            ...newState,
+          return {
+            ...state,
+            phase: PHASE_NAMES.CHOOSE,
+            timeLeft: GAME_PHASE_DURATIONS.CHOOSE,
             currentRound: {
               ...state.currentRound,
               phase: 'choose',
-              timeLeft: nextPhase.duration
+              timeLeft: GAME_PHASE_DURATIONS.CHOOSE
             }
           };
         }
         break;
-      case 'scoring':
-        // Score the current round and update current round phase
+        
+      case 'choose':
+        // Choose → Scoring
         if (state.currentRound) {
-          newState = {
-            ...newState,
+          return {
+            ...state,
+            phase: PHASE_NAMES.SCORING,
+            timeLeft: GAME_PHASE_DURATIONS.SCORING,
             currentRound: {
               ...state.currentRound,
               phase: 'scoring',
-              timeLeft: nextPhase.duration
+              timeLeft: GAME_PHASE_DURATIONS.SCORING
             }
           };
-          this.scoreRound(newState);
         }
         break;
+        
+      case 'scoring':
+        // Scoring → Next Round or Game Over
+        if (state.round < state.maxRounds) {
+          // Start next round
+          const nextRound = state.round + 1;
+          return {
+            ...state,
+            phase: PHASE_NAMES.PROMPT,
+            round: nextRound,
+            timeLeft: GAME_PHASE_DURATIONS.PROMPT,
+            currentRound: this.initializeRound(state.players, nextRound)
+          };
+        } else {
+          // Game is over
+          return {
+            ...state,
+            phase: 'over',
+            timeLeft: 0
+          };
+        }
+        
       case 'over':
-        // Game is over, no additional state changes
-        break;
+        // Game is already over
+        return state;
+        
+      default:
+        console.warn(`Unknown phase: ${state.phase}`);
+        return state;
     }
     
-    return newState;
+    // Fallback - shouldn't reach here
+    console.error(`Failed to advance phase from ${state.phase}`);
+    return state;
   }
 
   getTimeLeft(state: BluffTriviaState): number {
