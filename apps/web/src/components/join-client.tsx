@@ -240,7 +240,7 @@ export function JoinClient({ code }: { code: string }) {
 
     return (
       <GamePhaseManager
-        gameType="fibbing-it" // Using the new Fibbing It! design
+        gameType={roomState.gameType || "fibbing-it"}
         phase={roomState.phase}
         isHost={false}
         question={roomState.current?.prompt || ""}

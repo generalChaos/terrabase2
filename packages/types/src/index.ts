@@ -39,6 +39,7 @@ export type RoundState = {
 
 export type RoomState = {
   code: string;
+  gameType: string;
   phase: Phase;
   round: number;
   maxRounds: number;

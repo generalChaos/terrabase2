@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { GameEngine, GameAction, GameEvent } from './game-engine.interface';
 import { BluffTriviaEngine } from './games/bluff-trivia.engine';
+import { FibbingItEngine } from './games/fibbing-it.engine';
+import { WordAssociationEngine } from './games/word-association.engine';
 import { GAME_TYPES } from './constants';
 
 @Injectable()
@@ -8,8 +10,10 @@ export class GameRegistry {
   private games = new Map<string, GameEngine<any, any, any>>();
   
   constructor() {
-    // Register the default BluffTrivia game
+    // Register all available game engines
     this.register(GAME_TYPES.BLUFF_TRIVIA, new BluffTriviaEngine());
+    this.register(GAME_TYPES.FIBBING_IT, new FibbingItEngine());
+    this.register(GAME_TYPES.WORD_ASSOCIATION, new WordAssociationEngine());
   }
   
   register(gameType: string, engine: GameEngine<any, any, any>): void {

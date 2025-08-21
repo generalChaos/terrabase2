@@ -70,6 +70,8 @@ export const GameConfig = {
   // Game types
   GAME_TYPES: {
     BLUFF_TRIVIA: 'bluff-trivia',
+    FIBBING_IT: 'fibbing-it',
+    WORD_ASSOCIATION: 'word-association',
   },
 
   // Room configuration

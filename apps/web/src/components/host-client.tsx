@@ -92,7 +92,7 @@ export function HostClient({ code }: { code: string }) {
       >
         {state?.phase && state.phase !== 'lobby' ? (
           <GamePhaseManager
-            gameType="fibbing-it" // Using the new Fibbing It! design
+            gameType={state.gameType || "fibbing-it"}
             phase={state.phase}
             isHost={true}
             question={state.current?.prompt}

@@ -203,6 +203,7 @@ export class EventBroadcasterService {
     
     return {
       code: roomState.code,
+      gameType: roomState.gameType,
       phase: roomState.phase,
       round: roomState.gameState.round,
       maxRounds: roomState.gameState.maxRounds,

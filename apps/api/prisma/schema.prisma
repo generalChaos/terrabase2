@@ -10,6 +10,7 @@ generator client {
 model Game {
   id        String   @id @default(cuid())
   roomCode  String   @unique
+  gameType  String   @default("fibbing-it")
   status    String   @default("lobby")
   round     Int      @default(0)
   maxRounds Int      @default(5)

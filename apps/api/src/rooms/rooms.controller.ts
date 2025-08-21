@@ -1,31 +1,25 @@
-import { Controller, Post } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
+import { Controller, Post, Body } from '@nestjs/common';
+import { RoomManager } from './room-manager';
 import { genRoomCode } from './room-code.util';
 
-const prisma = new PrismaClient();
+type CreateRoomDto = {
+  gameType?: string;
+};
 
 @Controller('rooms')
 export class RoomsController {
+  constructor(private readonly roomManager: RoomManager) {}
+
   @Post()
-  async createRoom() {
-    // retry on rare collision
-    for (let i = 0; i < 5; i++) {
-      const code = genRoomCode();
-      try {
-        const room = await prisma.game.create({
-          data: {
-            roomCode: code,
-            status: 'lobby',
-            round: 0,
-            maxRounds: 5,
-            hostId: 'host',
-          },
-        });
-        return { code: room.roomCode };
-      } catch {
-        /* unique collision → try again */
-      }
-    }
-    return { error: 'ROOM_CREATE_FAILED' };
+  async createRoom(@Body() body: CreateRoomDto) {
+    const gameType = body.gameType || 'fibbing-it';
+    
+    // Generate a room code
+    const code = genRoomCode();
+    
+    // Create the room using the room manager so it's available for WebSocket connections
+    const room = this.roomManager.createRoom(code, gameType);
+    
+    return { code: room.code };
   }
 }

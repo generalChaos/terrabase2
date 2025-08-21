@@ -22,9 +22,7 @@ export class StateManagerService {
    * Create a new room with immutable state
    */
   createRoom(code: string, gameType: string = GameConfig.GAME_TYPES.BLUFF_TRIVIA): ImmutableRoomState {
-    if (!this.gameRegistry.hasGame(gameType)) {
-      throw new Error(`Unknown game type: ${gameType}`);
-    }
+
     
     const engine = this.gameRegistry.getGame(gameType)!;
     const gameState = engine.initialize([]);

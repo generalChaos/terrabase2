@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { RoomsGateway } from './rooms.gateway';
+import { RoomsController } from './rooms.controller';
 import { RoomManager } from './room-manager';
 import { GameRegistry } from './game-registry';
 import { TimerService } from './timer.service';
@@ -10,6 +11,7 @@ import { ConnectionManagerService } from './services/connection-manager.service'
 import { EventBroadcasterService } from './services/event-broadcaster.service';
 
 @Module({
+  controllers: [RoomsController],
   providers: [
     TimerService,             // Provide first - no dependencies
     GameRegistry,            // No dependencies

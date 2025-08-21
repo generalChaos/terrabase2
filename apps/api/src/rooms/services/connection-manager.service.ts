@@ -22,10 +22,15 @@ export class ConnectionManagerService {
    */
   async handleConnection(roomCode: string, clientId: string): Promise<ConnectionResult> {
     try {
-      // Create room if it doesn't exist
+      // Room should already exist if created by controller
       if (!this.roomManager.hasRoom(roomCode)) {
-        this.logger.log(`🏠 Creating new room: ${roomCode}`);
-        this.roomManager.createRoom(roomCode, GAME_TYPES.BLUFF_TRIVIA);
+        this.logger.log(`🏠 Room ${roomCode} not found - should be created by controller first`);
+        return {
+          success: false,
+          room: null,
+          isReconnection: false,
+          error: 'Room not found - please create room first'
+        };
       }
 
       const room = this.roomManager.getRoomSafe(roomCode);
