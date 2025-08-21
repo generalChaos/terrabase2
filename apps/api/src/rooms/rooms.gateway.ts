@@ -29,6 +29,9 @@ import {
   OnGatewayDisconnect,
   OnGatewayInit,
 } from '@nestjs/websockets';
+import { GameCommandHandler } from './commands/game-command.handler';
+import { ConnectionManagerService } from './services/connection-manager.service';
+import { EventBroadcasterService } from './services/event-broadcaster.service';
 
 @WebSocketGateway({ namespace: '/rooms', cors: { origin: '*' } })
 export class RoomsGateway
@@ -40,7 +43,9 @@ export class RoomsGateway
   constructor(
     private roomManager: RoomManager,
     private timerService: TimerService,
-    private errorHandler: ErrorHandlerService
+    private errorHandler: ErrorHandlerService,
+    private connectionManager: ConnectionManagerService,
+    private eventBroadcaster: EventBroadcasterService
   ) {}
 
   afterInit(nsp: Namespace) {
@@ -137,57 +142,25 @@ export class RoomsGateway
       const code = this.codeFromNs(client);
       console.log(`👋 Player ${body.nickname} joining room ${code} (ID: ${client.id})`);
       
-      const room = this.roomManager.getRoomSafe(code);
-      if (!room) {
-        throw new RoomNotFoundError(code);
+      const { success, room, isReconnection, error } = await this.connectionManager.handlePlayerJoin(
+        code,
+        client.id,
+        body.nickname,
+        body.avatar
+      );
+      
+      if (!success || !room) {
+        throw new GameError(error || 'Failed to join room', 'JOIN_FAILED', 500);
       }
       
-      // Check if this is a reconnection of an existing player
-      const existingPlayer = room.players.find(p => p.name === body.nickname);
-      if (existingPlayer && !existingPlayer.connected) {
-        // Player is reconnecting - update their socket ID and connection status
-        console.log(`🔄 Player ${body.nickname} reconnecting, updating socket ID from ${existingPlayer.id} to ${client.id}`);
-        await this.roomManager.updatePlayerSocketId(code, existingPlayer.id, client.id);
-        
-        console.log(`✅ Player ${body.nickname} reconnected to room ${code}`);
-        client.emit('joined', { ok: true });
-        
-        this.broadcastRoomUpdate(code);
-        
-        // Send additional context for mid-game joins
-        if (room.gameState.phase !== 'lobby') {
-          this.sendMidGameContext(client, room);
-        }
-        return;
-      }
-      
-      // Check if name is already taken by a connected player
-      if (existingPlayer && existingPlayer.connected) {
-        throw new PlayerNameTakenError(body.nickname, code);
-      }
-      
-      // New player joining
-      const newPlayer: Player = {
-        id: client.id,
-        name: body.nickname,
-        avatar: body.avatar,
-        connected: true,
-        score: 0,
-      };
-      
-      const success = await this.roomManager.addPlayer(code, newPlayer);
-      if (!success) {
-        throw new GameError('Failed to add player to room', 'JOIN_FAILED', 500, { roomCode: code, player: newPlayer });
-      }
-      
-      console.log(`✅ Player ${body.nickname} joined room ${code}`);
+      console.log(`✅ Player ${body.nickname} ${isReconnection ? 'reconnected' : 'joined'} to room ${code}`);
       client.emit('joined', { ok: true });
       
-      this.broadcastRoomUpdate(code);
+      this.eventBroadcaster.broadcastRoomUpdate(code, room);
       
       // Send additional context for mid-game joins
       if (room.gameState.phase !== 'lobby') {
-        this.sendMidGameContext(client, room);
+        this.eventBroadcaster.sendMidGameContext(client.id, room);
       }
       
     } catch (error) {

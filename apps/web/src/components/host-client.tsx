@@ -102,7 +102,12 @@ export function HostClient({ code }: { code: string }) {
 
             <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
               {state?.players?.length
-                ? state.players.map((p) => <PlayerAvatar key={p.id} {...p} />)
+                ? state.players.map((p, index) => (
+                    <PlayerAvatar 
+                      key={`${p.id}-${p.name}-${index}`} 
+                      {...p} 
+                    />
+                  ))
                 : Array.from({ length: 4 }).map((_, i) => (
                     <div key={i} className="rounded-2xl bg-[--panel] border border-dashed border-slate-700 p-4 opacity-70">
                       Waiting…

@@ -138,4 +138,13 @@ export class RoomManager {
       console.error(`❌ Error updating player socket ID in room ${roomCode}:`, error);
     }
   }
+
+  // NEW: Clean up duplicate players to prevent React key collisions
+  async cleanupDuplicatePlayers(roomCode: string): Promise<void> {
+    try {
+      await this.stateManager.cleanupDuplicatePlayers(roomCode);
+    } catch (error) {
+      console.error(`❌ Error cleaning up duplicate players in room ${roomCode}:`, error);
+    }
+  }
 }

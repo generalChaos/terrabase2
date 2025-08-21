@@ -157,7 +157,7 @@ export function ScoringView({
               }))
               .sort((a, b) => b.totalScore - a.totalScore)
               .map((player, index) => (
-                <div key={player.id} className="flex items-center justify-between p-3 bg-[--bg] rounded-lg">
+                <div key={`${player.id}-${player.name}-${index}`} className="flex items-center justify-between p-3 bg-[--bg] rounded-lg">
                   <div className="flex items-center gap-3">
                     <span className={`text-lg font-bold ${
                       index === 0 ? 'text-[--warning]' : 

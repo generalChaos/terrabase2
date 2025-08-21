@@ -1,4 +1,6 @@
+import { Injectable } from '@nestjs/common';
 import { GameEngine, GameAction, GameEvent, GameResult, GamePhase, BaseGameState, Player } from '../game-engine.interface';
+import { GameConfig } from '../../config/game.config';
 import { prompts } from '../prompts.seed';
 import { TRUE, uid, shuffle } from '../utils';
 import { GAME_PHASE_DURATIONS, GAME_CONFIG, PHASE_NAMES } from '../constants';
@@ -6,28 +8,25 @@ import { GAME_PHASE_DURATIONS, GAME_CONFIG, PHASE_NAMES } from '../constants';
 export interface BluffTriviaState extends BaseGameState {
   round: number;
   maxRounds: number;
-  currentRound?: RoundState;
+  currentRound?: BluffTriviaRound;
   usedPromptIds: Set<string>;
 }
 
-export interface RoundState {
-  number: number;
+export interface BluffTriviaRound {
+  roundNumber: number;
   promptId: string;
-  question: string;
+  prompt: string;
   answer: string;
   bluffs: Bluff[];
-  votes: Vote[];
+  votes: Map<string, string>; // playerId -> choiceId
+  timeLeft: number;
+  phase: 'prompt' | 'choose' | 'scoring';
 }
 
 export interface Bluff {
   id: string;
   by: string;
   text: string;
-}
-
-export interface Vote {
-  voter: string;
-  choiceId: string;
 }
 
 export interface BluffTriviaAction extends GameAction {
@@ -158,7 +157,7 @@ export class BluffTriviaEngine implements GameEngine<BluffTriviaState, BluffTriv
           newState = {
             ...newState,
             round: state.round + 1,
-            currentRound: this.generateNewRound(newState)
+            currentRound: this.initializeRound(newState.players, state.round + 1)
           };
         }
         break;
@@ -203,7 +202,7 @@ export class BluffTriviaEngine implements GameEngine<BluffTriviaState, BluffTriv
         if (state.currentRound) {
           events.push({ 
             type: 'prompt', 
-            data: { question: state.currentRound.question }, 
+            data: { question: state.currentRound.prompt }, 
             target: 'all' 
           });
         }
@@ -293,14 +292,14 @@ export class BluffTriviaEngine implements GameEngine<BluffTriviaState, BluffTriv
       phase: PHASE_NAMES.PROMPT,
       round: 1,
       timeLeft: GAME_PHASE_DURATIONS.PROMPT,
-      currentRound: this.generateNewRound(state)
+      currentRound: this.initializeRound(state.players, 1)
     };
     
     return {
       newState,
       events: [
         { type: 'roomUpdate', data: newState, target: 'all' },
-        { type: 'prompt', data: { question: newState.currentRound!.question }, target: 'all' }
+        { type: 'prompt', data: { question: newState.currentRound!.prompt }, target: 'all' }
       ],
       isValid: true
     };
@@ -434,7 +433,7 @@ export class BluffTriviaEngine implements GameEngine<BluffTriviaState, BluffTriv
     }
     
     // Check if player already voted
-    if (state.currentRound.votes.some(v => v.voter === action.playerId)) {
+    if (state.currentRound.votes.has(action.playerId)) {
       return {
         newState: state,
         isValid: false,
@@ -443,10 +442,12 @@ export class BluffTriviaEngine implements GameEngine<BluffTriviaState, BluffTriv
       };
     }
     
-    const newVote: Vote = { voter: action.playerId, choiceId };
+    const newVote: Map<string, string> = new Map(state.currentRound.votes);
+    newVote.set(action.playerId, choiceId);
+    
     const newCurrentRound = {
       ...state.currentRound,
-      votes: [...state.currentRound.votes, newVote]
+      votes: newVote
     };
     
     const newState: BluffTriviaState = {
@@ -464,7 +465,38 @@ export class BluffTriviaEngine implements GameEngine<BluffTriviaState, BluffTriv
     };
   }
 
-  private generateNewRound(state: BluffTriviaState): RoundState {
+  private initializeRound(players: Player[], roundNumber: number): BluffTriviaRound {
+    const prompt = this.getRandomPrompt();
+    
+    return {
+      roundNumber,
+      promptId: prompt.id,
+      prompt: prompt.question,
+      answer: prompt.answer,
+      bluffs: [],
+      votes: new Map(),
+      timeLeft: GameConfig.TIMING.PHASES.PROMPT,
+      phase: 'prompt' as const
+    };
+  }
+
+  private advanceToChoosePhase(round: BluffTriviaRound): BluffTriviaRound {
+    return {
+      ...round,
+      phase: 'choose',
+      timeLeft: GameConfig.TIMING.PHASES.CHOOSE
+    };
+  }
+
+  private advanceToScoringPhase(round: BluffTriviaRound): BluffTriviaRound {
+    return {
+      ...round,
+      phase: 'scoring',
+      timeLeft: GameConfig.TIMING.PHASES.SCORING
+    };
+  }
+
+  private generateNewRound(state: BluffTriviaState): BluffTriviaRound {
     const pool = prompts.filter(p => !state.usedPromptIds.has(p.id));
     const prompt = pool[Math.floor(Math.random() * pool.length)];
     
@@ -472,12 +504,14 @@ export class BluffTriviaEngine implements GameEngine<BluffTriviaState, BluffTriv
     newState.usedPromptIds.add(prompt.id);
     
     return {
-      number: state.round,
+      roundNumber: state.round,
       promptId: prompt.id,
-      question: prompt.question,
+      prompt: prompt.question,
       answer: prompt.answer,
       bluffs: [],
-      votes: []
+      votes: new Map(),
+      timeLeft: GameConfig.TIMING.PHASES.PROMPT,
+      phase: 'prompt' as const
     };
   }
 
@@ -487,13 +521,13 @@ export class BluffTriviaEngine implements GameEngine<BluffTriviaState, BluffTriv
     const newState: BluffTriviaState = {
       ...state,
       phase: 'prompt',
-      timeLeft: 15,
+      timeLeft: GameConfig.TIMING.PHASES.PROMPT,
       currentRound: newRound
     };
     
     return [
       { type: 'roomUpdate', data: newState, target: 'all' },
-      { type: 'prompt', data: { question: newRound.question }, target: 'all' }
+      { type: 'prompt', data: { question: newRound.prompt }, target: 'all' }
     ];
   }
 
@@ -504,7 +538,7 @@ export class BluffTriviaEngine implements GameEngine<BluffTriviaState, BluffTriv
     const newState: BluffTriviaState = {
       ...state,
       phase: 'choose',
-      timeLeft: 20
+      timeLeft: GameConfig.TIMING.PHASES.CHOOSE
     };
     
     return [
@@ -520,19 +554,25 @@ export class BluffTriviaEngine implements GameEngine<BluffTriviaState, BluffTriv
     const newState: BluffTriviaState = {
       ...state,
       phase: 'scoring',
-      timeLeft: 6
+      timeLeft: GameConfig.TIMING.PHASES.SCORING
     };
     
     return [
       { type: 'roomUpdate', data: newState, target: 'all' },
-      { type: 'scores', data: { totals: state.players.map(p => ({ playerId: p.id, score: p.score })) }, target: 'all' }
+      { type: 'scores', data: { scores: state.players.map(p => ({ id: p.id, name: p.name, score: p.score })) }, target: 'all' }
     ];
   }
 
-  private generateChoices(round: RoundState): Array<{ id: string; text: string }> {
+  private generateChoices(round: BluffTriviaRound): Array<{ id: string; text: string }> {
     const truth = { id: TRUE(round.promptId), text: round.answer };
     const bluffChoices = round.bluffs.map(b => ({ id: b.id, text: b.text }));
-    return shuffle([truth, ...bluffChoices], round.number);
+    return shuffle([truth, ...bluffChoices], round.roundNumber);
+  }
+
+  private getRandomPrompt() {
+    // Use a static method since we don't have instance state
+    const pool = prompts.filter(p => true); // For now, just get any prompt
+    return pool[Math.floor(Math.random() * pool.length)];
   }
 
   private scoreRound(state: BluffTriviaState): void {
@@ -541,21 +581,55 @@ export class BluffTriviaEngine implements GameEngine<BluffTriviaState, BluffTriv
     const round = state.currentRound;
     const fooledCount: Record<string, number> = {};
     
-    for (const vote of round.votes) {
-      if (vote.choiceId.startsWith('TRUE::')) {
-        const player = state.players.find(p => p.id === vote.voter);
-        if (player) player.score += 1000;
+    for (const [playerId, choiceId] of round.votes) {
+      if (choiceId.startsWith('TRUE::')) {
+        const player = state.players.find(p => p.id === playerId);
+        if (player) player.score += GameConfig.RULES.SCORING.CORRECT_ANSWER;
       } else {
-        const bluff = round.bluffs.find(b => b.id === vote.choiceId);
+        const bluff = round.bluffs.find(b => b.id === choiceId);
         if (bluff) {
           fooledCount[bluff.by] = (fooledCount[bluff.by] || 0) + 1;
         }
       }
     }
     
-    for (const playerId in fooledCount) {
+    // Award bluff points
+    for (const [playerId, count] of Object.entries(fooledCount)) {
       const player = state.players.find(p => p.id === playerId);
-      if (player) player.score += fooledCount[playerId] * 500;
+      if (player) player.score += count * GameConfig.RULES.SCORING.BLUFF_POINTS;
     }
+  }
+
+  private calculateScores(players: Player[], round: BluffTriviaRound): Player[] {
+    const updatedPlayers = [...players];
+    
+    // Award points for correct answers
+    for (const [playerId, vote] of round.votes) {
+      if (vote === `TRUE::${round.promptId}`) {
+        const player = updatedPlayers.find(p => p.id === playerId);
+        if (player) player.score += GameConfig.RULES.SCORING.CORRECT_ANSWER;
+      }
+    }
+    
+    // Award points for successful bluffs
+    const fooledCount = new Map<string, number>();
+    for (const [playerId, vote] of round.votes) {
+      if (vote !== `TRUE::${round.promptId}`) {
+        const bluffId = vote;
+        const bluff = round.bluffs.find(b => b.id === bluffId);
+        if (bluff) {
+          const currentCount = fooledCount.get(bluff.by) || 0;
+          fooledCount.set(bluff.by, currentCount + 1);
+        }
+      }
+    }
+    
+    // Award bluff points
+    for (const [playerId, count] of fooledCount) {
+      const player = updatedPlayers.find(p => p.id === playerId);
+      if (player) player.score += count * GameConfig.RULES.SCORING.BLUFF_POINTS;
+    }
+    
+    return updatedPlayers;
   }
 }

@@ -1,11 +1,11 @@
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
-import { GAME_CONFIG } from './constants';
+import { GameConfig } from '../config/game.config';
 import { GameEvent } from './game-engine.interface';
 import { TimerServiceError, TimerNotFoundError } from './errors';
 
 export interface TimerCallbacks {
+  onTick: (events: GameEvent[]) => void;
   onExpire: () => void;
-  onTick?: (events: GameEvent[]) => void;
 }
 
 @Injectable()
@@ -17,106 +17,84 @@ export class TimerService implements OnModuleDestroy {
     // Set up periodic cleanup of orphaned timers
     this.cleanupInterval = setInterval(() => {
       this.cleanupOrphanedTimers();
-    }, GAME_CONFIG.CLEANUP_INTERVAL_MS);
+    }, GameConfig.TIMING.TIMER.CLEANUP_INTERVAL_MS);
   }
-  
-  // NEW: Method to stop timer when room is deleted
-  stopTimerForRoom(roomCode: string): void {
-    this.stopTimer(roomCode);
-  }
-  
+
+  /**
+   * Start a timer for a room with the specified duration
+   */
   startTimer(roomCode: string, duration: number, callbacks: TimerCallbacks): void {
-    try {
-      // Validate inputs
-      if (!roomCode || roomCode.trim().length === 0) {
-        throw new TimerServiceError('Room code is required');
-      }
-      
-      if (duration < 0) {
-        throw new TimerServiceError(`Invalid duration: ${duration} seconds`);
-      }
-      
-      if (!callbacks.onExpire) {
-        throw new TimerServiceError('onExpire callback is required');
-      }
-      
-      // Clear existing timer if any
+    if (this.timers.has(roomCode)) {
+      console.log(`⏰ Timer already running for room ${roomCode}, stopping existing timer`);
       this.stopTimer(roomCode);
-      
-      const timer = setInterval(() => {
-        try {
-          // Call the tick callback to let the caller handle room state
-          if (callbacks.onTick) {
-            callbacks.onTick([]);
-          }
-          
-          // Call the expire callback when timer should expire
-          // The caller is responsible for checking if the room still exists
-          callbacks.onExpire();
-          
-          // Stop the timer after it expires
-          this.stopTimer(roomCode);
-        } catch (error) {
-          console.error(`❌ Timer tick error for room ${roomCode}:`, error);
-          // Stop the timer on error to prevent cascading failures
-          this.stopTimer(roomCode);
-        }
-      }, duration * 1000); // Convert seconds to milliseconds
-      
-      this.timers.set(roomCode, timer);
-      console.log(`⏰ Started timer for room ${roomCode}, duration: ${duration}s`);
-    } catch (error) {
-      console.error(`❌ Failed to start timer for room ${roomCode}:`, error);
-      throw error;
     }
+
+    console.log(`⏰ Starting ${duration}s timer for room ${roomCode}`);
+    
+    const timer = setInterval(() => {
+      try {
+        // Call the tick callback to let the caller handle room state
+        if (callbacks.onTick) {
+          callbacks.onTick([]);
+        }
+        
+        // Call the expire callback when timer should expire
+        // The caller is responsible for checking if the room still exists
+        callbacks.onExpire();
+        
+        // Stop the timer after it expires
+        this.stopTimer(roomCode);
+      } catch (error) {
+        console.error(`❌ Timer tick error for room ${roomCode}:`, error);
+        // Stop the timer on error to prevent cascading failures
+        this.stopTimer(roomCode);
+      }
+    }, GameConfig.TIMING.CONVERSIONS.SECONDS_TO_MS * duration); // Convert seconds to milliseconds
+    
+    this.timers.set(roomCode, timer);
+    console.log(`✅ Timer started for room ${roomCode}`);
   }
-  
-  stopTimer(roomCode: string): void {
+
+  /**
+   * Stop a timer for a specific room
+   */
+  stopTimer(roomCode: string): boolean {
     const timer = this.timers.get(roomCode);
     if (timer) {
       clearInterval(timer);
       this.timers.delete(roomCode);
-      console.log(`⏰ Stopped timer for room ${roomCode}`);
+      console.log(`⏰ Timer stopped for room ${roomCode}`);
+      return true;
     }
+    return false;
   }
-  
-  // REMOVED: getTimeLeft method as it's not needed without RoomManager dependency
-  
+
+  /**
+   * Stop timer for a room (external cleanup method)
+   */
+  stopTimerForRoom(roomCode: string): boolean {
+    return this.stopTimer(roomCode);
+  }
+
+  /**
+   * Check if a timer is running for a room
+   */
   isTimerRunning(roomCode: string): boolean {
     return this.timers.has(roomCode);
   }
-  
-  // IMPROVED: Better stopAllTimers with logging
-  stopAllTimers(): void {
-    const timerCount = this.timers.size;
-    for (const [roomCode] of this.timers) {
-      this.stopTimer(roomCode);
-    }
-    console.log(`⏰ Stopped all ${timerCount} timers`);
-  }
-  
-  // IMPROVED: Better cleanup with logging
-  cleanup(): void {
-    console.log(`🧹 Cleaning up TimerService with ${this.timers.size} active timers`);
-    this.stopAllTimers();
-    if (this.cleanupInterval) {
-      clearInterval(this.cleanupInterval);
-      console.log('🧹 Cleanup interval cleared');
-    }
-  }
-  
-  // NEW: Get timer count for monitoring
-  getTimerCount(): number {
-    return this.timers.size;
-  }
-  
-  // NEW: Check if specific room has timer
-  hasTimer(roomCode: string): boolean {
-    return this.timers.has(roomCode);
-  }
-  
+
+  /**
+   * Get all active timer room codes
+   */
   getActiveTimers(): string[] {
     return Array.from(this.timers.keys());
+  }
+
+  /**
+   * Get timer count for monitoring
+   */
+  getTimerCount(): number {
+    return this.timers.size;
   }
   
   // NEW: Clean up orphaned timers (timers without active rooms)
@@ -130,7 +108,25 @@ export class TimerService implements OnModuleDestroy {
   
   // IMPROVED: Implement OnModuleDestroy for proper cleanup
   onModuleDestroy() {
-    console.log('🧹 TimerService module destroying, cleaning up resources');
-    this.cleanup();
+    console.log('🧹 TimerService shutting down, cleaning up all timers...');
+    
+    // Clear the cleanup interval
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+    }
+    
+    // Stop all active timers
+    this.stopAllTimers();
+  }
+
+  /**
+   * Stop all timers (cleanup method)
+   */
+  private stopAllTimers(): void {
+    for (const [roomCode, timer] of this.timers.entries()) {
+      clearInterval(timer);
+      console.log(`⏰ Stopped timer for room ${roomCode}`);
+    }
+    this.timers.clear();
   }
 }

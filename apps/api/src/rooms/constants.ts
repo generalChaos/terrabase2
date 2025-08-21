@@ -1,14 +1,12 @@
-export const GAME_PHASE_DURATIONS = {
-  PROMPT: 15,
-  CHOOSE: 20,
-  SCORING: 6
-} as const;
+import { GameConfig } from '../config/game.config';
 
+// Re-export game configuration for backward compatibility
+export const GAME_PHASE_DURATIONS = GameConfig.TIMING.PHASES;
 export const GAME_CONFIG = {
-  MAX_ROUNDS: 5,
-  CLEANUP_INTERVAL_MS: 5 * 60 * 1000, // 5 minutes
-  TIMER_TICK_MS: 1000 // 1 second
-} as const;
+  MAX_ROUNDS: GameConfig.RULES.ROUNDS.MAX_ROUNDS,
+  CLEANUP_INTERVAL_MS: GameConfig.TIMING.TIMER.CLEANUP_INTERVAL_MS,
+  TIMER_TICK_MS: GameConfig.TIMING.TIMER.TICK_MS
+};
 
 export const PHASE_NAMES = {
   LOBBY: 'lobby',
@@ -33,6 +31,4 @@ export enum EventTarget {
   HOST = 'host'
 }
 
-export const GAME_TYPES = {
-  BLUFF_TRIVIA: 'bluff-trivia'
-} as const;
+export const GAME_TYPES = GameConfig.GAME_TYPES;

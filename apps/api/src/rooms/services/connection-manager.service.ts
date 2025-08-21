@@ -109,9 +109,22 @@ export class ConnectionManagerService {
       // Check if this is a reconnection of an existing player
       const existingPlayer = room.players.find(p => p.name === nickname);
       if (existingPlayer && !existingPlayer.connected) {
-        // Player is reconnecting - update their socket ID and connection status
+        // Player is reconnecting - remove old entry and add new one
         this.logger.log(`🔄 Player ${nickname} reconnecting, updating socket ID from ${existingPlayer.id} to ${clientId}`);
-        await this.roomManager.updatePlayerSocketId(roomCode, existingPlayer.id, clientId);
+        
+        // Remove the old disconnected player
+        await this.roomManager.removePlayer(roomCode, existingPlayer.id);
+        
+        // Add the reconnected player with new socket ID
+        const newPlayer = {
+          id: clientId,
+          name: existingPlayer.name,
+          avatar: existingPlayer.avatar || avatar || '🙂',
+          connected: true,
+          score: existingPlayer.score,
+        };
+        
+        await this.roomManager.addPlayer(roomCode, newPlayer);
         
         const updatedRoom = this.roomManager.getRoomSafe(roomCode);
         return {
@@ -151,6 +164,9 @@ export class ConnectionManagerService {
         };
       }
 
+      // Clean up any duplicate players that might exist
+      await this.roomManager.cleanupDuplicatePlayers(roomCode);
+
       const updatedRoom = this.roomManager.getRoomSafe(roomCode);
       return {
         success: true,
@@ -183,7 +199,19 @@ export class ConnectionManagerService {
         const hostPlayer = room.players.find(p => p.id === room.hostId);
         if (hostPlayer) {
           this.logger.log(`🔄 Host ${hostPlayer.name} reconnecting, updating socket ID from ${room.hostId} to ${clientId}`);
-          await this.roomManager.updatePlayerSocketId(roomCode, room.hostId, clientId);
+          
+          // Remove the old disconnected host player and add the reconnected one
+          await this.roomManager.removePlayer(roomCode, room.hostId);
+          
+          const newHostPlayer = {
+            id: clientId,
+            name: hostPlayer.name,
+            avatar: hostPlayer.avatar,
+            connected: true,
+            score: hostPlayer.score,
+          };
+          
+          await this.roomManager.addPlayer(roomCode, newHostPlayer);
           
           const updatedRoom = this.roomManager.getRoomSafe(roomCode);
           return {
@@ -199,7 +227,19 @@ export class ConnectionManagerService {
       const disconnectedPlayer = room.players.find(p => !p.connected);
       if (disconnectedPlayer) {
         this.logger.log(`🔄 Player ${disconnectedPlayer.name} reconnecting, updating socket ID from ${disconnectedPlayer.id} to ${clientId}`);
-        await this.roomManager.updatePlayerSocketId(roomCode, disconnectedPlayer.id, clientId);
+        
+        // Remove the old disconnected player and add the reconnected one
+        await this.roomManager.removePlayer(roomCode, disconnectedPlayer.id);
+        
+        const newPlayer = {
+          id: clientId,
+          name: disconnectedPlayer.name,
+          avatar: disconnectedPlayer.avatar,
+          connected: true,
+          score: disconnectedPlayer.score,
+        };
+        
+        await this.roomManager.addPlayer(roomCode, newPlayer);
         
         const updatedRoom = this.roomManager.getRoomSafe(roomCode);
         return {

@@ -1,45 +1,53 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { GameConfig } from '../../config/game.config';
 import { GameRegistry } from '../game-registry';
-import { Player, GameAction, GameEvent } from '../game-engine.interface';
-import { GAME_TYPES } from '../constants';
 import { ImmutableRoomState, RoomState } from './room.state';
-import { RoomNotFoundError, PlayerNotFoundError } from '../errors';
+import { Player, GameAction, GameEvent } from '../game-engine.interface';
+import { 
+  RoomNotFoundError, 
+  PlayerNotFoundError, 
+  InsufficientPlayersError,
+  RoomFullError,
+  PlayerNameTakenError
+} from '../errors';
 
 @Injectable()
 export class StateManagerService {
-  private readonly logger = new Logger(StateManagerService.name);
-  private readonly rooms = new Map<string, ImmutableRoomState>();
-  private readonly stateLocks = new Map<string, Promise<any>>();
+  private rooms = new Map<string, ImmutableRoomState>();
+  private stateLocks = new Map<string, Promise<any>>();
 
   constructor(private readonly gameRegistry: GameRegistry) {}
 
   /**
    * Create a new room with immutable state
    */
-  createRoom(code: string, gameType: string = GAME_TYPES.BLUFF_TRIVIA): ImmutableRoomState {
+  createRoom(code: string, gameType: string = GameConfig.GAME_TYPES.BLUFF_TRIVIA): ImmutableRoomState {
     if (!this.gameRegistry.hasGame(gameType)) {
       throw new Error(`Unknown game type: ${gameType}`);
     }
-
+    
     const engine = this.gameRegistry.getGame(gameType)!;
     const gameState = engine.initialize([]);
     
-    const roomState = ImmutableRoomState.create(code, gameType, gameState);
-    this.rooms.set(code, roomState);
+    const immutableRoom = new ImmutableRoomState(
+      code,
+      gameType,
+      gameState,
+      [],
+      gameState.phase,
+      null,
+      new Date(),
+      0
+    );
     
-    this.logger.log(`🏠 Created room ${code} with game type ${gameType}`);
-    return roomState;
+    this.rooms.set(code, immutableRoom);
+    
+    console.log(`🏠 Created room ${code} with game type ${gameType}`);
+    return immutableRoom;
   }
 
   /**
-   * Get room state safely (returns undefined if not found)
-   */
-  getRoomSafe(code: string): ImmutableRoomState | undefined {
-    return this.rooms.get(code);
-  }
-
-  /**
-   * Get room state (throws if not found)
+   * Get a room by code
    */
   getRoom(code: string): ImmutableRoomState {
     const room = this.rooms.get(code);
@@ -50,157 +58,132 @@ export class StateManagerService {
   }
 
   /**
-   * Check if room exists
+   * Check if a room exists
    */
   hasRoom(code: string): boolean {
     return this.rooms.has(code);
   }
 
   /**
-   * Add player to room with immutable state update
+   * Get a room safely (returns undefined if not found)
    */
-  async addPlayer(roomCode: string, player: Player): Promise<ImmutableRoomState> {
+  getRoomSafe(code: string): ImmutableRoomState | undefined {
+    return this.rooms.get(code);
+  }
+
+  /**
+   * Delete a room
+   */
+  deleteRoom(code: string): boolean {
+    return this.rooms.delete(code);
+  }
+
+  /**
+   * Add a player to a room with state locking
+   */
+  async addPlayer(roomCode: string, player: Player): Promise<void> {
     return this.withStateLock(roomCode, async () => {
-      const currentState = this.getRoom(roomCode);
+      const room = this.getRoom(roomCode);
+      
+      // Check if room is full
+      if (room.players.length >= GameConfig.RULES.PLAYERS.MAX_PLAYERS_PER_ROOM) {
+        throw new RoomFullError(roomCode, GameConfig.RULES.PLAYERS.MAX_PLAYERS_PER_ROOM);
+      }
       
       // Check if player name is already taken
-      if (currentState.players.some(p => p.name === player.name)) {
-        throw new Error(`Player name "${player.name}" is already taken`);
+      if (room.players.some(p => p.name === player.name)) {
+        throw new PlayerNameTakenError(player.name, roomCode);
       }
-
+      
       // Create new state with player added
-      const newState = currentState.withPlayerAdded(player);
+      let newState = room.withPlayerAdded(player);
       
-      // Update game state without losing progress
-      const engine = this.gameRegistry.getGame(currentState.gameType);
-      if (engine) {
-        // Only initialize if this is the first player, otherwise preserve game state
-        if (currentState.players.length === 0) {
-          const newGameState = engine.initialize([...newState.players]);
-          const finalState = newState.withGameStateUpdated(newGameState);
-          this.rooms.set(roomCode, finalState);
-          return finalState;
-        } else {
-          // Preserve existing game state, just update player list
-          this.rooms.set(roomCode, newState);
-          return newState;
-        }
-      }
-
-      this.rooms.set(roomCode, newState);
-      return newState;
-    });
-  }
-
-  /**
-   * Remove player from room with immutable state update
-   */
-  async removePlayer(roomCode: string, playerId: string): Promise<ImmutableRoomState | null> {
-    return this.withStateLock(roomCode, async () => {
-      const currentState = this.getRoom(roomCode);
-      
-      if (!currentState.hasPlayer(playerId)) {
-        return null;
-      }
-
-      // Create new state with player removed
-      const newState = currentState.withPlayerRemoved(playerId);
-      
-      // If room is empty, delete it
-      if (newState.isEmpty()) {
-        this.rooms.delete(roomCode);
-        this.logger.log(`🏠 Room ${roomCode} is empty, deleted`);
-        return null;
-      }
-
-      // Update game state for remaining players
-      const engine = this.gameRegistry.getGame(currentState.gameType);
-      if (engine) {
-        const newGameState = engine.initialize([...newState.players]);
-        const finalState = newState.withGameStateUpdated(newGameState);
-        this.rooms.set(roomCode, finalState);
-        return finalState;
-      }
-
-      this.rooms.set(roomCode, newState);
-      return newState;
-    });
-  }
-
-  /**
-   * Update player connection status
-   */
-  async updatePlayerConnection(roomCode: string, playerId: string, connected: boolean): Promise<ImmutableRoomState> {
-    return this.withStateLock(roomCode, async () => {
-      const currentState = this.getRoom(roomCode);
-      
-      if (!currentState.hasPlayer(playerId)) {
-        throw new PlayerNotFoundError(playerId, roomCode);
-      }
-
-      const newState = currentState.withPlayerUpdated(playerId, { connected });
-      this.rooms.set(roomCode, newState);
-      return newState;
-    });
-  }
-
-  /**
-   * Update player socket ID (for reconnections)
-   */
-  async updatePlayerSocketId(roomCode: string, playerId: string, newSocketId: string): Promise<ImmutableRoomState> {
-    return this.withStateLock(roomCode, async () => {
-      const currentState = this.getRoom(roomCode);
-      
-      if (!currentState.hasPlayer(playerId)) {
-        throw new PlayerNotFoundError(playerId, roomCode);
-      }
-
-      const newState = currentState.withPlayerUpdated(playerId, { id: newSocketId });
-      
-      // If this was the host, update hostId
-      let finalState = newState;
-      if (currentState.isHost(playerId)) {
-        finalState = new ImmutableRoomState(
+      // Set the first player as the host
+      if (newState.players.length === 1) {
+        newState = new ImmutableRoomState(
           newState.code,
           newState.gameType,
           newState.gameState,
           newState.players,
           newState.phase,
-          newSocketId,
+          player.id,
           newState.lastActivity,
           newState.version + 1
         );
+        console.log(`👑 Player ${player.name} (${player.id}) is now the host of room ${roomCode}`);
       }
-
-      this.rooms.set(roomCode, finalState);
-      return finalState;
+      
+      // Update game state with new player
+      const engine = this.gameRegistry.getGame(newState.gameType)!;
+      const updatedGameState = engine.initialize([...newState.players]);
+      newState = newState.withGameStateUpdated(updatedGameState);
+      
+      // Update the room
+      this.rooms.set(roomCode, newState);
     });
   }
 
   /**
-   * Process game action with immutable state update
+   * Remove a player from a room with state locking
+   */
+  async removePlayer(roomCode: string, playerId: string): Promise<ImmutableRoomState | null> {
+    return this.withStateLock(roomCode, async () => {
+      const room = this.getRoom(roomCode);
+      const playerIndex = room.players.findIndex(p => p.id === playerId);
+      
+      if (playerIndex === -1) {
+        throw new PlayerNotFoundError(playerId, roomCode);
+      }
+      
+      // Create new state with player removed
+      let newState = room.withPlayerRemoved(playerId);
+      
+      // Clean up empty rooms immediately
+      if (newState.players.length === 0) {
+        console.log(`🏠 Room ${roomCode} is empty, cleaning up`);
+        this.deleteRoom(roomCode);
+        return null; // Room was deleted
+      }
+      
+      // Update game state with remaining players
+      if (newState.players.length > 0) {
+        const engine = this.gameRegistry.getGame(newState.gameType)!;
+        const updatedGameState = engine.initialize([...newState.players]);
+        newState = newState.withGameStateUpdated(updatedGameState);
+      }
+      
+      // Update the room
+      this.rooms.set(roomCode, newState);
+      return newState;
+    });
+  }
+
+  /**
+   * Process a game action with state locking
    */
   async processGameAction(roomCode: string, playerId: string, action: GameAction): Promise<GameEvent[]> {
     return this.withStateLock(roomCode, async () => {
-      const currentState = this.getRoom(roomCode);
+      const room = this.getRoom(roomCode);
       
-      if (!currentState.hasPlayer(playerId)) {
+      const player = room.players.find(p => p.id === playerId);
+      if (!player) {
         throw new PlayerNotFoundError(playerId, roomCode);
       }
-
-      const engine = this.gameRegistry.getGame(currentState.gameType);
+      
+      const engine = this.gameRegistry.getGame(room.gameType);
       if (!engine) {
-        throw new Error(`Game engine not found for type: ${currentState.gameType}`);
+        throw new Error(`Game engine not found for type: ${room.gameType}`);
       }
-
-      const result = engine.processAction(currentState.gameState, action);
+      
+      const result = engine.processAction(room.gameState, action);
       
       if (result.isValid) {
-        const newState = currentState
+        const newState = room
           .withGameStateUpdated(result.newState)
           .withPhaseUpdated(result.newState.phase)
           .withActivityUpdated();
         
+        // Update the room
         this.rooms.set(roomCode, newState);
         return result.events;
       } else {
@@ -215,83 +198,85 @@ export class StateManagerService {
   }
 
   /**
-   * Advance game phase with immutable state update
+   * Advance the game phase with state locking
    */
   async advanceGamePhase(roomCode: string): Promise<GameEvent[]> {
     return this.withStateLock(roomCode, async () => {
-      const currentState = this.getRoom(roomCode);
+      const room = this.getRoom(roomCode);
       
-      const engine = this.gameRegistry.getGame(currentState.gameType);
+      const engine = this.gameRegistry.getGame(room.gameType);
       if (!engine) {
         return [];
       }
-
-      const result = engine.advancePhase(currentState.gameState);
-      const newState = currentState
+      
+      // Let the game engine handle its own phase transitions
+      const result = engine.advancePhase(room.gameState);
+      const newState = room
         .withGameStateUpdated(result)
         .withPhaseUpdated(result.phase)
         .withActivityUpdated();
       
+      // Update the room
       this.rooms.set(roomCode, newState);
       
+      // Let the game engine generate its own events
       return engine.generatePhaseEvents(result);
     });
   }
 
   /**
-   * Update timer for a room
+   * Update timer for a room with state locking
    */
   async updateTimer(roomCode: string, delta: number): Promise<GameEvent[]> {
     return this.withStateLock(roomCode, async () => {
-      const currentState = this.getRoom(roomCode);
+      const room = this.getRoom(roomCode);
       
-      const engine = this.gameRegistry.getGame(currentState.gameType);
+      const engine = this.gameRegistry.getGame(room.gameType);
       if (!engine) {
         return [];
       }
-
-      const newGameState = engine.updateTimer(currentState.gameState, delta);
-      const newState = currentState
-        .withGameStateUpdated(newGameState)
+      
+      const updatedGameState = engine.updateTimer(room.gameState, delta);
+      const newState = room
+        .withGameStateUpdated(updatedGameState)
         .withActivityUpdated();
       
+      // Update the room
       this.rooms.set(roomCode, newState);
       
-      if (newGameState.timeLeft === 0) {
+      if (updatedGameState.timeLeft === 0) {
         return this.advanceGamePhase(roomCode);
       }
       
-      return [{ type: 'timer', data: { timeLeft: newGameState.timeLeft }, target: 'all' }];
+      return [{ type: 'timer', data: { timeLeft: updatedGameState.timeLeft }, target: 'all' }];
     });
-  }
-
-  /**
-   * Delete room
-   */
-  deleteRoom(code: string): boolean {
-    return this.rooms.delete(code);
   }
 
   /**
    * Clean up inactive rooms
    */
-  cleanupInactiveRooms(maxInactiveMinutes: number = 30): number {
+  cleanupInactiveRooms(maxInactiveMinutes: number = GameConfig.ROOM.CLEANUP.INACTIVE_MINUTES): number {
     const now = new Date();
     const inactiveRooms: string[] = [];
     
-    for (const [code, state] of this.rooms.entries()) {
-      // Clean up empty rooms immediately
-      if (state.isEmpty()) {
+    // First, clean up completely empty rooms
+    for (const [code, room] of this.rooms.entries()) {
+      if (room.players.length === 0) {
         inactiveRooms.push(code);
-        continue;
+        console.log(`🏠 Room ${code} is empty, marking for cleanup`);
       }
-      
-      // Check for inactive rooms
-      const inactiveTime = now.getTime() - state.lastActivity.getTime();
-      const inactiveMinutes = inactiveTime / (1000 * 60);
-      
-      if (inactiveMinutes > maxInactiveMinutes) {
-        inactiveRooms.push(code);
+    }
+    
+    // Then check for inactive rooms
+    for (const [code, room] of this.rooms.entries()) {
+      if (room.players.length > 0) {
+        const inactiveTime = now.getTime() - room.lastActivity.getTime();
+        const inactiveMinutes = inactiveTime / GameConfig.TIMING.CONVERSIONS.MINUTES_TO_MS;
+        
+        if (inactiveMinutes > maxInactiveMinutes) {
+          inactiveRooms.push(code);
+          console.log(`🏠 Room ${code} inactive for ${inactiveMinutes.toFixed(1)} minutes, marking for cleanup`);
+        }
       }
     }
     
@@ -303,7 +288,7 @@ export class StateManagerService {
     }
     
     if (cleanedCount > 0) {
-      this.logger.log(`🧹 Cleaned up ${cleanedCount} inactive/empty rooms`);
+      console.log(`🧹 Cleaned up ${cleanedCount} inactive/empty rooms`);
     }
     
     return cleanedCount;
@@ -319,16 +304,16 @@ export class StateManagerService {
       gameTypes: {} as Record<string, number>
     };
     
-    for (const state of this.rooms.values()) {
-      stats.activePlayers += state.getConnectedPlayerCount();
-      stats.gameTypes[state.gameType] = (stats.gameTypes[state.gameType] || 0) + 1;
+    for (const room of this.rooms.values()) {
+      stats.activePlayers += room.players.length;
+      stats.gameTypes[room.gameType] = (stats.gameTypes[room.gameType] || 0) + 1;
     }
     
     return stats;
   }
 
   /**
-   * Get room count
+   * Get room count for monitoring
    */
   getRoomCount(): number {
     return this.rooms.size;
@@ -339,14 +324,86 @@ export class StateManagerService {
    */
   getActivePlayerCount(): number {
     let count = 0;
-    for (const state of this.rooms.values()) {
-      count += state.getConnectedPlayerCount();
+    for (const room of this.rooms.values()) {
+      count += room.players.filter(p => p.connected).length;
     }
     return count;
   }
 
   /**
-   * Execute operation with state lock to prevent race conditions
+   * Update player connection status
+   */
+  async updatePlayerConnection(roomCode: string, playerId: string, connected: boolean): Promise<void> {
+    return this.withStateLock(roomCode, async () => {
+      const room = this.getRoom(roomCode);
+      const newState = room.withPlayerUpdated(playerId, { connected });
+      this.rooms.set(roomCode, newState);
+    });
+  }
+
+  /**
+   * Update player socket ID for reconnections
+   */
+  async updatePlayerSocketId(roomCode: string, playerId: string, newSocketId: string): Promise<void> {
+    return this.withStateLock(roomCode, async () => {
+      const room = this.getRoom(roomCode);
+      const newState = room.withPlayerUpdated(playerId, { id: newSocketId });
+      this.rooms.set(roomCode, newState);
+    });
+  }
+
+  /**
+   * Clean up duplicate players to prevent React key collisions
+   */
+  async cleanupDuplicatePlayers(roomCode: string): Promise<void> {
+    return this.withStateLock(roomCode, async () => {
+      const room = this.getRoom(roomCode);
+      
+      // Find duplicate players by name (keep the most recent connected one)
+      const playerMap = new Map<string, Player>();
+      const duplicates: string[] = [];
+      
+      for (const player of room.players) {
+        const existing = playerMap.get(player.name);
+        if (existing) {
+          // Keep the connected player, remove the disconnected one
+          if (player.connected && !existing.connected) {
+            duplicates.push(existing.id);
+            playerMap.set(player.name, player);
+          } else if (!player.connected && existing.connected) {
+            duplicates.push(player.id);
+          } else {
+            // Both connected or both disconnected, keep the one with higher score
+            if (player.score > existing.score) {
+              duplicates.push(existing.id);
+              playerMap.set(player.name, player);
+            } else {
+              duplicates.push(player.id);
+            }
+          }
+        } else {
+          playerMap.set(player.name, player);
+        }
+      }
+      
+      // Remove duplicate players
+      if (duplicates.length > 0) {
+        console.log(`🧹 Cleaning up ${duplicates.length} duplicate players in room ${roomCode}`);
+        
+        let newState = room;
+        for (const duplicateId of duplicates) {
+          newState = newState.withPlayerRemoved(duplicateId);
+        }
+        
+        // Update the room
+        this.rooms.set(roomCode, newState);
+        console.log(`✅ Cleaned up duplicate players in room ${roomCode}`);
+      }
+    });
+  }
+
+  /**
+   * Execute an operation with state locking to prevent race conditions
    */
   private async withStateLock<T>(roomCode: string, operation: () => Promise<T>): Promise<T> {
     // Get or create lock for this room
@@ -354,11 +411,11 @@ export class StateManagerService {
     if (!lock) {
       lock = Promise.resolve();
     }
-
+    
     // Create new lock that waits for current operation to complete
     const newLock = lock.then(operation);
     this.stateLocks.set(roomCode, newLock);
-
+    
     try {
       const result = await newLock;
       return result;
