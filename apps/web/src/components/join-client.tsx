@@ -189,6 +189,7 @@ export function JoinClient({ code }: { code: string }) {
   if (roomState?.phase && roomState.phase !== 'lobby' && (joined || roomState.players?.some(p => p.id === playerId))) {
     return (
       <GamePhaseManager
+        gameType="bluff-trivia" // You can change this to test different games
         phase={roomState.phase}
         isHost={false}
         question={roomState.current?.prompt || ""}

@@ -92,6 +92,7 @@ export function HostClient({ code }: { code: string }) {
       >
         {state?.phase && state.phase !== 'lobby' ? (
           <GamePhaseManager
+            gameType="bluff-trivia" // You can change this to test different games
             phase={state.phase}
             isHost={true}
             question={state.current?.prompt}

@@ -1,13 +1,10 @@
 "use client";
-import { PromptView } from "./prompt-view";
-import { PlayerPromptView } from "./player-prompt-view";
-import { VotingView } from "./voting-view";
-import { PlayerVotingView } from "./player-voting-view";
-import { ScoringView } from "./scoring-view";
-import { PlayerScoringView } from "./player-scoring-view";
+import { BluffTriviaPhaseManagerFC } from "./games/bluff-trivia-phase-manager";
+import { WordAssociationPhaseManagerFC } from "./games/word-association-phase-manager";
 import type { Phase, Choice } from "@party/types";
 
 type GamePhaseManagerProps = {
+  gameType?: string; // New prop to identify which game to render
   phase: Phase;
   isHost: boolean;
   question?: string;
@@ -29,126 +26,23 @@ type GamePhaseManagerProps = {
   selectedChoiceId?: string;
 };
 
-export function GamePhaseManager({
-  phase,
-  isHost,
-  question,
-  correctAnswer,
-  timeLeft = 0,
-  totalTime = 30,
-  round = 1,
-  maxRounds = 5,
-  choices = [],
-  votes = [],
-  players = [],
-  scores = [],
-  playerId,
-  current,
-  onSubmitAnswer,
-  onSubmitVote,
-  hasSubmittedAnswer = false,
-  hasVoted = false,
-  selectedChoiceId,
-}: GamePhaseManagerProps) {
-  switch (phase) {
-    case 'prompt':
-      if (isHost) {
-        return (
-          <PromptView
-            question={question || "Loading question..."}
-            timeLeft={timeLeft}
-            totalTime={totalTime}
-            round={round}
-            maxRounds={maxRounds}
-          />
-        );
-      } else {
-        return (
-          <PlayerPromptView
-            question={question || "Loading question..."}
-            timeLeft={timeLeft}
-            totalTime={totalTime}
-            round={round}
-            maxRounds={maxRounds}
-            onSubmitAnswer={onSubmitAnswer || (() => {})}
-            hasSubmitted={hasSubmittedAnswer}
-          />
-        );
-      }
+export function GamePhaseManager(props: GamePhaseManagerProps) {
+  const { gameType = 'bluff-trivia', ...gameProps } = props;
+
+  // Route to the appropriate game-specific phase manager
+  switch (gameType) {
+    case 'bluff-trivia':
+      return <BluffTriviaPhaseManagerFC {...gameProps} />;
     
-    case 'choose':
-      if (isHost) {
-        return (
-          <VotingView
-            question={question || "Loading question..."}
-            choices={choices}
-            timeLeft={timeLeft}
-            totalTime={totalTime}
-            round={round}
-            maxRounds={maxRounds}
-            votes={votes}
-            players={players}
-          />
-        );
-      } else {
-        return (
-          <PlayerVotingView
-            question={question || "Loading question..."}
-            choices={choices}
-            timeLeft={timeLeft}
-            totalTime={totalTime}
-            round={round}
-            maxRounds={maxRounds}
-            onSubmitVote={onSubmitVote || (() => {})}
-            hasVoted={hasVoted}
-            selectedChoiceId={selectedChoiceId}
-            gotAnswerCorrect={current?.correctAnswerPlayers?.includes(playerId || "") || false}
-          />
-        );
-      }
+    case 'word-association':
+      return <WordAssociationPhaseManagerFC {...gameProps} />;
     
-    case 'scoring':
-      if (isHost) {
-        return (
-          <ScoringView
-            question={question || "Loading question..."}
-            correctAnswer={correctAnswer || "Loading answer..."}
-            choices={choices}
-            timeLeft={timeLeft}
-            totalTime={totalTime}
-            round={round}
-            maxRounds={maxRounds}
-            votes={votes}
-            players={players.map(p => ({ ...p, connected: p.connected ?? true }))}
-            scores={scores}
-          />
-        );
-      } else {
-        return (
-          <PlayerScoringView
-            question={question || "Loading question..."}
-            correctAnswer={correctAnswer || "Loading answer..."}
-            choices={choices}
-            timeLeft={timeLeft}
-            totalTime={totalTime}
-            round={round}
-            maxRounds={maxRounds}
-            votes={votes}
-            scores={scores}
-            playerId={playerId || ""}
-          />
-        );
-      }
-    
-    case 'over':
-      return (
-        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
-          <h1 className="text-3xl font-bold mb-8">Game Over!</h1>
-          <div className="text-[--muted]">Final scores coming soon...</div>
-        </div>
-      );
+    // Add new games here:
+    // case 'new-game':
+    //   return <NewGamePhaseManager {...gameProps} />;
     
     default:
-      return null;
+      console.warn(`Unknown game type: ${gameType}, falling back to bluff-trivia`);
+      return <BluffTriviaPhaseManagerFC {...gameProps} />;
   }
 }
