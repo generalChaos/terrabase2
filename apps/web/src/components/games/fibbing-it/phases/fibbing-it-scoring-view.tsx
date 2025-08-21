@@ -1,6 +1,5 @@
 "use client";
-import { TimerRing } from "../timer-ring";
-import { PlayerAvatar } from "../player-avatar";
+import { TimerRing, PlayerAvatar } from "../../shared/ui";
 import type { Choice } from "@party/types";
 
 type FibbingItScoringViewProps = {
@@ -54,17 +53,12 @@ export function FibbingItScoringView({
             {question}
           </h2>
 
-          {/* Answer Input */}
-          <div className="w-full max-w-md space-y-4">
-            <input
-              type="text"
-              placeholder="Enter your answer..."
-              className="w-full px-4 py-3 text-lg bg-slate-800 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent"
-            />
-            
-            <button className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white text-xl font-bold py-3 rounded-xl transition-all duration-200">
-              Submit
-            </button>
+          <div className="text-xl text-teal-400 mb-8">
+            Correct Answer: {correctAnswer}
+          </div>
+
+          <div className="text-lg text-white">
+            Your Score: {getPlayerScore(playerId || "")}
           </div>
         </div>
       </div>
@@ -89,32 +83,22 @@ export function FibbingItScoringView({
           <h2 className="text-6xl font-bold text-white tracking-wider">SCORING</h2>
 
           {/* Timer */}
-          <div className="relative">
+          <div className="flex justify-center">
             <TimerRing
-              timeLeft={timeLeft}
-              totalTime={totalTime}
-              size={120}
-              strokeWidth={8}
-              className="text-teal-400"
+              seconds={Math.ceil(timeLeft / 1000)}
+              total={Math.ceil(totalTime / 1000)}
             />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-2xl font-bold text-white">
-                {Math.ceil(timeLeft / 1000)}s
-              </span>
-            </div>
           </div>
 
           {/* Question and Answer */}
-          <div className="space-y-4">
-            <h3 className="text-2xl text-white">
-              {question}
-            </h3>
+          <div className="bg-slate-800/50 rounded-2xl p-8 border border-slate-600">
+            <h3 className="text-2xl text-white mb-4">{question}</h3>
             <div className="text-xl text-teal-400 font-bold">
               Correct Answer: {correctAnswer}
             </div>
           </div>
 
-          {/* Choices with Vote Results */}
+          {/* Choices and Votes */}
           <div className="grid grid-cols-2 gap-6 mb-8">
             {choices.map((choice) => {
               const voteCount = votes.filter(v => v.choiceId === choice.id).length;
@@ -123,37 +107,38 @@ export function FibbingItScoringView({
               return (
                 <div
                   key={choice.id}
-                  className={`
-                    p-6 rounded-2xl text-xl font-bold transition-all duration-200
-                    ${isCorrect
-                      ? 'bg-green-600 text-white shadow-2xl'
-                      : 'bg-slate-800 text-white border border-slate-600'
-                    }
-                  `}
+                  className={`rounded-2xl p-6 border transition-colors ${
+                    isCorrect 
+                      ? 'bg-green-500/20 border-green-500' 
+                      : 'bg-slate-800/50 border-slate-600'
+                  }`}
                 >
-                  <div className="mb-2">{choice.text}</div>
-                  <div className="text-sm opacity-80">
+                  <div className="text-xl text-white mb-2">{choice.text}</div>
+                  <div className="text-sm text-slate-400">
                     Votes: {voteCount}
                   </div>
+                  {isCorrect && (
+                    <div className="text-green-400 font-bold mt-2">✓ Correct!</div>
+                  )}
                 </div>
               );
             })}
           </div>
 
-          {/* Player Status */}
-          <div className="flex justify-center space-x-4 mb-4">
-            {players.slice(0, 4).map((player) => (
-              <PlayerAvatar
-                key={player.id}
-                player={player}
-                size="small"
-                className="text-2xl"
-              />
+          {/* Player Scores */}
+          <div className="grid grid-cols-3 gap-4">
+            {players.slice(0, 6).map((player) => (
+              <div key={player.id} className="text-center">
+                <PlayerAvatar
+                  name={player.name}
+                  avatar={player.avatar}
+                  connected={player.connected ?? true}
+                />
+                <div className="text-lg text-white font-bold mt-2">
+                  {getPlayerScore(player.id)}
+                </div>
+              </div>
             ))}
-          </div>
-          
-          <div className="text-xl text-slate-300">
-            Calculating scores...
           </div>
         </div>
       </div>

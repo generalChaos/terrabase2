@@ -1,6 +1,6 @@
 "use client";
 import { ReactNode } from "react";
-import { TimerRing } from "./timer-ring";
+import { TimerRing } from "./games/shared/ui";
 
 export function AppShell({
   title,

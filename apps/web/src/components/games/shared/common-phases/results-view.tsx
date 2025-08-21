@@ -1,19 +1,25 @@
 "use client";
-import { PlayerAvatar } from "../player-avatar";
+import { PlayerAvatar } from "../ui";
 
-type FibbingItResultsViewProps = {
+type ResultsViewProps = {
+  gameTitle: string;
   scores: Array<{ playerId: string; score: number }>;
   players: Array<{ id: string; name: string; avatar?: string; score: number; connected?: boolean }>;
   round: number;
   maxRounds: number;
+  onPlayAgain?: () => void;
+  onBackToLobby?: () => void;
 };
 
-export function FibbingItResultsView({
+export function ResultsView({
+  gameTitle,
   scores,
   players,
   round,
-  maxRounds
-}: FibbingItResultsViewProps) {
+  maxRounds,
+  onPlayAgain,
+  onBackToLobby
+}: ResultsViewProps) {
   // Find the winner (player with highest score)
   const winner = scores.reduce((prev, current) => 
     (prev.score > current.score) ? prev : current
@@ -32,7 +38,7 @@ export function FibbingItResultsView({
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col">
       {/* Header */}
       <div className="flex justify-between items-center p-6">
-        <h1 className="text-4xl font-bold text-white tracking-wider">FIBBING IT!</h1>
+        <h1 className="text-4xl font-bold text-white tracking-wider">{gameTitle}</h1>
       </div>
 
       {/* Main Content */}
@@ -77,9 +83,9 @@ export function FibbingItResultsView({
                     >
                       <div className="flex items-center space-x-3">
                         <PlayerAvatar
-                          player={player}
-                          size="small"
-                          className="text-xl"
+                          name={player.name}
+                          avatar={player.avatar}
+                          connected={player.connected ?? true}
                         />
                         <span className={`font-medium ${isWinner ? 'text-yellow-400' : 'text-white'}`}>
                           {player.name}
@@ -114,11 +120,24 @@ export function FibbingItResultsView({
             </div>
           </div>
 
-          {/* Play Again Button */}
-          <div className="mt-8">
-            <button className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white text-2xl font-bold px-12 py-4 rounded-2xl transition-all duration-200 transform hover:scale-105 shadow-2xl">
-              Play Again
-            </button>
+          {/* Action Buttons */}
+          <div className="mt-8 flex justify-center gap-4">
+            {onPlayAgain && (
+              <button 
+                onClick={onPlayAgain}
+                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white text-2xl font-bold px-12 py-4 rounded-2xl transition-all duration-200 transform hover:scale-105 shadow-2xl"
+              >
+                Play Again
+              </button>
+            )}
+            {onBackToLobby && (
+              <button 
+                onClick={onBackToLobby}
+                className="bg-slate-700 hover:bg-slate-600 text-white text-2xl font-bold px-12 py-4 rounded-2xl transition-all duration-200 transform hover:scale-105 shadow-2xl"
+              >
+                Back to Lobby
+              </button>
+            )}
           </div>
         </div>
       </div>

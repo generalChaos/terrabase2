@@ -1,6 +1,5 @@
 "use client";
-import { TimerRing } from "../timer-ring";
-import { PlayerAvatar } from "../player-avatar";
+import { TimerRing, PlayerAvatar } from "../../shared/ui";
 import type { Choice } from "@party/types";
 
 type FibbingItVotingViewProps = {
@@ -61,18 +60,29 @@ export function FibbingItVotingView({
             {question}
           </h2>
 
-          {/* Answer Input */}
+          {/* Choices */}
           <div className="w-full max-w-md space-y-4">
-            <input
-              type="text"
-              placeholder="Enter your answer..."
-              className="w-full px-4 py-3 text-lg bg-slate-800 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent"
-            />
-            
-            <button className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white text-xl font-bold py-3 rounded-xl transition-all duration-200">
-              Submit
-            </button>
+            {choices.map((choice) => (
+              <button
+                key={choice.id}
+                onClick={() => handleVote(choice.id)}
+                disabled={hasVoted || gotAnswerCorrect}
+                className={`w-full p-4 text-lg rounded-xl transition-all duration-200 ${
+                  selectedChoiceId === choice.id
+                    ? 'bg-teal-600 text-white'
+                    : 'bg-slate-800 text-white hover:bg-slate-700 border border-slate-600'
+                } ${hasVoted || gotAnswerCorrect ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                {choice.text}
+              </button>
+            ))}
           </div>
+
+          {hasVoted && (
+            <div className="mt-4 text-teal-400 font-medium">
+              Vote submitted!
+            </div>
+          )}
         </div>
       </div>
     );
@@ -95,9 +105,12 @@ export function FibbingItVotingView({
           {/* Title */}
           <h2 className="text-6xl font-bold text-white tracking-wider">VOTING</h2>
 
-          {/* Timer/Score */}
-          <div className="text-3xl text-teal-400 font-bold">
-            {Math.ceil(timeLeft / 1000)}:{Math.floor((timeLeft % 1000) / 100)}
+          {/* Timer */}
+          <div className="flex justify-center">
+            <TimerRing
+              seconds={Math.ceil(timeLeft / 1000)}
+              total={Math.ceil(totalTime / 1000)}
+            />
           </div>
 
           {/* Question */}
@@ -108,38 +121,35 @@ export function FibbingItVotingView({
           {/* Choices Grid */}
           <div className="grid grid-cols-2 gap-6 mb-8">
             {choices.map((choice) => (
-              <button
+              <div
                 key={choice.id}
-                onClick={() => handleVote(choice.id)}
-                disabled={hasVoted || gotAnswerCorrect || choice.by === "system"}
-                className={`
-                  p-6 rounded-2xl text-xl font-bold transition-all duration-200 transform hover:scale-105
-                  ${selectedChoiceId === choice.id
-                    ? 'bg-teal-500 text-white shadow-2xl'
-                    : 'bg-slate-800 text-white hover:bg-slate-700 border border-slate-600'
-                  }
-                  ${hasVoted || gotAnswerCorrect || choice.by === "system" ? 'opacity-50 cursor-not-allowed' : ''}
-                `}
+                className="bg-slate-800/50 rounded-2xl p-6 border border-slate-600 hover:border-slate-500 transition-colors"
               >
-                {choice.text}
-              </button>
+                <div className="text-xl text-white mb-4">{choice.text}</div>
+                <div className="text-sm text-slate-400">
+                  Votes: {votes.filter(v => v.choiceId === choice.id).length}
+                </div>
+              </div>
             ))}
           </div>
 
           {/* Player Status */}
-          <div className="flex justify-center space-x-4 mb-4">
-            {players.slice(0, 4).map((player) => (
-              <PlayerAvatar
-                key={player.id}
-                player={player}
-                size="small"
-                className="text-2xl"
-              />
-            ))}
-          </div>
-          
-          <div className="text-xl text-slate-300">
-            {isHost ? "Players submitting answers..." : "Select your answer..."}
+          <div className="grid grid-cols-3 gap-4">
+            {players.slice(0, 6).map((player) => {
+              const hasVoted = votes.some(v => v.voter === player.id);
+              return (
+                <div key={player.id} className="text-center">
+                  <PlayerAvatar
+                    name={player.name}
+                    avatar={player.avatar}
+                    connected={player.connected ?? true}
+                  />
+                  <div className={`text-sm mt-2 ${hasVoted ? 'text-teal-400' : 'text-slate-400'}`}>
+                    {hasVoted ? 'Voted' : 'Waiting...'}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>

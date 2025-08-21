@@ -13,4 +13,3 @@ export function PlayerAvatar({ name, avatar, connected }: PlayerAvatarProps) {
     </div>
   );
 }
-  

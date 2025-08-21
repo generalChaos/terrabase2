@@ -1,5 +1,5 @@
 "use client";
-import { TimerRing } from "./timer-ring";
+import { TimerRing } from "./games/shared/ui";
 import type { Choice, Vote } from "@party/types";
 
 type SimplePlayer = {

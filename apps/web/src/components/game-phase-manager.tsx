@@ -1,7 +1,7 @@
 "use client";
-import { BluffTriviaPhaseManagerFC } from "./games/bluff-trivia-phase-manager";
-import { WordAssociationPhaseManagerFC } from "./games/word-association-phase-manager";
-import { FibbingItPhaseManagerFC } from "./games/fibbing-it-phase-manager";
+import { BluffTriviaPhaseManagerFC } from "./games/bluff-trivia";
+import { WordAssociationPhaseManagerFC } from "./games/word-association";
+import { FibbingItPhaseManagerFC } from "./games/fibbing-it";
 import type { Phase, Choice } from "@party/types";
 
 type GamePhaseManagerProps = {

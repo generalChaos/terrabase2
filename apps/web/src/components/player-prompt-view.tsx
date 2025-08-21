@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { TimerRing } from "./timer-ring";
+import { TimerRing } from "./games/shared/ui";
 
 type PlayerPromptViewProps = {
   question: string;

@@ -1,10 +1,9 @@
 "use client";
-import { FibbingItPromptView } from "./fibbing-it-prompt-view";
-import { FibbingItVotingView } from "./fibbing-it-voting-view";
-import { FibbingItScoringView } from "./fibbing-it-scoring-view";
-import { FibbingItLobbyView } from "./fibbing-it-lobby-view";
-import { FibbingItResultsView } from "./fibbing-it-results-view";
-import { BaseGamePhaseManager, BaseGamePhaseManagerProps } from "./game-phase-manager.interface";
+import { FibbingItPromptView } from "./phases/fibbing-it-prompt-view";
+import { FibbingItVotingView } from "./phases/fibbing-it-voting-view";
+import { FibbingItScoringView } from "./phases/fibbing-it-scoring-view";
+import { LobbyView } from "../shared";
+import { BaseGamePhaseManager, BaseGamePhaseManagerProps } from "../shared";
 import type { Choice } from "@party/types";
 
 type FibbingItPhaseManagerProps = BaseGamePhaseManagerProps & {
@@ -19,6 +18,7 @@ type FibbingItPhaseManagerProps = BaseGamePhaseManagerProps & {
   hasSubmittedAnswer?: boolean;
   hasVoted?: boolean;
   selectedChoiceId?: string;
+  roomCode?: string;
 };
 
 export class FibbingItPhaseManager extends BaseGamePhaseManager {
@@ -45,6 +45,7 @@ export class FibbingItPhaseManager extends BaseGamePhaseManager {
       hasSubmittedAnswer = false,
       hasVoted = false,
       selectedChoiceId,
+      roomCode = "GR7A",
     } = props;
 
     if (!this.isValidPhase(phase)) {
@@ -55,7 +56,9 @@ export class FibbingItPhaseManager extends BaseGamePhaseManager {
     switch (phase) {
       case 'lobby':
         return (
-          <FibbingItLobbyView
+          <LobbyView
+            gameTitle="FIBBING IT!"
+            roomCode={roomCode}
             players={players}
             timeLeft={timeLeft}
             totalTime={totalTime}
@@ -103,7 +106,6 @@ export class FibbingItPhaseManager extends BaseGamePhaseManager {
               maxRounds={maxRounds}
               votes={votes}
               players={players}
-              isHost={true}
             />
           );
         } else {
@@ -118,15 +120,6 @@ export class FibbingItPhaseManager extends BaseGamePhaseManager {
               onSubmitVote={onSubmitVote || (() => {})}
               hasVoted={hasVoted}
               selectedChoiceId={selectedChoiceId}
-              gotAnswerCorrect={(() => {
-                const correctPlayers = current?.correctAnswerPlayers;
-                if (Array.isArray(correctPlayers)) {
-                  return correctPlayers.includes(playerId || "");
-                } else if (correctPlayers && typeof correctPlayers === 'object') {
-                  return Object.values(correctPlayers).includes(playerId || "");
-                }
-                return false;
-              })()}
               isPlayer={true}
             />
           );
@@ -146,7 +139,6 @@ export class FibbingItPhaseManager extends BaseGamePhaseManager {
               votes={votes}
               players={players.map(p => ({ ...p, connected: p.connected ?? true }))}
               scores={scores}
-              isHost={true}
             />
           );
         } else {
@@ -169,12 +161,10 @@ export class FibbingItPhaseManager extends BaseGamePhaseManager {
       
       case 'over':
         return (
-          <FibbingItResultsView
-            scores={scores}
-            players={players}
-            round={round}
-            maxRounds={maxRounds}
-          />
+          <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+            <h1 className="text-3xl font-bold mb-8">Game Over!</h1>
+            <div className="text-[--muted]">Final scores coming soon...</div>
+          </div>
         );
       
       default:

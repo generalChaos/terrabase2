@@ -1,11 +1,11 @@
 "use client";
-import { PromptView } from "../prompt-view";
-import { PlayerPromptView } from "../player-prompt-view";
-import { VotingView } from "../voting-view";
-import { PlayerVotingView } from "../player-voting-view";
-import { ScoringView } from "../scoring-view";
-import { PlayerScoringView } from "../player-scoring-view";
-import { BaseGamePhaseManager, BaseGamePhaseManagerProps } from "./game-phase-manager.interface";
+import { PromptView } from "../../prompt-view";
+import { PlayerPromptView } from "../../player-prompt-view";
+import { VotingView } from "../../voting-view";
+import { PlayerVotingView } from "../../player-voting-view";
+import { ScoringView } from "../../scoring-view";
+import { PlayerScoringView } from "../../player-scoring-view";
+import { BaseGamePhaseManager, BaseGamePhaseManagerProps } from "../shared";
 import type { Choice } from "@party/types";
 
 type BluffTriviaPhaseManagerProps = BaseGamePhaseManagerProps & {

@@ -2,8 +2,8 @@
 import { useEffect, useRef, useState } from "react";
 import { connectToRoom } from "@/lib/socket";
 import { AppShell } from "@/components/app-shell";
-import { RoomCodeChip } from "@/components/room-code-chip";
-import { PlayerAvatar } from "@/components/player-avatar";
+import { RoomCodeChip } from "@/components/games/shared/ui";
+import { PlayerAvatar } from "@/components/games/shared/ui";
 import { GamePhaseManager } from "./game-phase-manager";
 import { RoomStateDebug } from "./room-state-debug";
 import type { RoomState, Choice } from "@party/types";

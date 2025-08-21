@@ -1,5 +1,5 @@
 "use client";
-import { BaseGamePhaseManager, BaseGamePhaseManagerProps } from "./game-phase-manager.interface";
+import { BaseGamePhaseManager, BaseGamePhaseManagerProps } from "../shared";
 
 type WordAssociationPhaseManagerProps = BaseGamePhaseManagerProps & {
   word?: string;
@@ -103,10 +103,10 @@ export class WordAssociationPhaseManager extends BaseGamePhaseManager {
               {associations.map((association) => (
                 <div
                   key={association.id}
-                  className="p-4 border border-gray-300 rounded-lg hover:border-blue-500 cursor-pointer transition-colors"
+                  className="p-4 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer"
                 >
                   <div className="text-lg font-medium">{association.text}</div>
-                  <div className="text-sm text-[--muted]">by Player</div>
+                  <div className="text-sm text-gray-500">Submitted by a player</div>
                 </div>
               ))}
             </div>
@@ -119,23 +119,10 @@ export class WordAssociationPhaseManager extends BaseGamePhaseManager {
       case 'scoring':
         return (
           <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
-            <h2 className="text-2xl font-bold mb-4">Round {round} Results</h2>
+            <h2 className="text-2xl font-bold mb-4">Round {round} of {maxRounds}</h2>
             <div className="text-4xl font-bold mb-8">{word}</div>
-            <div className="text-lg mb-6">
-              Here&apos;s how everyone voted:
-            </div>
-            <div className="w-full max-w-md">
-              {associations.map((association) => (
-                <div
-                  key={association.id}
-                  className="flex justify-between items-center p-3 border-b border-gray-200"
-                >
-                  <span>{association.text}</span>
-                  <span className="text-sm text-[--muted]">0 votes</span>
-                </div>
-              ))}
-            </div>
-            <div className="text-sm text-[--muted] mt-4">
+            <div className="text-lg mb-6">Round complete!</div>
+            <div className="text-sm text-[--muted]">
               Time left: {timeLeft}s
             </div>
           </div>

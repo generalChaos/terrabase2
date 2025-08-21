@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { TimerRing } from "../timer-ring";
+import { TimerRing } from "../../shared/ui";
 
 type FibbingItPromptViewProps = {
   question: string;
@@ -96,11 +96,8 @@ export function FibbingItPromptView({
           {/* Timer */}
           <div className="relative">
             <TimerRing
-              timeLeft={timeLeft}
-              totalTime={totalTime}
-              size={160}
-              strokeWidth={10}
-              className="text-teal-400"
+              seconds={Math.ceil(timeLeft / 1000)}
+              total={Math.ceil(totalTime / 1000)}
             />
             <div className="absolute inset-0 flex items-center justify-center">
               <span className="text-3xl font-bold text-white">
