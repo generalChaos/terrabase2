@@ -47,6 +47,9 @@ export function JoinClient({ code }: { code: string }) {
     
     s.on('room', (roomState: RoomState) => {
       console.log('🏠 Room state updated:', roomState);
+      console.log('🏠 Players:', roomState.players);
+      console.log('🏠 Host ID:', roomState.hostId);
+      console.log('🏠 Current socket ID:', s.id);
       console.log('🏠 Current joined status:', joined);
       console.log('🏠 Room phase:', roomState.phase);
       

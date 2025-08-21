@@ -31,25 +31,28 @@ export class TimerService implements OnModuleDestroy {
 
     console.log(`⏰ Starting ${duration}s timer for room ${roomCode}`);
     
+    let timeRemaining = duration;
+    
     const timer = setInterval(() => {
       try {
-        // Call the tick callback to let the caller handle room state
+        timeRemaining--;
+        
+        // Call the tick callback every second with remaining time
         if (callbacks.onTick) {
-          callbacks.onTick([]);
+          callbacks.onTick([{ type: 'timer', data: { timeLeft: timeRemaining }, target: 'all' }]);
         }
         
-        // Call the expire callback when timer should expire
-        // The caller is responsible for checking if the room still exists
-        callbacks.onExpire();
-        
-        // Stop the timer after it expires
-        this.stopTimer(roomCode);
+        // Call the expire callback when timer reaches 0
+        if (timeRemaining <= 0) {
+          callbacks.onExpire();
+          this.stopTimer(roomCode);
+        }
       } catch (error) {
         console.error(`❌ Timer tick error for room ${roomCode}:`, error);
         // Stop the timer on error to prevent cascading failures
         this.stopTimer(roomCode);
       }
-    }, GameConfig.TIMING.CONVERSIONS.SECONDS_TO_MS * duration); // Convert seconds to milliseconds
+    }, GameConfig.TIMING.CONVERSIONS.SECONDS_TO_MS); // Tick every second
     
     this.timers.set(roomCode, timer);
     console.log(`✅ Timer started for room ${roomCode}`);

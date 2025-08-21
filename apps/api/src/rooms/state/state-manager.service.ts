@@ -113,10 +113,13 @@ export class StateManagerService {
         console.log(`👑 Player ${player.name} (${player.id}) is now the host of room ${roomCode}`);
       }
       
-      // Update game state with new player
-      const engine = this.gameRegistry.getGame(newState.gameType)!;
-      const updatedGameState = engine.initialize([...newState.players]);
-      newState = newState.withGameStateUpdated(updatedGameState);
+      // Only reinitialize game state if we're in lobby phase
+      // During active games, preserve the current game state
+      if (newState.phase === 'lobby') {
+        const engine = this.gameRegistry.getGame(newState.gameType)!;
+        const updatedGameState = engine.initialize([...newState.players]);
+        newState = newState.withGameStateUpdated(updatedGameState);
+      }
       
       // Update the room
       this.rooms.set(roomCode, newState);
@@ -145,8 +148,9 @@ export class StateManagerService {
         return null; // Room was deleted
       }
       
-      // Update game state with remaining players
-      if (newState.players.length > 0) {
+      // Only reinitialize game state if we're in lobby phase
+      // During active games, preserve the current game state
+      if (newState.players.length > 0 && newState.phase === 'lobby') {
         const engine = this.gameRegistry.getGame(newState.gameType)!;
         const updatedGameState = engine.initialize([...newState.players]);
         newState = newState.withGameStateUpdated(updatedGameState);

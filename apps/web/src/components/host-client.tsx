@@ -23,12 +23,26 @@ export function HostClient({ code }: { code: string }) {
     // Host must join the room to control the game
     s.on("connect", () => {
       console.log("🔌 Host connected, joining room as player...");
+      console.log("🔌 Host socket ID:", s.id);
       s.emit("join", { nickname: "Host", avatar: "👑" });
+    });
+    
+    // Listen for join confirmation
+    s.on("joined", (data: { ok: boolean }) => {
+      console.log("✅ Host successfully joined room:", data);
+    });
+    
+    // Listen for join errors
+    s.on("error", (error: any) => {
+      console.error("❌ Host join error:", error);
     });
     
     // Listen for room state updates
     s.on("room", (st: RoomState) => {
       console.log("🏠 Room state updated:", st);
+      console.log("🏠 Players:", st.players);
+      console.log("🏠 Host ID:", st.hostId);
+      console.log("🏠 Current socket ID:", s.id);
       setState(st);
       setTimer(st.timeLeft || 0);
     });

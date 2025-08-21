@@ -65,7 +65,8 @@ export class EventBroadcasterService {
     try {
       switch (event.target) {
         case EventTarget.ALL:
-          this.namespace!.emit(event.type, event.data);
+          // Broadcast to specific room instead of entire namespace
+          this.namespace!.to(roomCode).emit(event.type, event.data);
           break;
         case EventTarget.PLAYER:
           if (event.playerId) {
@@ -92,7 +93,11 @@ export class EventBroadcasterService {
 
     try {
       const serializedRoom = this.serializeRoom(roomState);
-      this.namespace!.emit('room', serializedRoom);
+      console.log(`📡 Broadcasting room update for room ${roomCode}:`, serializedRoom);
+      console.log(`📡 Namespace ready:`, this.isReady());
+      console.log(`📡 Broadcasting to room:`, roomCode);
+      // Broadcast to specific room instead of entire namespace
+      this.namespace!.to(roomCode).emit('room', serializedRoom);
       this.logger.debug(`📡 Room state broadcasted for room ${roomCode}`);
     } catch (error) {
       this.logger.error(`❌ Error broadcasting room update for room ${roomCode}:`, error);
@@ -120,9 +125,8 @@ export class EventBroadcasterService {
     if (!this.isReady()) return;
 
     try {
-      // This would need to be implemented with room state access
-      // For now, we'll emit to all and let the client handle it
-      this.namespace!.emit(event.type, event.data);
+      // Broadcast to the specific room instead of entire namespace
+      this.namespace!.to(roomCode).emit(event.type, event.data);
     } catch (error) {
       this.logger.error(`❌ Error broadcasting to host for room ${roomCode}:`, error);
     }
@@ -137,7 +141,8 @@ export class EventBroadcasterService {
     try {
       for (const event of events) {
         if (event.type === 'timer') {
-          this.namespace!.emit(event.type, event.data);
+          // Broadcast to specific room instead of entire namespace
+          this.namespace!.to(roomCode).emit(event.type, event.data);
         }
       }
     } catch (error) {

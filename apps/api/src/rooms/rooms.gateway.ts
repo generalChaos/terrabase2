@@ -53,6 +53,9 @@ export class RoomsGateway
     console.log('nsp.constructor:', nsp?.constructor?.name);
     this.isReady = true;
 
+    // Set the namespace for the event broadcaster
+    this.eventBroadcaster.setNamespace(nsp);
+
     nsp.use((socket, next) => next());
     nsp.on('connection', (s) => {
       console.log('child nsp connected:', s.nsp.name, 'socket:', s.id);
@@ -71,6 +74,10 @@ export class RoomsGateway
     try {
       const code = this.codeFromNs(client);
       console.log(`🔌 Player connected to room ${code} (ID: ${client.id})`);
+      
+      // Add client to socket.io room for this room code
+      client.join(code);
+      console.log(`🔌 Client ${client.id} joined socket.io room ${code}`);
       
       const { success, room, isReconnection, error } = await this.connectionManager.handleConnection(code, client.id);
       
@@ -132,6 +139,9 @@ export class RoomsGateway
       }
       
       console.log(`✅ Player ${body.nickname} ${isReconnection ? 'reconnected' : 'joined'} to room ${code}`);
+      console.log(`🏠 Room state after join:`, room);
+      console.log(`🏠 Players:`, room.players);
+      console.log(`🏠 Host ID:`, room.hostId);
       client.emit('joined', { ok: true });
       
       this.eventBroadcaster.broadcastRoomUpdate(code, room);
@@ -191,10 +201,10 @@ export class RoomsGateway
       console.log(`🎮 Game started, events generated:`, events.length);
       this.handleGameEvents(code, events);
       
-      // Start timer for prompt phase with proper callbacks
+      // Start timer for prompt phase
       this.timerService.startTimer(code, GAME_PHASE_DURATIONS.PROMPT, {
         onExpire: () => this.handlePhaseTransition(code),
-        onTick: (events) => this.handleTimerTick(code)
+        onTick: (events) => this.handleTimerEvents(code, events)
       });
       
     } catch (error) {
@@ -322,7 +332,7 @@ export class RoomsGateway
       if (room && room.gameState.timeLeft > 0) {
         this.timerService.startTimer(roomCode, room.gameState.timeLeft, {
           onExpire: () => this.handlePhaseTransition(roomCode),
-          onTick: (events) => this.handleTimerTick(roomCode)
+          onTick: (events) => this.handleTimerEvents(roomCode, events)
         });
       }
       
@@ -375,10 +385,10 @@ export class RoomsGateway
     const nsp = this.getMainServer();
     if (!nsp) return;
     
-    // Only send timer events, not full room updates
+    // Send timer events to specific room
     for (const event of events) {
       if (event.type === EventType.TIMER) {
-        nsp.emit(event.type, event.data);
+        nsp.to(roomCode).emit(event.type, event.data);
       }
     }
   }
