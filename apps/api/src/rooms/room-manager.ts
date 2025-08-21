@@ -3,6 +3,7 @@ import { GameRegistry } from './game-registry';
 import { Player, GameAction, GameEvent } from './game-engine.interface';
 import { GAME_CONFIG, GAME_TYPES } from './constants';
 import { RoomNotFoundError, PlayerNotFoundError, InsufficientPlayersError } from './errors';
+import { TimerService } from './timer.service';
 
 export interface Room {
   code: string;
@@ -19,7 +20,10 @@ export interface Room {
 export class RoomManager {
   private rooms = new Map<string, Room>();
   
-  constructor(private readonly gameRegistry: GameRegistry) {
+  constructor(
+    private readonly gameRegistry: GameRegistry,
+    private readonly timerService: TimerService // ADD: Inject TimerService
+  ) {
     // GameRegistry will be injected by NestJS
   }
   
@@ -62,10 +66,19 @@ export class RoomManager {
     return this.rooms.get(code);
   }
   
+  // IMPROVED: Better room deletion with timer cleanup
   deleteRoom(code: string): boolean {
     const room = this.rooms.get(code);
-    if (room && room.timer) {
-      clearInterval(room.timer);
+    if (room) {
+      // Clear any room-specific timer
+      if (room.timer) {
+        clearInterval(room.timer);
+      }
+      
+      // IMPORTANT: Stop TimerService timer for this room
+      this.timerService.stopTimerForRoom(code);
+      
+      console.log(`🏠 Deleting room ${code} and cleaning up timers`);
     }
     return this.rooms.delete(code);
   }
@@ -95,6 +108,7 @@ export class RoomManager {
     return true;
   }
   
+  // IMPROVED: Better player removal with empty room cleanup
   removePlayer(roomCode: string, playerId: string): boolean {
     const room = this.rooms.get(roomCode);
     if (!room) return false;
@@ -104,6 +118,13 @@ export class RoomManager {
     
     room.players.splice(playerIndex, 1);
     room.lastActivity = new Date();
+    
+    // NEW: Clean up empty rooms immediately
+    if (room.players.length === 0) {
+      console.log(`🏠 Room ${roomCode} is empty, cleaning up`);
+      this.deleteRoom(roomCode);
+      return true;
+    }
     
     // Update game state with remaining players
     if (room.players.length > 0) {
@@ -166,8 +187,7 @@ export class RoomManager {
     return engine.generatePhaseEvents(result);
   }
   
-
-  
+  // NEW: Update timer for a room (called by TimerService callbacks)
   updateTimer(roomCode: string, delta: number): GameEvent[] {
     const room = this.rooms.get(roomCode);
     if (!room) return [];
@@ -185,16 +205,29 @@ export class RoomManager {
     return [{ type: 'timer', data: { timeLeft: room.gameState.timeLeft }, target: 'all' }];
   }
   
+  // IMPROVED: Better cleanup with immediate empty room removal
   cleanupInactiveRooms(maxInactiveMinutes: number = 30): number {
     const now = new Date();
     const inactiveRooms: string[] = [];
     
+    // First, clean up completely empty rooms
     for (const [code, room] of this.rooms.entries()) {
-      const inactiveTime = now.getTime() - room.lastActivity.getTime();
-      const inactiveMinutes = inactiveTime / (1000 * 60);
-      
-      if (inactiveMinutes > maxInactiveMinutes) {
+      if (room.players.length === 0) {
         inactiveRooms.push(code);
+        console.log(`🏠 Room ${code} is empty, marking for cleanup`);
+      }
+    }
+    
+    // Then check for inactive rooms
+    for (const [code, room] of this.rooms.entries()) {
+      if (room.players.length > 0) {
+        const inactiveTime = now.getTime() - room.lastActivity.getTime();
+        const inactiveMinutes = inactiveTime / (1000 * 60);
+        
+        if (inactiveMinutes > maxInactiveMinutes) {
+          inactiveRooms.push(code);
+          console.log(`🏠 Room ${code} inactive for ${inactiveMinutes.toFixed(1)} minutes, marking for cleanup`);
+        }
       }
     }
     
@@ -206,7 +239,7 @@ export class RoomManager {
     }
     
     if (cleanedCount > 0) {
-      console.log(`🧹 Cleaned up ${cleanedCount} inactive rooms`);
+      console.log(`🧹 Cleaned up ${cleanedCount} inactive/empty rooms`);
     }
     
     return cleanedCount;
@@ -225,5 +258,19 @@ export class RoomManager {
     }
     
     return stats;
+  }
+  
+  // NEW: Method to get room count for monitoring
+  getRoomCount(): number {
+    return this.rooms.size;
+  }
+  
+  // NEW: Method to get active player count
+  getActivePlayerCount(): number {
+    let count = 0;
+    for (const room of this.rooms.values()) {
+      count += room.players.filter(p => p.connected).length;
+    }
+    return count;
   }
 }

@@ -3,6 +3,13 @@
 /node_modules
 /build
 
+# Monorepo app build directories
+apps/api/dist/
+apps/api/build/
+apps/web/dist/
+apps/web/build/
+apps/web/.next/
+
 # Logs
 logs
 *.log
@@ -52,6 +59,9 @@ pids
 *.seed
 *.pid.lock
 
+# Turborepo
+.turbo
+
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
@@ -60,4 +70,5 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 **/node_modules/
 **/.next/
 **/next-env.d.ts
+**/dist/
 

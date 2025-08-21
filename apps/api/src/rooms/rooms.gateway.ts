@@ -3,7 +3,20 @@ import { TimerService } from './timer.service';
 import { GameAction, GameEvent, Player } from './game-engine.interface';
 import { BluffTriviaState } from './games/bluff-trivia.engine';
 import { GAME_PHASE_DURATIONS, EventType, EventTarget, GAME_TYPES } from './constants';
-import { GameError, InsufficientPlayersError } from './errors';
+import { 
+  GameError, 
+  InsufficientPlayersError, 
+  PlayerNotHostError,
+  PlayerNotJoinedError,
+  PlayerNameTakenError,
+  RoomNotFoundError,
+  InvalidGamePhaseError,
+  ValidationError,
+  EmptyInputError,
+  RoomCodeRequiredError,
+  ConnectionError
+} from './errors';
+import { ErrorHandlerService } from './error-handler.service';
 import { Namespace, Socket } from 'socket.io';
 import {
   WebSocketGateway,
@@ -25,7 +38,8 @@ export class RoomsGateway
 
   constructor(
     private roomManager: RoomManager,
-    private timerService: TimerService
+    private timerService: TimerService,
+    private errorHandler: ErrorHandlerService
   ) {}
 
   afterInit(nsp: Namespace) {
@@ -85,22 +99,28 @@ export class RoomsGateway
         client.emit('room', this.serializeRoom(room));
       }
     } catch (error) {
-      console.error(`❌ Error in handleConnection:`, error);
-      client.emit('error', { msg: 'CONNECTION_ERROR' });
+      const errorResponse = this.errorHandler.handleWebSocketError(error, 'connection', client.id);
+      console.error(`❌ Error in handleConnection:`, errorResponse);
+      client.emit('error', errorResponse);
     }
   }
 
   handleDisconnect(client: Socket) {
-    const code = this.codeFromNs(client);
-    console.log(`🔌 Player disconnected from room ${code} (ID: ${client.id})`);
-    
-    const room = this.roomManager.getRoom(code);
-    if (room) {
-      const player = room.players.find(p => p.id === client.id);
-      if (player) {
-        player.connected = false;
-        this.broadcastRoomUpdate(code);
+    try {
+      const code = this.codeFromNs(client);
+      console.log(`🔌 Player disconnected from room ${code} (ID: ${client.id})`);
+      
+      const room = this.roomManager.getRoomSafe(code);
+      if (room) {
+        const player = room.players.find(p => p.id === client.id);
+        if (player) {
+          player.connected = false;
+          this.broadcastRoomUpdate(code);
+        }
       }
+    } catch (error) {
+      console.error(`❌ Error in handleDisconnect:`, error);
+      // Don't emit error on disconnect as client is gone
     }
   }
 
@@ -110,12 +130,15 @@ export class RoomsGateway
     @MessageBody() body: { nickname: string; avatar?: string },
   ) {
     try {
+      // Validate input
+      this.errorHandler.validateNickname(body.nickname);
+      
       const code = this.codeFromNs(client);
       console.log(`👋 Player ${body.nickname} joining room ${code} (ID: ${client.id})`);
       
-      const room = this.roomManager.getRoom(code);
+      const room = this.roomManager.getRoomSafe(code);
       if (!room) {
-        return client.emit('error', { msg: 'ROOM_NOT_FOUND' });
+        throw new RoomNotFoundError(code);
       }
       
       // Check if this is a reconnection of an existing player
@@ -141,7 +164,7 @@ export class RoomsGateway
       
       // Check if name is already taken by a connected player
       if (existingPlayer && existingPlayer.connected) {
-        return client.emit('error', { msg: 'NAME_TAKEN' });
+        throw new PlayerNameTakenError(body.nickname, code);
       }
       
       // New player joining
@@ -155,7 +178,7 @@ export class RoomsGateway
       
       const success = this.roomManager.addPlayer(code, newPlayer);
       if (!success) {
-        return client.emit('error', { msg: 'JOIN_FAILED' });
+        throw new GameError('Failed to add player to room', 'JOIN_FAILED', 500, { roomCode: code, player: newPlayer });
       }
       
       console.log(`✅ Player ${body.nickname} joined room ${code}`);
@@ -169,8 +192,9 @@ export class RoomsGateway
       }
       
     } catch (error) {
-      console.error(`❌ Error in join method:`, error);
-      client.emit('error', { msg: 'JOIN_ERROR' });
+      const errorResponse = this.errorHandler.handleWebSocketError(error, 'join', client.id);
+      console.error(`❌ Error in join method:`, errorResponse);
+      client.emit('error', errorResponse);
     }
   }
 
@@ -183,8 +207,7 @@ export class RoomsGateway
       
       const room = this.roomManager.getRoom(code);
       if (!room) {
-        console.log(`❌ Room ${code} not found`);
-        return client.emit('error', { msg: 'ROOM_NOT_FOUND' });
+        throw new RoomNotFoundError(code);
       }
       
       console.log(`🎮 Room found, players:`, room.players.map(p => ({ id: p.id, name: p.name, connected: p.connected })));
@@ -193,12 +216,12 @@ export class RoomsGateway
       // Check if player has actually joined the room
       const currentPlayer = room.players.find(p => p.id === client.id);
       if (!currentPlayer) {
-        throw new GameError('Player has not joined the room yet', 'NOT_JOINED', 400);
+        throw new PlayerNotJoinedError(client.id, code);
       }
       
       // Check if player is the host using the hostId
       if (room.hostId !== client.id) {
-        throw new GameError('Player is not the host', 'NOT_HOST', 403);
+        throw new PlayerNotHostError(client.id, code);
       }
       
       // Check if there are enough players to start
@@ -218,15 +241,16 @@ export class RoomsGateway
       console.log(`🎮 Game started, events generated:`, events.length);
       this.handleGameEvents(code, events);
       
-      // Start timer for prompt phase
+      // Start timer for prompt phase with proper callbacks
       this.timerService.startTimer(code, GAME_PHASE_DURATIONS.PROMPT, {
         onExpire: () => this.handlePhaseTransition(code),
-        onTick: (events) => this.handleTimerEvents(code, events)
+        onTick: (events) => this.handleTimerTick(code)
       });
       
     } catch (error) {
-      console.error(`❌ Error in startGame:`, error);
-      client.emit('error', { msg: 'START_ERROR' });
+      const errorResponse = this.errorHandler.handleWebSocketError(error, 'startGame', client.id);
+      console.error(`❌ Error in startGame:`, errorResponse);
+      client.emit('error', errorResponse);
     }
   }
 
@@ -236,11 +260,18 @@ export class RoomsGateway
     @MessageBody() body: { answer: string },
   ) {
     try {
-      const code = this.codeFromNs(client);
-      const room = this.roomManager.getRoom(code);
+      // Validate input
+      this.errorHandler.validateInput(body.answer, 'answer', 'submitAnswer');
       
-      if (!room || room.gameState.phase !== 'prompt') {
-        return client.emit('error', { msg: 'INVALID_PHASE' });
+      const code = this.codeFromNs(client);
+      const room = this.roomManager.getRoomSafe(code);
+      
+      if (!room) {
+        throw new RoomNotFoundError(code);
+      }
+      
+      if (room.gameState.phase !== 'prompt') {
+        throw new InvalidGamePhaseError(room.gameState.phase, 'prompt');
       }
       
       const action: GameAction = {
@@ -253,8 +284,9 @@ export class RoomsGateway
       this.handleGameEvents(code, events);
       
     } catch (error) {
-      console.error(`❌ Error in submitAnswer:`, error);
-      client.emit('error', { msg: 'SUBMIT_ERROR' });
+      const errorResponse = this.errorHandler.handleWebSocketError(error, 'submitAnswer', client.id);
+      console.error(`❌ Error in submitAnswer:`, errorResponse);
+      client.emit('error', errorResponse);
     }
   }
 
@@ -264,11 +296,18 @@ export class RoomsGateway
     @MessageBody() body: { text: string },
   ) {
     try {
-      const code = this.codeFromNs(client);
-      const room = this.roomManager.getRoom(code);
+      // Validate input
+      this.errorHandler.validateInput(body.text, 'text', 'submitBluff');
       
-      if (!room || room.gameState.phase !== 'prompt') {
-        return client.emit('error', { msg: 'INVALID_PHASE' });
+      const code = this.codeFromNs(client);
+      const room = this.roomManager.getRoomSafe(code);
+      
+      if (!room) {
+        throw new RoomNotFoundError(code);
+      }
+      
+      if (room.gameState.phase !== 'prompt') {
+        throw new InvalidGamePhaseError(room.gameState.phase, 'prompt');
       }
       
       const action: GameAction = {
@@ -281,8 +320,9 @@ export class RoomsGateway
       this.handleGameEvents(code, events);
       
     } catch (error) {
-      console.error(`❌ Error in submitBluff:`, error);
-      client.emit('error', { msg: 'SUBMIT_ERROR' });
+      const errorResponse = this.errorHandler.handleWebSocketError(error, 'submitBluff', client.id);
+      console.error(`❌ Error in submitBluff:`, errorResponse);
+      client.emit('error', errorResponse);
     }
   }
 
@@ -292,11 +332,18 @@ export class RoomsGateway
     @MessageBody() body: { choiceId: string },
   ) {
     try {
-      const code = this.codeFromNs(client);
-      const room = this.roomManager.getRoom(code);
+      // Validate input
+      this.errorHandler.validateInput(body.choiceId, 'choiceId', 'submitVote');
       
-      if (!room || room.gameState.phase !== 'choose') {
-        return client.emit('error', { msg: 'INVALID_PHASE' });
+      const code = this.codeFromNs(client);
+      const room = this.roomManager.getRoomSafe(code);
+      
+      if (!room) {
+        throw new RoomNotFoundError(code);
+      }
+      
+      if (room.gameState.phase !== 'choose') {
+        throw new InvalidGamePhaseError(room.gameState.phase, 'choose');
       }
       
       const action: GameAction = {
@@ -309,8 +356,9 @@ export class RoomsGateway
       this.handleGameEvents(code, events);
       
     } catch (error) {
-      console.error(`❌ Error in submitVote:`, error);
-      client.emit('error', { msg: 'SUBMIT_ERROR' });
+      const errorResponse = this.errorHandler.handleWebSocketError(error, 'submitVote', client.id);
+      console.error(`❌ Error in submitVote:`, errorResponse);
+      client.emit('error', errorResponse);
     }
   }
 
@@ -319,17 +367,29 @@ export class RoomsGateway
       const events = this.roomManager.advanceGamePhase(roomCode);
       this.handleGameEvents(roomCode, events);
       
-      // Start timer for next phase
-      const room = this.roomManager.getRoom(roomCode);
+      // Start timer for next phase if needed
+      const room = this.roomManager.getRoomSafe(roomCode);
       if (room && room.gameState.timeLeft > 0) {
         this.timerService.startTimer(roomCode, room.gameState.timeLeft, {
           onExpire: () => this.handlePhaseTransition(roomCode),
-          onTick: (events) => this.handleTimerEvents(roomCode, events)
+          onTick: (events) => this.handleTimerTick(roomCode)
         });
       }
       
     } catch (error) {
       console.error(`❌ Error in phase transition:`, error);
+    }
+  }
+
+  // NEW: Handle timer ticks
+  private handleTimerTick(roomCode: string) {
+    try {
+      const events = this.roomManager.updateTimer(roomCode, 1);
+      this.handleTimerEvents(roomCode, events);
+    } catch (error) {
+      console.error(`❌ Error in timer tick for room ${roomCode}:`, error);
+      // Stop the timer if there's an error
+      this.timerService.stopTimerForRoom(roomCode);
     }
   }
 
@@ -436,9 +496,12 @@ export class RoomsGateway
   private codeFromNs(client: Socket): string {
     const roomCode = client.handshake.query.roomCode as string;
     if (!roomCode) {
-      console.error('❌ No room code provided in query parameters');
-      throw new Error('Room code required');
+      throw new RoomCodeRequiredError();
     }
+    
+    // Validate room code format
+    this.errorHandler.validateRoomCode(roomCode);
+    
     return roomCode;
   }
 }
