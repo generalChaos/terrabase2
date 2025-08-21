@@ -67,42 +67,22 @@ export class RoomsGateway
     return this.nsp;
   }
 
-  handleConnection(client: Socket) {
+  async handleConnection(client: Socket) {
     try {
       const code = this.codeFromNs(client);
       console.log(`🔌 Player connected to room ${code} (ID: ${client.id})`);
       
-      if (!this.roomManager.hasRoom(code)) {
-        console.log(`🏠 Creating new room: ${code}`);
-        this.roomManager.createRoom(code, GAME_TYPES.BLUFF_TRIVIA);
-      }
+      const { success, room, isReconnection, error } = await this.connectionManager.handleConnection(code, client.id);
       
-      const room = this.roomManager.getRoomSafe(code);
-      if (room) {
-        // Check if this is a reconnection of the host
-        if (room.hostId && room.players.some(p => p.id === room.hostId && !p.connected)) {
-          const hostPlayer = room.players.find(p => p.id === room.hostId);
-          if (hostPlayer) {
-            console.log(`🔄 Host ${hostPlayer.name} reconnecting, updating socket ID from ${room.hostId} to ${client.id}`);
-            // Use the new async method
-            this.roomManager.updatePlayerSocketId(code, room.hostId, client.id);
-            this.broadcastRoomUpdate(code);
-          }
-        }
-        
-        // Check if this is a reconnection of any other player
-        // Look for disconnected players and update their socket ID
-        const disconnectedPlayer = room.players.find(p => !p.connected);
-        if (disconnectedPlayer) {
-          console.log(`🔄 Player ${disconnectedPlayer.name} reconnecting, updating socket ID from ${disconnectedPlayer.id} to ${client.id}`);
-          // Use the new async method
-          this.roomManager.updatePlayerSocketId(code, disconnectedPlayer.id, client.id);
-          this.broadcastRoomUpdate(code);
-        }
-        
-        console.log(`🏠 Sending room state to ${client.id}:`, room);
-        client.emit('room', this.serializeRoom(room));
+      if (success && room) {
+        this.eventBroadcaster.broadcastRoomUpdate(code, room);
+        client.emit('room', this.eventBroadcaster.serializeRoom(room)); // Send initial room state to connecting client
+      } else if (error) {
+        throw new ConnectionError(error);
+      } else {
+        throw new ConnectionError('Failed to establish connection');
       }
+
     } catch (error) {
       const errorResponse = this.errorHandler.handleWebSocketError(error, 'connection', client.id);
       console.error(`❌ Error in handleConnection:`, errorResponse);
@@ -110,18 +90,16 @@ export class RoomsGateway
     }
   }
 
-  handleDisconnect(client: Socket) {
+  async handleDisconnect(client: Socket) {
     try {
       const code = this.codeFromNs(client);
       console.log(`🔌 Player disconnected from room ${code} (ID: ${client.id})`);
       
-      const room = this.roomManager.getRoomSafe(code);
-      if (room) {
-        const player = room.players.find(p => p.id === client.id);
-        if (player) {
-          // Use the new async method
-          this.roomManager.updatePlayerConnection(code, client.id, false);
-          this.broadcastRoomUpdate(code);
+      const success = await this.connectionManager.handleDisconnection(code, client.id);
+      if (success) {
+        const room = this.roomManager.getRoomSafe(code);
+        if (room) {
+          this.eventBroadcaster.broadcastRoomUpdate(code, room);
         }
       }
     } catch (error) {
@@ -406,66 +384,19 @@ export class RoomsGateway
   }
 
   private broadcastRoomUpdate(roomCode: string) {
-    const nsp = this.getMainServer();
-    if (!nsp) return;
-    
-    const room = this.roomManager.getRoom(roomCode);
+    const room = this.roomManager.getRoomSafe(roomCode);
     if (room) {
-      nsp.emit('room', this.serializeRoom(room));
+      this.eventBroadcaster.broadcastRoomUpdate(roomCode, room);
     }
   }
 
-  private serializeRoom(room: ImmutableRoomState) {
-    return {
-      code: room.code,
-      phase: room.phase,
-      round: room.gameState.round,
-      maxRounds: room.gameState.maxRounds,
-      timeLeft: room.gameState.timeLeft,
-      players: room.players.map((p: Player) => ({ ...p })),
-      current: room.gameState.currentRound, // Use currentRound instead of current
-      hostId: room.hostId,
-    };
-  }
+
 
   private sendMidGameContext(client: Socket, room: any) {
-    if (room.gameState.current) {
-      client.emit('prompt', { question: room.gameState.current.question });
-      
-      if (room.gameState.phase === 'choose' || room.gameState.phase === 'scoring') {
-        // Generate choices for the current round
-        const choices = this.generateChoices(room.gameState.current);
-        client.emit('choices', { choices });
-      }
-      
-      if (room.gameState.phase === 'scoring') {
-        client.emit('scores', {
-          totals: room.players.map((p: Player) => ({
-            playerId: p.id,
-            score: p.score,
-          })),
-        });
-      }
-    }
+    this.eventBroadcaster.sendMidGameContext(client.id, room);
   }
 
-  private generateChoices(round: any): Array<{ id: string; text: string }> {
-    if (!round) return [];
-    
-    const truth = { id: `TRUE::${round.promptId}`, text: round.answer };
-    const bluffChoices = round.bluffs.map((b: any) => ({ id: b.id, text: b.text }));
-    
-    // Simple shuffle for now
-    const allChoices = [truth, ...bluffChoices];
-    for (let i = allChoices.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [allChoices[i], allChoices[j]] = [allChoices[j], allChoices[i]];
-    }
-    
-    return allChoices;
-  }
-
-  private codeFromNs(client: Socket): string {
+  private codeFromNs(client: Socket) {
     const roomCode = client.handshake.query.roomCode as string;
     if (!roomCode) {
       throw new RoomCodeRequiredError();

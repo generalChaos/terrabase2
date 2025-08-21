@@ -177,16 +177,16 @@ export class EventBroadcasterService {
   }
 
   /**
-   * Serialize room state for broadcasting
+   * Serialize room state for client consumption
    */
-  private serializeRoom(roomState: ImmutableRoomState): any {
+  serializeRoom(roomState: ImmutableRoomState): any {
     return {
       code: roomState.code,
       phase: roomState.phase,
       round: roomState.gameState.round,
       maxRounds: roomState.gameState.maxRounds,
       timeLeft: roomState.gameState.timeLeft,
-      players: roomState.players.map(p => ({ ...p })),
+      players: roomState.players.map((p: any) => ({ ...p })),
       current: roomState.gameState.currentRound,
       hostId: roomState.hostId,
     };
