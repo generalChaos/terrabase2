@@ -17,6 +17,7 @@ import {
   ConnectionError
 } from './errors';
 import { ErrorHandlerService } from './error-handler.service';
+import { ImmutableRoomState } from './state/room.state';
 import { Namespace, Socket } from 'socket.io';
 import {
   WebSocketGateway,
@@ -71,16 +72,15 @@ export class RoomsGateway
         this.roomManager.createRoom(code, GAME_TYPES.BLUFF_TRIVIA);
       }
       
-      const room = this.roomManager.getRoom(code);
+      const room = this.roomManager.getRoomSafe(code);
       if (room) {
         // Check if this is a reconnection of the host
         if (room.hostId && room.players.some(p => p.id === room.hostId && !p.connected)) {
           const hostPlayer = room.players.find(p => p.id === room.hostId);
           if (hostPlayer) {
             console.log(`🔄 Host ${hostPlayer.name} reconnecting, updating socket ID from ${room.hostId} to ${client.id}`);
-            hostPlayer.id = client.id;
-            hostPlayer.connected = true;
-            room.hostId = client.id;
+            // Use the new async method
+            this.roomManager.updatePlayerSocketId(code, room.hostId, client.id);
             this.broadcastRoomUpdate(code);
           }
         }
@@ -90,8 +90,8 @@ export class RoomsGateway
         const disconnectedPlayer = room.players.find(p => !p.connected);
         if (disconnectedPlayer) {
           console.log(`🔄 Player ${disconnectedPlayer.name} reconnecting, updating socket ID from ${disconnectedPlayer.id} to ${client.id}`);
-          disconnectedPlayer.id = client.id;
-          disconnectedPlayer.connected = true;
+          // Use the new async method
+          this.roomManager.updatePlayerSocketId(code, disconnectedPlayer.id, client.id);
           this.broadcastRoomUpdate(code);
         }
         
@@ -114,7 +114,8 @@ export class RoomsGateway
       if (room) {
         const player = room.players.find(p => p.id === client.id);
         if (player) {
-          player.connected = false;
+          // Use the new async method
+          this.roomManager.updatePlayerConnection(code, client.id, false);
           this.broadcastRoomUpdate(code);
         }
       }
@@ -125,7 +126,7 @@ export class RoomsGateway
   }
 
   @SubscribeMessage('join')
-  join(
+  async join(
     @ConnectedSocket() client: Socket,
     @MessageBody() body: { nickname: string; avatar?: string },
   ) {
@@ -146,9 +147,7 @@ export class RoomsGateway
       if (existingPlayer && !existingPlayer.connected) {
         // Player is reconnecting - update their socket ID and connection status
         console.log(`🔄 Player ${body.nickname} reconnecting, updating socket ID from ${existingPlayer.id} to ${client.id}`);
-        existingPlayer.id = client.id;
-        existingPlayer.connected = true;
-        existingPlayer.avatar = body.avatar || existingPlayer.avatar;
+        await this.roomManager.updatePlayerSocketId(code, existingPlayer.id, client.id);
         
         console.log(`✅ Player ${body.nickname} reconnected to room ${code}`);
         client.emit('joined', { ok: true });
@@ -176,7 +175,7 @@ export class RoomsGateway
         score: 0,
       };
       
-      const success = this.roomManager.addPlayer(code, newPlayer);
+      const success = await this.roomManager.addPlayer(code, newPlayer);
       if (!success) {
         throw new GameError('Failed to add player to room', 'JOIN_FAILED', 500, { roomCode: code, player: newPlayer });
       }
@@ -199,7 +198,7 @@ export class RoomsGateway
   }
 
   @SubscribeMessage('startGame')
-  start(@ConnectedSocket() client: Socket) {
+  async start(@ConnectedSocket() client: Socket) {
     try {
       console.log(`🎮 startGame called by client ${client.id}`);
       const code = this.codeFromNs(client);
@@ -237,7 +236,7 @@ export class RoomsGateway
         data: {}
       };
       
-      const events = this.roomManager.processGameAction(code, client.id, action);
+      const events = await this.roomManager.processGameAction(code, client.id, action);
       console.log(`🎮 Game started, events generated:`, events.length);
       this.handleGameEvents(code, events);
       
@@ -255,7 +254,7 @@ export class RoomsGateway
   }
 
   @SubscribeMessage('submitAnswer')
-  onAnswer(
+  async onAnswer(
     @ConnectedSocket() client: Socket,
     @MessageBody() body: { answer: string },
   ) {
@@ -280,7 +279,7 @@ export class RoomsGateway
         data: { answer: body.answer }
       };
       
-      const events = this.roomManager.processGameAction(code, client.id, action);
+      const events = await this.roomManager.processGameAction(code, client.id, action);
       this.handleGameEvents(code, events);
       
     } catch (error) {
@@ -291,7 +290,7 @@ export class RoomsGateway
   }
 
   @SubscribeMessage('submitBluff')
-  onBluff(
+  async onBluff(
     @ConnectedSocket() client: Socket,
     @MessageBody() body: { text: string },
   ) {
@@ -316,7 +315,7 @@ export class RoomsGateway
         data: { text: body.text }
       };
       
-      const events = this.roomManager.processGameAction(code, client.id, action);
+      const events = await this.roomManager.processGameAction(code, client.id, action);
       this.handleGameEvents(code, events);
       
     } catch (error) {
@@ -327,7 +326,7 @@ export class RoomsGateway
   }
 
   @SubscribeMessage('submitVote')
-  onVote(
+  async onVote(
     @ConnectedSocket() client: Socket,
     @MessageBody() body: { choiceId: string },
   ) {
@@ -352,7 +351,7 @@ export class RoomsGateway
         data: { choiceId: body.choiceId }
       };
       
-      const events = this.roomManager.processGameAction(code, client.id, action);
+      const events = await this.roomManager.processGameAction(code, client.id, action);
       this.handleGameEvents(code, events);
       
     } catch (error) {
@@ -362,9 +361,9 @@ export class RoomsGateway
     }
   }
 
-  private handlePhaseTransition(roomCode: string) {
+  private async handlePhaseTransition(roomCode: string) {
     try {
-      const events = this.roomManager.advanceGamePhase(roomCode);
+      const events = await this.roomManager.advanceGamePhase(roomCode);
       this.handleGameEvents(roomCode, events);
       
       // Start timer for next phase if needed
@@ -382,9 +381,9 @@ export class RoomsGateway
   }
 
   // NEW: Handle timer ticks
-  private handleTimerTick(roomCode: string) {
+  private async handleTimerTick(roomCode: string) {
     try {
-      const events = this.roomManager.updateTimer(roomCode, 1);
+      const events = await this.roomManager.updateTimer(roomCode, 1);
       this.handleTimerEvents(roomCode, events);
     } catch (error) {
       console.error(`❌ Error in timer tick for room ${roomCode}:`, error);
@@ -443,10 +442,10 @@ export class RoomsGateway
     }
   }
 
-  private serializeRoom(room: any) {
+  private serializeRoom(room: ImmutableRoomState) {
     return {
       code: room.code,
-      phase: room.gameState.phase,
+      phase: room.phase,
       round: room.gameState.round,
       maxRounds: room.gameState.maxRounds,
       timeLeft: room.gameState.timeLeft,

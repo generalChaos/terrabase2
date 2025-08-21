@@ -4,6 +4,8 @@ import { Player, GameAction, GameEvent } from './game-engine.interface';
 import { GAME_CONFIG, GAME_TYPES } from './constants';
 import { RoomNotFoundError, PlayerNotFoundError, InsufficientPlayersError } from './errors';
 import { TimerService } from './timer.service';
+import { StateManagerService } from './state/state-manager.service';
+import { ImmutableRoomState } from './state/room.state';
 
 export interface Room {
   code: string;
@@ -18,259 +20,122 @@ export interface Room {
 
 @Injectable()
 export class RoomManager {
-  private rooms = new Map<string, Room>();
-  
   constructor(
     private readonly gameRegistry: GameRegistry,
-    private readonly timerService: TimerService // ADD: Inject TimerService
+    private readonly timerService: TimerService,
+    private readonly stateManager: StateManagerService // ADD: Inject StateManagerService
   ) {
     // GameRegistry will be injected by NestJS
   }
   
-  createRoom(code: string, gameType: string = GAME_TYPES.BLUFF_TRIVIA): Room {
-    if (!this.gameRegistry.hasGame(gameType)) {
-      throw new Error(`Unknown game type: ${gameType}`);
-    }
-    
-    const engine = this.gameRegistry.getGame(gameType)!;
-    const gameState = engine.initialize([]);
-    
-    const room: Room = {
-      code,
-      gameType,
-      gameState,
-      players: [],
-      phase: gameState.phase,
-      hostId: null, // Will be set when first player joins
-      lastActivity: new Date()
-    };
-    
-    this.rooms.set(code, room);
-    console.log(`🏠 Created room ${code} with game type ${gameType}`);
-    return room;
+  createRoom(code: string, gameType: string = GAME_TYPES.BLUFF_TRIVIA): ImmutableRoomState {
+    return this.stateManager.createRoom(code, gameType);
   }
   
-  getRoom(code: string): Room {
-    const room = this.rooms.get(code);
-    if (!room) {
-      throw new RoomNotFoundError(code);
-    }
-    return room;
+  getRoom(code: string): ImmutableRoomState {
+    return this.stateManager.getRoom(code);
   }
   
   hasRoom(code: string): boolean {
-    return this.rooms.has(code);
+    return this.stateManager.hasRoom(code);
   }
   
-  getRoomSafe(code: string): Room | undefined {
-    return this.rooms.get(code);
+  getRoomSafe(code: string): ImmutableRoomState | undefined {
+    return this.stateManager.getRoomSafe(code);
   }
   
   // IMPROVED: Better room deletion with timer cleanup
   deleteRoom(code: string): boolean {
-    const room = this.rooms.get(code);
-    if (room) {
-      // Clear any room-specific timer
-      if (room.timer) {
-        clearInterval(room.timer);
-      }
-      
-      // IMPORTANT: Stop TimerService timer for this room
-      this.timerService.stopTimerForRoom(code);
-      
-      console.log(`🏠 Deleting room ${code} and cleaning up timers`);
-    }
-    return this.rooms.delete(code);
+    // Stop timer first
+    this.timerService.stopTimerForRoom(code);
+    
+    // Then delete from state manager
+    return this.stateManager.deleteRoom(code);
   }
   
-  addPlayer(roomCode: string, player: Player): boolean {
-    const room = this.rooms.get(roomCode);
-    if (!room) return false;
-    
-    // Check if player name is already taken
-    if (room.players.some(p => p.name === player.name)) {
+  async addPlayer(roomCode: string, player: Player): Promise<boolean> {
+    try {
+      await this.stateManager.addPlayer(roomCode, player);
+      return true;
+    } catch (error) {
+      console.error(`❌ Failed to add player ${player.name} to room ${roomCode}:`, error);
       return false;
     }
-    
-    room.players.push(player);
-    room.lastActivity = new Date();
-    
-    // Set the first player as the host
-    if (room.players.length === 1) {
-      room.hostId = player.id;
-      console.log(`👑 Player ${player.name} (${player.id}) is now the host of room ${roomCode}`);
-    }
-    
-    // Update game state with new player
-    const engine = this.gameRegistry.getGame(room.gameType)!;
-    room.gameState = engine.initialize(room.players);
-    
-    return true;
   }
   
   // IMPROVED: Better player removal with empty room cleanup
-  removePlayer(roomCode: string, playerId: string): boolean {
-    const room = this.rooms.get(roomCode);
-    if (!room) return false;
-    
-    const playerIndex = room.players.findIndex(p => p.id === playerId);
-    if (playerIndex === -1) return false;
-    
-    room.players.splice(playerIndex, 1);
-    room.lastActivity = new Date();
-    
-    // NEW: Clean up empty rooms immediately
-    if (room.players.length === 0) {
-      console.log(`🏠 Room ${roomCode} is empty, cleaning up`);
-      this.deleteRoom(roomCode);
-      return true;
+  async removePlayer(roomCode: string, playerId: string): Promise<boolean> {
+    try {
+      const result = await this.stateManager.removePlayer(roomCode, playerId);
+      // If result is null, room was deleted (empty)
+      return result !== null;
+    } catch (error) {
+      console.error(`❌ Failed to remove player ${playerId} from room ${roomCode}:`, error);
+      return false;
     }
-    
-    // Update game state with remaining players
-    if (room.players.length > 0) {
-      const engine = this.gameRegistry.getGame(room.gameType)!;
-      room.gameState = engine.initialize(room.players);
-    }
-    
-    return true;
   }
   
-  processGameAction(roomCode: string, playerId: string, action: GameAction): GameEvent[] {
+  async processGameAction(roomCode: string, playerId: string, action: GameAction): Promise<GameEvent[]> {
     try {
-      const room = this.getRoom(roomCode);
-      
-      const player = room.players.find(p => p.id === playerId);
-      if (!player) {
-        throw new PlayerNotFoundError(playerId, roomCode);
-      }
-      
-      const engine = this.gameRegistry.getGame(room.gameType);
-      if (!engine) {
-        throw new Error(`Game engine not found for type: ${room.gameType}`);
-      }
-      
-      const result = engine.processAction(room.gameState, action);
-      
-      if (result.isValid) {
-        room.gameState = result.newState;
-        room.phase = result.newState.phase;
-        room.lastActivity = new Date();
-        return result.events;
-      } else {
-        return [{ 
-          type: 'error', 
-          data: { error: result.error }, 
-          target: 'player', 
-          playerId 
-        }];
-      }
+      return await this.stateManager.processGameAction(roomCode, playerId, action);
     } catch (error) {
       console.error(`❌ Error processing game action in room ${roomCode}:`, error);
       throw error;
     }
   }
   
-  advanceGamePhase(roomCode: string): GameEvent[] {
-    const room = this.rooms.get(roomCode);
-    if (!room) return [];
-    
-    const engine = this.gameRegistry.getGame(room.gameType);
-    if (!engine) return [];
-    
-    // Let the game engine handle its own phase transitions
-    const result = engine.advancePhase(room.gameState);
-    room.gameState = result;
-    room.phase = result.phase;
-    room.lastActivity = new Date();
-    
-    // Let the game engine generate its own events
-    return engine.generatePhaseEvents(result);
+  async advanceGamePhase(roomCode: string): Promise<GameEvent[]> {
+    try {
+      return await this.stateManager.advanceGamePhase(roomCode);
+    } catch (error) {
+      console.error(`❌ Error advancing game phase in room ${roomCode}:`, error);
+      return [];
+    }
   }
   
-  // NEW: Update timer for a room (called by TimerService callbacks)
-  updateTimer(roomCode: string, delta: number): GameEvent[] {
-    const room = this.rooms.get(roomCode);
-    if (!room) return [];
-    
-    const engine = this.gameRegistry.getGame(room.gameType);
-    if (!engine) return [];
-    
-    room.gameState = engine.updateTimer(room.gameState, delta);
-    room.lastActivity = new Date();
-    
-    if (room.gameState.timeLeft === 0) {
-      return this.advanceGamePhase(roomCode);
+  async updateTimer(roomCode: string, delta: number): Promise<GameEvent[]> {
+    try {
+      return await this.stateManager.updateTimer(roomCode, delta);
+    } catch (error) {
+      console.error(`❌ Error updating timer in room ${roomCode}:`, error);
+      return [];
     }
-    
-    return [{ type: 'timer', data: { timeLeft: room.gameState.timeLeft }, target: 'all' }];
   }
   
   // IMPROVED: Better cleanup with immediate empty room removal
   cleanupInactiveRooms(maxInactiveMinutes: number = 30): number {
-    const now = new Date();
-    const inactiveRooms: string[] = [];
-    
-    // First, clean up completely empty rooms
-    for (const [code, room] of this.rooms.entries()) {
-      if (room.players.length === 0) {
-        inactiveRooms.push(code);
-        console.log(`🏠 Room ${code} is empty, marking for cleanup`);
-      }
-    }
-    
-    // Then check for inactive rooms
-    for (const [code, room] of this.rooms.entries()) {
-      if (room.players.length > 0) {
-        const inactiveTime = now.getTime() - room.lastActivity.getTime();
-        const inactiveMinutes = inactiveTime / (1000 * 60);
-        
-        if (inactiveMinutes > maxInactiveMinutes) {
-          inactiveRooms.push(code);
-          console.log(`🏠 Room ${code} inactive for ${inactiveMinutes.toFixed(1)} minutes, marking for cleanup`);
-        }
-      }
-    }
-    
-    let cleanedCount = 0;
-    for (const code of inactiveRooms) {
-      if (this.deleteRoom(code)) {
-        cleanedCount++;
-      }
-    }
-    
-    if (cleanedCount > 0) {
-      console.log(`🧹 Cleaned up ${cleanedCount} inactive/empty rooms`);
-    }
-    
-    return cleanedCount;
+    return this.stateManager.cleanupInactiveRooms(maxInactiveMinutes);
   }
   
   getRoomStats(): { totalRooms: number; activePlayers: number; gameTypes: Record<string, number> } {
-    const stats = {
-      totalRooms: this.rooms.size,
-      activePlayers: 0,
-      gameTypes: {} as Record<string, number>
-    };
-    
-    for (const room of this.rooms.values()) {
-      stats.activePlayers += room.players.length;
-      stats.gameTypes[room.gameType] = (stats.gameTypes[room.gameType] || 0) + 1;
-    }
-    
-    return stats;
+    return this.stateManager.getRoomStats();
   }
   
   // NEW: Method to get room count for monitoring
   getRoomCount(): number {
-    return this.rooms.size;
+    return this.stateManager.getRoomCount();
   }
   
   // NEW: Method to get active player count
   getActivePlayerCount(): number {
-    let count = 0;
-    for (const room of this.rooms.values()) {
-      count += room.players.filter(p => p.connected).length;
+    return this.stateManager.getActivePlayerCount();
+  }
+
+  // NEW: Update player connection status
+  async updatePlayerConnection(roomCode: string, playerId: string, connected: boolean): Promise<void> {
+    try {
+      await this.stateManager.updatePlayerConnection(roomCode, playerId, connected);
+    } catch (error) {
+      console.error(`❌ Error updating player connection in room ${roomCode}:`, error);
     }
-    return count;
+  }
+
+  // NEW: Update player socket ID for reconnections
+  async updatePlayerSocketId(roomCode: string, playerId: string, newSocketId: string): Promise<void> {
+    try {
+      await this.stateManager.updatePlayerSocketId(roomCode, playerId, newSocketId);
+    } catch (error) {
+      console.error(`❌ Error updating player socket ID in room ${roomCode}:`, error);
+    }
   }
 }
