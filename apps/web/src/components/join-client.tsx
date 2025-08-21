@@ -23,6 +23,19 @@ export function JoinClient({ code }: { code: string }) {
   const [playerId, setPlayerId] = useState<string>("");
   const socketRef = useRef<ReturnType<typeof connectToRoom> | null>(null);
 
+  // Use refs to avoid dependency issues in useEffect
+  const hasSubmittedAnswerRef = useRef(hasSubmittedAnswer);
+  const playerIdRef = useRef(playerId);
+  
+  // Update refs when state changes
+  useEffect(() => {
+    hasSubmittedAnswerRef.current = hasSubmittedAnswer;
+  }, [hasSubmittedAnswer]);
+  
+  useEffect(() => {
+    playerIdRef.current = playerId;
+  }, [playerId]);
+
   useEffect(() => {
     const s = connectToRoom(code);
     socketRef.current = s;
@@ -48,19 +61,32 @@ export function JoinClient({ code }: { code: string }) {
     s.on('room', (roomState: RoomState) => {
       console.log('🏠 Room state updated:', roomState);
       console.log('🏠 Players:', roomState.players);
-      console.log('🏠 Host ID:', roomState.hostId);
-      console.log('🏠 Current socket ID:', s.id);
-      console.log('🏠 Current joined status:', joined);
-      console.log('🏠 Room phase:', roomState.phase);
+      console.log('🏠 Current round:', roomState.current);
+      console.log('🏠 Correct answer players:', roomState.current?.correctAnswerPlayers);
+      console.log('🏠 Bluffs:', roomState.current?.bluffs);
+      console.log('🏠 Current player ID:', playerIdRef.current);
+      console.log('🏠 Has submitted answer before update:', hasSubmittedAnswerRef.current);
       
-      // Check if we're entering a new phase
-      const isNewPhase = previousPhase !== null && previousPhase !== roomState.phase;
-      
-      if (isNewPhase) {
+      // Handle phase changes
+      if (previousPhase && previousPhase !== roomState.phase) {
         console.log(`🔄 Phase change: ${previousPhase} → ${roomState.phase}`);
         if (roomState.phase === 'prompt') {
-          console.log('🔄 Resetting submission state for new prompt phase');
-          setHasSubmittedAnswer(false);
+          console.log('🔄 Checking if player has already submitted in current round');
+          // Check if player has already submitted (either as a bluff or correct answer)
+          const hasSubmittedInCurrentRound = roomState.current?.bluffs?.some(
+            (bluff: { by: string }) => bluff.by === playerIdRef.current
+          ) || roomState.current?.correctAnswerPlayers?.includes(playerIdRef.current);
+          
+          console.log('🔄 Has submitted in current round:', hasSubmittedInCurrentRound);
+          console.log('🔄 Bluffs by current player:', roomState.current?.bluffs?.filter((b: { by: string }) => b.by === playerIdRef.current));
+          console.log('🔄 Correct answer players:', roomState.current?.correctAnswerPlayers);
+          
+          if (!hasSubmittedInCurrentRound) {
+            console.log('🔄 Resetting submission state - no submission found in current round');
+            setHasSubmittedAnswer(false);
+          } else {
+            console.log('🔄 Keeping submission state - player already submitted in current round');
+          }
           setHasVoted(false);
           setSelectedChoiceId(undefined);
         } else if (roomState.phase === 'choose') {
@@ -84,6 +110,14 @@ export function JoinClient({ code }: { code: string }) {
       setRoomState(roomState);
       setTimer(roomState.timeLeft || 0);
       
+      // Check if player is already in correctAnswerPlayers and update state accordingly
+      if (roomState.current?.correctAnswerPlayers?.includes(playerIdRef.current || '')) {
+        console.log('🏠 Player found in correctAnswerPlayers, setting hasSubmittedAnswer to true');
+        setHasSubmittedAnswer(true);
+      }
+      
+      console.log('🏠 Has submitted answer after update:', hasSubmittedAnswerRef.current);
+      
       // If we received a room state for an active game but we're not joined yet,
       // this might be a race condition - log it for debugging
       if (!joined && roomState.phase !== 'lobby') {
@@ -106,6 +140,8 @@ export function JoinClient({ code }: { code: string }) {
 
     s.on('submitted', (data: { kind: string }) => {
       console.log('✅ Action submitted:', data);
+      console.log('✅ Current hasSubmittedAnswer before update:', hasSubmittedAnswer);
+      
       if (data.kind === 'correct_answer') {
         console.log('🎯 Setting hasSubmittedAnswer to true (correct answer)');
         setHasSubmittedAnswer(true);
@@ -119,6 +155,8 @@ export function JoinClient({ code }: { code: string }) {
         setHasVoted(true);
         notify.success('Vote submitted successfully!');
       }
+      
+      console.log('✅ hasSubmittedAnswer after update:', hasSubmittedAnswer);
     });
 
     s.on('scores', (data: { totals: Array<{ playerId: string; score: number }> }) => {

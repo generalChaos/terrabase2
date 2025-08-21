@@ -417,6 +417,14 @@ export class BluffTriviaEngine implements GameEngine<BluffTriviaState, BluffTriv
           ],
           isValid: true
         };
+      } else {
+        // Player not found - this shouldn't happen but handle gracefully
+        return {
+          newState: state,
+          isValid: false,
+          events: [],
+          error: 'Player not found'
+        };
       }
     }
     
