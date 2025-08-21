@@ -26,12 +26,14 @@ export type Choice = {
 };
 
 export type RoundState = {
-  number: number;
+  roundNumber: number;
   promptId: string;
-  question: string;
+  prompt: string;
   answer: string;
   bluffs: Bluff[];
   votes: Vote[];
+  timeLeft: number;
+  phase: string;
 };
 
 export type RoomState = {
@@ -42,6 +44,7 @@ export type RoomState = {
   timeLeft: number;
   players: Player[];
   current?: RoundState;
+  hostId?: string;
   usedPromptIds: Set<string>;
   timer?: NodeJS.Timeout;
 };
@@ -92,6 +95,7 @@ export type SocketEvent =
   | 'choices'
   | 'scores'
   | 'gameOver'
+  | 'submitted'
   | 'error'
   | 'joined'
   | 'connect_error';

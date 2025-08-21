@@ -250,41 +250,7 @@ export class RoomsGateway
     }
   }
 
-  @SubscribeMessage('submitBluff')
-  async onBluff(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() body: { text: string },
-  ) {
-    try {
-      // Validate input
-      this.errorHandler.validateInput(body.text, 'text', 'submitBluff');
-      
-      const code = this.codeFromNs(client);
-      const room = this.roomManager.getRoomSafe(code);
-      
-      if (!room) {
-        throw new RoomNotFoundError(code);
-      }
-      
-      if (room.gameState.phase !== 'prompt') {
-        throw new InvalidGamePhaseError(room.gameState.phase, 'prompt');
-      }
-      
-      const action: GameAction = {
-        type: 'submitBluff',
-        playerId: client.id,
-        data: { text: body.text }
-      };
-      
-      const events = await this.roomManager.processGameAction(code, client.id, action);
-      this.handleGameEvents(code, events);
-      
-    } catch (error) {
-      const errorResponse = this.errorHandler.handleWebSocketError(error, 'submitBluff', client.id);
-      console.error(`❌ Error in submitBluff:`, errorResponse);
-      client.emit('error', errorResponse);
-    }
-  }
+
 
   @SubscribeMessage('submitVote')
   async onVote(
@@ -360,14 +326,14 @@ export class RoomsGateway
     for (const event of events) {
       switch (event.target) {
         case 'all':
-          nsp.emit(event.type, event.data);
+          nsp.to(roomCode).emit(event.type, event.data);
           break;
         case 'player':
           if (event.playerId) {
             nsp.to(event.playerId).emit(event.type, event.data);
           }
           break;
-        case 'host':
+          case 'host':
           // Send to first player (host)
           const room = this.roomManager.getRoom(roomCode);
           if (room?.players[0]) {

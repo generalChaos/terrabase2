@@ -19,7 +19,7 @@ export function PlayerPromptView({
   round, 
   maxRounds, 
   onSubmitAnswer,
-  hasSubmitted 
+  hasSubmitted
 }: PlayerPromptViewProps) {
   const [answer, setAnswer] = useState("");
 

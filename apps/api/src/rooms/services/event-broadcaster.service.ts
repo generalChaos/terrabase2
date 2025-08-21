@@ -157,13 +157,13 @@ export class EventBroadcasterService {
     if (!this.isReady()) return;
 
     try {
-      if (roomState.gameState.current) {
+      if (roomState.gameState.currentRound) {
         this.namespace!.to(clientId).emit('prompt', { 
-          question: roomState.gameState.current.question 
+          question: roomState.gameState.currentRound.prompt 
         });
         
         if (roomState.gameState.phase === 'choose' || roomState.gameState.phase === 'scoring') {
-          const choices = this.generateChoices(roomState.gameState.current);
+          const choices = this.generateChoices(roomState.gameState.currentRound);
           this.namespace!.to(clientId).emit('choices', { choices });
         }
         

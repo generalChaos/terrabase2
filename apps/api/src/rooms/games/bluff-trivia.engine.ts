@@ -30,19 +30,19 @@ export interface Bluff {
 }
 
 export interface BluffTriviaAction extends GameAction {
-  type: 'join' | 'start' | 'submitAnswer' | 'submitBluff' | 'submitVote';
+  type: 'join' | 'start' | 'submitAnswer' | 'submitVote';
   data: any;
 }
 
 export interface BluffTriviaEvent extends GameEvent {
-  type: 'prompt' | 'choices' | 'scores' | 'gameOver' | 'roomUpdate' | 'timer';
+  type: 'prompt' | 'choices' | 'scores' | 'gameOver' | 'roomUpdate' | 'timer' | 'submitted';
   data: any;
 }
 
 export class BluffTriviaEngine implements GameEngine<BluffTriviaState, BluffTriviaAction, BluffTriviaEvent> {
   private phases: GamePhase[] = [
     { name: PHASE_NAMES.LOBBY, duration: 0, allowedActions: ['join', 'start'] },
-    { name: PHASE_NAMES.PROMPT, duration: GAME_PHASE_DURATIONS.PROMPT, allowedActions: ['submitAnswer', 'submitBluff'] },
+    { name: PHASE_NAMES.PROMPT, duration: GAME_PHASE_DURATIONS.PROMPT, allowedActions: ['submitAnswer'] },
     { name: PHASE_NAMES.CHOOSE, duration: GAME_PHASE_DURATIONS.CHOOSE, allowedActions: ['submitVote'] },
     { name: PHASE_NAMES.SCORING, duration: GAME_PHASE_DURATIONS.SCORING, allowedActions: [] },
     { name: PHASE_NAMES.OVER, duration: 0, allowedActions: [] }
@@ -78,8 +78,6 @@ export class BluffTriviaEngine implements GameEngine<BluffTriviaState, BluffTriv
         return this.handleStart(state, action);
       case 'submitAnswer':
         return this.handleSubmitAnswer(state, action);
-      case 'submitBluff':
-        return this.handleSubmitBluff(state, action);
       case 'submitVote':
         return this.handleSubmitVote(state, action);
       default:
@@ -112,9 +110,7 @@ export class BluffTriviaEngine implements GameEngine<BluffTriviaState, BluffTriv
       actions.push({ type: 'submitAnswer', playerId, data: {} });
     }
     
-    if (currentPhase.allowedActions.includes('submitBluff') && state.phase === PHASE_NAMES.PROMPT) {
-      actions.push({ type: 'submitBluff', playerId, data: {} });
-    }
+
     
     if (currentPhase.allowedActions.includes('submitVote') && state.phase === PHASE_NAMES.CHOOSE) {
       actions.push({ type: 'submitVote', playerId, data: {} });
@@ -162,11 +158,29 @@ export class BluffTriviaEngine implements GameEngine<BluffTriviaState, BluffTriv
         }
         break;
       case 'choose':
-        // No additional state changes needed for choose phase
+        // Update current round phase and generate choices
+        if (state.currentRound) {
+          newState = {
+            ...newState,
+            currentRound: {
+              ...state.currentRound,
+              phase: 'choose',
+              timeLeft: nextPhase.duration
+            }
+          };
+        }
         break;
       case 'scoring':
-        // Score the current round
+        // Score the current round and update current round phase
         if (state.currentRound) {
+          newState = {
+            ...newState,
+            currentRound: {
+              ...state.currentRound,
+              phase: 'scoring',
+              timeLeft: nextPhase.duration
+            }
+          };
           this.scoreRound(newState);
         }
         break;
@@ -352,64 +366,13 @@ export class BluffTriviaEngine implements GameEngine<BluffTriviaState, BluffTriv
       newState,
       events: [
         { type: 'roomUpdate', data: newState, target: 'all' },
-        { type: 'roomUpdate', data: { kind: 'answer' }, target: 'player', playerId: action.playerId }
+        { type: 'submitted', data: { kind: 'answer' }, target: 'player', playerId: action.playerId }
       ],
       isValid: true
     };
   }
 
-  private handleSubmitBluff(state: BluffTriviaState, action: BluffTriviaAction): GameResult<BluffTriviaState, BluffTriviaEvent> {
-    if (state.phase !== PHASE_NAMES.PROMPT || !state.currentRound) {
-      return {
-        newState: state,
-        isValid: false,
-        events: [],
-        error: 'Cannot submit bluff in current phase'
-      };
-    }
-    
-    const { text } = action.data;
-    const bluffText = (text || '').trim();
-    
-    if (!bluffText) {
-      return {
-        newState: state,
-        isValid: false,
-        events: [],
-        error: 'Bluff cannot be empty'
-      };
-    }
-    
-    // Check for duplicate bluffs
-    if (state.currentRound.bluffs.some(b => b.text.toLowerCase() === bluffText.toLowerCase())) {
-      return {
-        newState: state,
-        isValid: false,
-        events: [],
-        error: 'Identical bluff already submitted'
-      };
-    }
-    
-    const newBluff: Bluff = { id: uid(), by: action.playerId, text: bluffText };
-    const newCurrentRound = {
-      ...state.currentRound,
-      bluffs: [...state.currentRound.bluffs, newBluff]
-    };
-    
-    const newState: BluffTriviaState = {
-      ...state,
-      currentRound: newCurrentRound
-    };
-    
-    return {
-      newState,
-      events: [
-        { type: 'roomUpdate', data: newState, target: 'all' },
-        { type: 'roomUpdate', data: { kind: 'bluff' }, target: 'player', playerId: action.playerId }
-      ],
-      isValid: true
-    };
-  }
+
 
   private handleSubmitVote(state: BluffTriviaState, action: BluffTriviaAction): GameResult<BluffTriviaState, BluffTriviaEvent> {
     if (state.phase !== PHASE_NAMES.CHOOSE || !state.currentRound) {
@@ -459,7 +422,7 @@ export class BluffTriviaEngine implements GameEngine<BluffTriviaState, BluffTriv
       newState,
       events: [
         { type: 'roomUpdate', data: newState, target: 'all' },
-        { type: 'roomUpdate', data: { kind: 'vote' }, target: 'player', playerId: action.playerId }
+        { type: 'submitted', data: { kind: 'vote' }, target: 'player', playerId: action.playerId }
       ],
       isValid: true
     };
