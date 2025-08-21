@@ -1,6 +1,7 @@
 "use client";
 import { BluffTriviaPhaseManagerFC } from "./games/bluff-trivia-phase-manager";
 import { WordAssociationPhaseManagerFC } from "./games/word-association-phase-manager";
+import { FibbingItPhaseManagerFC } from "./games/fibbing-it-phase-manager";
 import type { Phase, Choice } from "@party/types";
 
 type GamePhaseManagerProps = {
@@ -36,6 +37,9 @@ export function GamePhaseManager(props: GamePhaseManagerProps) {
     
     case 'word-association':
       return <WordAssociationPhaseManagerFC {...gameProps} />;
+    
+    case 'fibbing-it':
+      return <FibbingItPhaseManagerFC {...gameProps} />;
     
     // Add new games here:
     // case 'new-game':

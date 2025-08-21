@@ -240,7 +240,7 @@ export function JoinClient({ code }: { code: string }) {
 
     return (
       <GamePhaseManager
-        gameType="bluff-trivia" // You can change this to test different games
+        gameType="fibbing-it" // Using the new Fibbing It! design
         phase={roomState.phase}
         isHost={false}
         question={roomState.current?.prompt || ""}
@@ -266,11 +266,11 @@ export function JoinClient({ code }: { code: string }) {
 
   // Show lobby/join form
   return (
-    <div className="min-h-screen bg-[--bg] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center">
-          <div className="text-4xl h1">Fibbing It!</div>
-          <div className="mt-2 opacity-80">Joining room <span className="font-mono">{code}</span></div>
+          <div className="text-4xl h1 text-white tracking-wider">FIBBING IT!</div>
+          <div className="mt-2 text-slate-300">Joining room <span className="font-mono text-teal-400">{code}</span></div>
         </div>
         
         {!joined ? (
@@ -285,7 +285,7 @@ export function JoinClient({ code }: { code: string }) {
                 value={nickname}
                 onChange={(e) => setNickname(e.target.value)}
                 placeholder="Enter your nickname"
-                className="w-full px-3 py-2 border border-[--border] rounded-lg bg-[--bg] text-[--fg] placeholder-[--muted] focus:outline-none focus:ring-2 focus:ring-[--accent] focus:border-transparent"
+                className="w-full px-3 py-2 border border-slate-600 rounded-lg bg-slate-800 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent"
                 maxLength={20}
               />
               {err && <div className="mt-2 text-sm text-danger">{err}</div>}
@@ -293,17 +293,17 @@ export function JoinClient({ code }: { code: string }) {
             
             <button 
               onClick={submit} 
-              className="mt-4 h-12 w-full rounded-xl bg-primary text-white font-medium hover:bg-primary/90 transition-all"
+              className="mt-4 h-12 w-full rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-medium transition-all duration-200 transform hover:scale-105 shadow-lg"
             >
               Join Game
             </button>
           </div>
         ) : (
-          <div className="mt-8 rounded-2xl bg-panel border border-slate-800 p-6 text-center">
-            <div className="text-2xl">✅ Joined!</div>
-            <div className="opacity-80 mt-1">Waiting for the host to start…</div>
+          <div className="mt-8 rounded-2xl bg-slate-800/50 border border-slate-600 p-6 text-center">
+            <div className="text-2xl text-white">✅ Joined!</div>
+            <div className="text-slate-300 mt-1">Waiting for the host to start…</div>
             {roomState && (
-              <div className="mt-2 text-sm text-[--muted]">
+              <div className="mt-2 text-sm text-slate-400">
                 Room phase: {roomState.phase} | Players: {roomState.players?.length || 0}
               </div>
             )}

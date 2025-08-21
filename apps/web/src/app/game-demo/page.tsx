@@ -4,8 +4,8 @@ import { GamePhaseManager } from "@/components/game-phase-manager";
 import type { Phase } from "@party/types";
 
 export default function GameDemoPage() {
-  const [gameType, setGameType] = useState<'bluff-trivia' | 'word-association'>('bluff-trivia');
-  const [phase, setPhase] = useState<Phase>('prompt');
+  const [gameType, setGameType] = useState<'bluff-trivia' | 'word-association' | 'fibbing-it'>('fibbing-it');
+  const [phase, setPhase] = useState<Phase>('lobby');
   const [isHost, setIsHost] = useState(true);
 
   // Mock data for bluff-trivia
@@ -41,6 +41,44 @@ export default function GameDemoPage() {
     }
   };
 
+  // Mock data for fibbing-it
+  const fibbingItProps = {
+    gameType,
+    phase,
+    isHost,
+    question: "The fear of spiders is known as...",
+    correctAnswer: "arachnophobia",
+    timeLeft: 28,
+    totalTime: 30,
+    round: 1,
+    maxRounds: 5,
+    choices: [
+      { id: "TRUE::1", text: "arachnophobia", by: "system" },
+      { id: "bluff1", text: "arachnophiba", by: "player1" },
+      { id: "bluff2", text: "arachnida", by: "player2" },
+      { id: "bluff3", text: "arahinnis othopax", by: "player3" },
+    ],
+    votes: [
+      { voter: "player1", choiceId: "TRUE::1" },
+      { voter: "player2", choiceId: "bluff1" },
+    ],
+    players: [
+      { id: "player1", name: "Carla", avatar: "👩", score: 9200, connected: true },
+      { id: "player2", name: "Thomas", avatar: "👨", score: 9200, connected: true },
+      { id: "player3", name: "Lauren", avatar: "👦", score: 7900, connected: true },
+      { id: "player4", name: "Alex", avatar: "👧", score: 6500, connected: true },
+    ],
+    scores: [
+      { playerId: "player1", score: 9200 },
+      { playerId: "player2", score: 9200 },
+      { playerId: "player3", score: 7900 },
+      { playerId: "player4", score: 6500 },
+    ],
+    current: {
+      correctAnswerPlayers: ["player1"]
+    }
+  };
+
   // Mock data for word-association
   const wordAssociationProps = {
     gameType,
@@ -69,41 +107,45 @@ export default function GameDemoPage() {
         return bluffTriviaProps;
       case 'word-association':
         return wordAssociationProps;
+      case 'fibbing-it':
+        return fibbingItProps;
       default:
-        return bluffTriviaProps;
+        return fibbingItProps;
     }
   };
 
   return (
-    <div className="min-h-screen bg-[--bg] p-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
       <div className="max-w-4xl mx-auto">
-        <div className="mb-8 p-6 bg-[--panel] rounded-2xl border border-[--border]">
-          <h1 className="text-3xl font-bold mb-4">🎮 Game Type Demo</h1>
-          <p className="text-[--muted] mb-6">
+        <div className="mb-8 p-6 bg-slate-800/50 rounded-2xl border border-slate-600">
+          <h1 className="text-3xl font-bold mb-4 text-white">🎮 Game Type Demo</h1>
+          <p className="text-slate-300 mb-6">
             This page demonstrates how easy it is to switch between different game types using the new architecture.
             Change the game type below to see different UIs render automatically.
           </p>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div>
-              <label className="block text-sm font-medium mb-2">Game Type</label>
+              <label className="block text-sm font-medium mb-2 text-white">Game Type</label>
               <select
                 value={gameType}
-                onChange={(e) => setGameType(e.target.value as 'bluff-trivia' | 'word-association')}
-                className="w-full px-3 py-2 border border-[--border] rounded-lg bg-[--bg] text-[--fg]"
+                onChange={(e) => setGameType(e.target.value as 'bluff-trivia' | 'word-association' | 'fibbing-it')}
+                className="w-full px-3 py-2 border border-slate-600 rounded-lg bg-slate-800 text-white"
               >
                 <option value="bluff-trivia">Bluff Trivia</option>
                 <option value="word-association">Word Association</option>
+                <option value="fibbing-it">Fibbing It!</option>
               </select>
             </div>
             
             <div>
-              <label className="block text-sm font-medium mb-2">Phase</label>
+              <label className="block text-sm font-medium mb-2 text-white">Phase</label>
               <select
                 value={phase}
                 onChange={(e) => setPhase(e.target.value as Phase)}
-                className="w-full px-3 py-2 border border-[--border] rounded-lg bg-[--bg] text-[--fg]"
+                className="w-full px-3 py-2 border border-slate-600 rounded-lg bg-slate-800 text-white"
               >
+                <option value="lobby">Lobby</option>
                 <option value="prompt">Prompt</option>
                 <option value="choose">Choose</option>
                 <option value="scoring">Scoring</option>
@@ -112,11 +154,11 @@ export default function GameDemoPage() {
             </div>
             
             <div>
-              <label className="block text-sm font-medium mb-2">View</label>
+              <label className="block text-sm font-medium mb-2 text-white">View</label>
               <select
                 value={isHost ? 'host' : 'player'}
                 onChange={(e) => setIsHost(e.target.value === 'host')}
-                className="w-full px-3 py-2 border border-[--border] rounded-lg bg-[--bg] text-[--fg]"
+                className="w-full px-3 py-2 border border-slate-600 rounded-lg bg-slate-800 text-white"
               >
                 <option value="host">Host</option>
                 <option value="player">Player</option>
@@ -124,18 +166,18 @@ export default function GameDemoPage() {
             </div>
           </div>
           
-          <div className="text-sm text-[--muted]">
+          <div className="text-sm text-slate-400">
             <strong>Current:</strong> {gameType} | {phase} | {isHost ? 'Host' : 'Player'} View
           </div>
         </div>
 
-        <div className="bg-[--panel] rounded-2xl border border-[--border] overflow-hidden">
+        <div className="bg-slate-800/50 rounded-2xl border border-slate-600 overflow-hidden">
           <GamePhaseManager {...getPropsForGame()} />
         </div>
 
-        <div className="mt-8 p-6 bg-[--panel] rounded-2xl border border-[--border]">
-          <h2 className="text-xl font-semibold mb-4">How This Works</h2>
-          <div className="space-y-3 text-sm text-[--muted]">
+        <div className="mt-8 p-6 bg-slate-800/50 rounded-2xl border border-slate-600">
+          <h2 className="text-xl font-semibold mb-4 text-white">How This Works</h2>
+          <div className="space-y-3 text-sm text-slate-300">
             <p>
               <strong>1. Game Type Routing:</strong> The main <code>GamePhaseManager</code> routes to game-specific managers based on the <code>gameType</code> prop.
             </p>
