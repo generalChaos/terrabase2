@@ -187,7 +187,7 @@ export function JoinClient({ code }: { code: string }) {
       <GamePhaseManager
         phase={roomState.phase}
         isHost={false}
-        question={roomState.current?.question || ""}
+        question={roomState.current?.prompt || ""}
         correctAnswer={roomState.current?.answer || ""}
         choices={choices}
         timeLeft={timer}

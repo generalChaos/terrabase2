@@ -185,6 +185,17 @@ export class EventBroadcasterService {
    * Serialize room state for client consumption
    */
   serializeRoom(roomState: ImmutableRoomState): any {
+    // Convert current round data for frontend consumption
+    let current = roomState.gameState.currentRound;
+    if (current && current.votes instanceof Map) {
+      // Convert Map to array for frontend
+      const votesArray = Array.from(current.votes.entries()).map((entry) => ({
+        voter: (entry as [string, string])[0],
+        choiceId: (entry as [string, string])[1]
+      }));
+      current = { ...current, votes: votesArray };
+    }
+    
     return {
       code: roomState.code,
       phase: roomState.phase,
@@ -192,7 +203,7 @@ export class EventBroadcasterService {
       maxRounds: roomState.gameState.maxRounds,
       timeLeft: roomState.gameState.timeLeft,
       players: roomState.players.map((p: any) => ({ ...p })),
-      current: roomState.gameState.currentRound,
+      current,
       hostId: roomState.hostId,
     };
   }

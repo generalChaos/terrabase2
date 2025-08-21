@@ -94,7 +94,7 @@ export function HostClient({ code }: { code: string }) {
           <GamePhaseManager
             phase={state.phase}
             isHost={true}
-            question={state.current?.question}
+            question={state.current?.prompt}
             correctAnswer={state.current?.answer}
             timeLeft={timer}
             totalTime={state.phase === 'prompt' ? DUR.PROMPT : state.phase === 'choose' ? DUR.CHOOSE : DUR.SCORING}
