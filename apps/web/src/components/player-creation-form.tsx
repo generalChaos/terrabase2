@@ -1,7 +1,6 @@
 "use client";
 import { useState } from "react";
-import { buttonVariants } from "@party/ui";
-import { ChevronLeft, ChevronRight, Grid, List } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export type PlayerCreationData = {
   nickname: string;
@@ -18,7 +17,6 @@ interface PlayerCreationFormProps {
   onCancel?: () => void;
   defaultValues?: Partial<PlayerCreationData>;
   isHost?: boolean;
-  roomCode?: string;
   className?: string;
 }
 
@@ -27,14 +25,12 @@ export function PlayerCreationForm({
   onCancel,
   defaultValues = {},
   isHost = false,
-  roomCode,
   className = "",
 }: PlayerCreationFormProps) {
   const [nickname, setNickname] = useState(defaultValues.nickname || "");
   const [selectedAvatar, setSelectedAvatar] = useState(defaultValues.avatar || DEFAULT_AVATARS[0]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [avatarViewMode, setAvatarViewMode] = useState<'single' | 'grid'>('single');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,131 +60,67 @@ export function PlayerCreationForm({
 
   return (
     <div className={`w-full max-w-2xl mx-auto ${className}`}>
-      <div className="text-center mb-8 animate-fade-in">
-        <h1 className="text-6xl font-bold text-white tracking-wider mb-4 animate-fade-in-up">
-          {isHost ? "CREATE ROOM" : "JOIN ROOM"}
-        </h1>
-        {roomCode && (
-          <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-6 py-3 inline-block mb-4 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
-            <span className="text-xl font-mono text-white font-bold">{roomCode}</span>
-          </div>
-        )}
-        <p className="text-xl text-slate-300 max-w-2xl mx-auto animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-          {isHost
-            ? "Set up your player profile to get started"
-            : "Enter your details to join the game"}
-        </p>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-8">
-        {/* Avatar Selection */}
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Avatar Selection and Name Input Combined */}
         <div className="animate-fade-in-up" style={{ animationDelay: '300ms' }}>
           <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-3xl p-8">
             <div className="flex items-center justify-center gap-3 mb-6">
               <h2 className="text-2xl font-bold text-white">Choose Your Avatar</h2>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setAvatarViewMode('single')}
-                  className={`p-2 rounded-lg transition-all duration-200 ${
-                    avatarViewMode === 'single' 
-                      ? 'bg-white/20 text-white' 
-                      : 'bg-white/10 text-white/60 hover:bg-white/20'
-                  }`}
-                >
-                  <List className="w-4 h-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAvatarViewMode('grid')}
-                  className={`p-2 rounded-lg transition-all duration-200 ${
-                    avatarViewMode === 'grid' 
-                      ? 'bg-white/20 text-white' 
-                      : 'bg-white/10 text-white/60 hover:bg-white/20'
-                  }`}
-                >
-                  <Grid className="w-4 h-4" />
-                </button>
-              </div>
             </div>
 
-            {avatarViewMode === 'single' ? (
-              /* Single Large Avatar with Sideways Sliding */
-              <div className="relative">
-                {/* Navigation Arrows */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    const currentIndex = DEFAULT_AVATARS.indexOf(selectedAvatar);
-                    const prevIndex =
-                      currentIndex <= 0
-                        ? DEFAULT_AVATARS.length - 1
-                        : currentIndex - 1;
-                    setSelectedAvatar(DEFAULT_AVATARS[prevIndex]);
-                  }}
-                  className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-12 h-12 bg-slate-800/90 hover:bg-slate-700/90 border border-slate-600 rounded-full flex items-center justify-center text-white hover:text-teal-400 transition-all duration-200 shadow-lg hover:-translate-y-1"
-                >
-                  <ChevronLeft className="w-6 h-6" />
-                </button>
+            {/* Single Large Avatar with Sideways Sliding */}
+            <div className="relative mb-8">
+              {/* Navigation Arrows */}
+              <button
+                type="button"
+                onClick={() => {
+                  const currentIndex = DEFAULT_AVATARS.indexOf(selectedAvatar);
+                  const prevIndex =
+                    currentIndex <= 0
+                      ? DEFAULT_AVATARS.length - 1
+                      : currentIndex - 1;
+                  setSelectedAvatar(DEFAULT_AVATARS[prevIndex]);
+                }}
+                className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-12 h-12 bg-slate-800/90 hover:bg-slate-700/90 border border-slate-600 rounded-full flex items-center justify-center text-white hover:text-teal-400 transition-all duration-200 shadow-lg hover:-translate-y-1"
+              >
+                <ChevronLeft className="w-6 h-6" />
+              </button>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    const currentIndex = DEFAULT_AVATARS.indexOf(selectedAvatar);
-                    const nextIndex =
-                      currentIndex >= DEFAULT_AVATARS.length - 1
-                        ? 0
-                        : currentIndex + 1;
-                    setSelectedAvatar(DEFAULT_AVATARS[nextIndex]);
-                  }}
-                  className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-12 h-12 bg-slate-800/90 hover:bg-slate-700/90 border border-slate-600 rounded-full flex items-center justify-center text-white hover:text-teal-400 transition-all duration-200 shadow-lg hover:-translate-y-1"
-                >
-                  <ChevronRight className="w-6 h-6" />
-                </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const currentIndex = DEFAULT_AVATARS.indexOf(selectedAvatar);
+                  const nextIndex =
+                    currentIndex >= DEFAULT_AVATARS.length - 1
+                      ? 0
+                      : currentIndex + 1;
+                  setSelectedAvatar(DEFAULT_AVATARS[nextIndex]);
+                }}
+                className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-12 h-12 bg-slate-800/90 hover:bg-slate-700/90 border border-slate-600 rounded-full flex items-center justify-center text-white hover:text-teal-400 transition-all duration-200 shadow-lg hover:-translate-y-1"
+              >
+                <ChevronRight className="w-6 h-6" />
+              </button>
 
-                {/* Single Large Avatar Display */}
+                              {/* Single Large Avatar Display */}
                 <div className="flex justify-center mb-6">
                   <div className="w-32 h-32 rounded-3xl border-4 border-teal-400 bg-teal-400/20 shadow-2xl flex items-center justify-center animate-scale-in">
-                    <div className="text-8xl transition-all duration-300 ease-in-out transform hover:scale-110">
+                    <div style={{ fontSize: 'var(--avatar-font-2xl)' }} className="transition-all duration-300 ease-in-out transform hover:scale-110">
                       {selectedAvatar}
                     </div>
                   </div>
                 </div>
 
-                {/* Avatar Counter */}
-                <div className="text-center text-sm text-slate-400 mb-4">
-                  {DEFAULT_AVATARS.indexOf(selectedAvatar) + 1} of{" "}
-                  {DEFAULT_AVATARS.length}
-                </div>
+              {/* Avatar Counter */}
+              <div className="text-center text-sm text-slate-400 mb-4">
+                {DEFAULT_AVATARS.indexOf(selectedAvatar) + 1} of{" "}
+                {DEFAULT_AVATARS.length}
               </div>
-            ) : (
-              /* Grid View of All Avatars */
-              <div className="grid grid-cols-5 gap-3 max-h-64 overflow-y-auto p-2">
-                {DEFAULT_AVATARS.map((avatar) => (
-                  <button
-                    key={avatar}
-                    type="button"
-                    onClick={() => setSelectedAvatar(avatar)}
-                    className={`w-16 h-16 rounded-2xl border-2 transition-all duration-200 flex items-center justify-center text-3xl hover:scale-110 ${
-                      selectedAvatar === avatar
-                        ? 'border-teal-400 bg-teal-400/20 shadow-lg'
-                        : 'border-white/20 bg-white/10 hover:border-white/40 hover:bg-white/20'
-                    }`}
-                  >
-                    {avatar}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+            </div>
 
-        {/* Nickname Input */}
-        <div className="animate-fade-in-up" style={{ animationDelay: '400ms' }}>
-          <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-3xl p-8">
-            <h2 className="text-xl font-bold text-white mb-4 text-center">Your Name</h2>
-            
+            {/* Name Input */}
             <div className="space-y-3">
+              <h3 className="text-xl font-bold text-white text-center">Your Name</h3>
+              
               <input
                 id="nickname"
                 type="text"
@@ -230,12 +162,7 @@ export function PlayerCreationForm({
             <button
               type="button"
               onClick={handleCancel}
-              className={buttonVariants({
-                variant: "secondary",
-                size: "xl",
-                fullWidth: true,
-                animation: "scale"
-              })}
+              className="flex-1 py-4 px-6 rounded-2xl bg-slate-700/50 hover:bg-slate-600/50 border border-slate-600/50 hover:border-slate-500/50 text-white font-bold text-lg transition-all duration-200 hover:-translate-y-1 hover:shadow-lg active:translate-y-0"
             >
               Cancel
             </button>
@@ -243,13 +170,11 @@ export function PlayerCreationForm({
           <button
             type="submit"
             disabled={isSubmitting || !nickname.trim()}
-            className={buttonVariants({
-              variant: isSubmitting || !nickname.trim() ? "secondary" : "accent",
-              size: "xl",
-              fullWidth: true,
-              animation: "glow",
-              className: isSubmitting || !nickname.trim() ? "opacity-50 cursor-not-allowed" : ""
-            })}
+            className={`flex-1 py-4 px-6 rounded-2xl font-bold text-lg transition-all duration-200 hover:-translate-y-1 hover:shadow-glow active:translate-y-0 ${
+              isSubmitting || !nickname.trim()
+                ? "bg-slate-600/50 text-slate-400 cursor-not-allowed"
+                : "bg-gradient-to-r from-teal-500 to-blue-600 hover:from-teal-600 hover:to-blue-700 text-white shadow-lg"
+            }`}
           >
             {isSubmitting
               ? "Creating..."

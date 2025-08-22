@@ -95,14 +95,26 @@ export function HostClient({ code }: { code: string }) {
       const s = connectToRoom(roomData.code);
       socketRef.current = s;
 
-      // Host must join the room to control the game
+      // Wait for connection to be established before joining
       s.on('connect', () => {
         console.log('🔌 Host connected, joining room as player...');
         console.log('🔌 Host socket ID:', s.id);
-        s.emit('join', {
-          nickname: data.nickname,
-          avatar: data.avatar,
-        });
+        
+        // Small delay to ensure connection is fully established
+        setTimeout(() => {
+          console.log('🎯 Emitting join event...');
+          s.emit('join', {
+            nickname: data.nickname,
+            avatar: data.avatar,
+          });
+        }, 100);
+      });
+
+      // Listen for connection errors
+      s.on('connect_error', (error) => {
+        console.error('❌ Host connection error:', error);
+        setShowPlayerCreation(true);
+        setIsCreatingRoom(false);
       });
 
       // Listen for join confirmation
@@ -113,6 +125,8 @@ export function HostClient({ code }: { code: string }) {
       // Listen for join errors
       s.on('error', (error: Error) => {
         console.error('❌ Host join error:', error);
+        setShowPlayerCreation(true);
+        setIsCreatingRoom(false);
       });
 
       // Listen for room state updates
@@ -122,6 +136,15 @@ export function HostClient({ code }: { code: string }) {
         console.log('🏠 Host ID:', st.hostId);
         console.log('🏠 Current socket ID:', s.id);
         console.log('🏠 Phase changed from:', state?.phase, 'to:', st.phase);
+        
+        // Check if host is in the players list
+        const hostPlayer = st.players.find(p => p.id === s.id);
+        if (hostPlayer) {
+          console.log('✅ Host found in players list:', hostPlayer);
+        } else {
+          console.warn('⚠️ Host not found in players list. Players:', st.players.map(p => ({ id: p.id, name: p.name })));
+        }
+        
         setState(st);
         setTimer(st.timeLeft || 0);
       });

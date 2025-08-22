@@ -14,6 +14,19 @@
   --success: #22c55e;
   --danger: #ef4444;
   --warning: #f59e0b;
+  
+  /* Avatar sizing system */
+  --avatar-sm: 3rem;      /* 48px - Small avatars */
+  --avatar-md: 4rem;      /* 64px - Medium avatars */
+  --avatar-lg: 5rem;      /* 80px - Large avatars (lobby) */
+  --avatar-xl: 6rem;      /* 96px - Extra large */
+  --avatar-2xl: 8rem;     /* 128px - Player creation form */
+  
+  --avatar-font-sm: 2rem;     /* 32px */
+  --avatar-font-md: 3rem;     /* 48px */
+  --avatar-font-lg: 4rem;     /* 64px */
+  --avatar-font-xl: 5.25rem;  /* 84px - Current choice */
+  --avatar-font-2xl: 6rem;    /* 96px */
 }
 
 * { outline-color: var(--accent); }
@@ -27,3 +40,21 @@ body { background: var(--bg); color: var(--text); }
 }
 
 .h1 { font-family: var(--font-bangers), system-ui; letter-spacing: .5px; }
+
+/* Prevent flash during page load */
+body {
+  background: var(--bg);
+  color: var(--text);
+  transition: none; /* Disable transitions during initial load */
+}
+
+/* Smooth avatar loading */
+.avatar-loading {
+  opacity: 0;
+  animation: fadeIn 0.3s ease-in-out forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

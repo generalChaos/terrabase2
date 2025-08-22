@@ -1,8 +1,7 @@
 'use client';
 import { useState, useEffect } from "react";
 import { PlayerAvatar } from '../ui/player-avatar';
-import { Copy, Users, Clock, Star, Wifi, WifiOff, Play, Settings } from 'lucide-react';
-import { toast } from 'sonner';
+import { Users, Wifi, WifiOff, Play } from 'lucide-react';
 import { buttonVariants } from '@party/ui';
 
 type LobbyViewProps = {
@@ -32,24 +31,6 @@ type LobbyViewProps = {
       name: string;
     };
   };
-  onGameSelect?: (gameId: string) => void;
-  availableGames?: Array<{
-    id: string;
-    title: string;
-    description: string;
-    icon: string;
-    players: string;
-    duration: string;
-    difficulty: string;
-    theme?: {
-      primary: string;
-      accent: string;
-      background: string;
-      icon: string;
-      name: string;
-    };
-  }>;
-  showAllGames?: boolean;
 };
 
 export function LobbyView({
@@ -58,9 +39,6 @@ export function LobbyView({
   isHost,
   onStartGame,
   selectedGame,
-  onGameSelect,
-  availableGames,
-  showAllGames = false,
 }: LobbyViewProps) {
   const [mounted, setMounted] = useState(false);
   
@@ -72,22 +50,6 @@ export function LobbyView({
     setMounted(true);
     console.log('🎮 LobbyView mounted with props:', { roomCode, players: players.length, isHost });
   }, [roomCode, players.length, isHost]);
-
-  const copyRoomCode = async () => {
-    try {
-      await navigator.clipboard.writeText(roomCode);
-      toast.success('Room code copied!', {
-        description: `Share ${roomCode} with your friends`,
-        duration: 3000,
-      });
-    } catch (err) {
-      console.error('Failed to copy room code:', err);
-      toast.error('Failed to copy room code', {
-        description: 'Please copy manually: ' + roomCode,
-        duration: 5000,
-      });
-    }
-  };
 
   // Loading state while components mount
   if (!mounted) {
@@ -104,141 +66,10 @@ export function LobbyView({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
-      {/* Header */}
-      <div className="text-center pt-8 pb-12 animate-fade-in">
-        <h1 className="text-6xl font-bold text-white tracking-wider mb-4 animate-fade-in-up">
-          LOBBY
-        </h1>
-        <div className="flex items-center justify-center gap-4 mb-6 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-          <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-6 py-3">
-            <span className="text-2xl font-mono text-white font-bold">{roomCode}</span>
-          </div>
-          <button
-            onClick={copyRoomCode}
-            className={buttonVariants({
-              variant: "glass",
-              size: "lg",
-              animation: "scale"
-            })}
-          >
-            <Copy className="w-5 h-5" />
-            Copy
-          </button>
-        </div>
-        <p className="text-xl text-slate-300 max-w-2xl mx-auto animate-fade-in-up" style={{ animationDelay: '400ms' }}>
-          {connectedPlayers.length > 0
-            ? `${connectedPlayers.length} player${connectedPlayers.length === 1 ? '' : 's'} ready to play`
-            : 'Waiting for players to join the party!'}
-        </p>
-      </div>
-
       {/* Main Content */}
-      <div className="max-w-6xl mx-auto space-y-8">
-        {/* Game Selection - Host Only */}
-        {isHost && availableGames && (
-          <div className="animate-fade-in-up" style={{ animationDelay: '500ms' }}>
-            <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-3xl p-8 text-center">
-              <div className="flex items-center justify-center gap-3 mb-6">
-                <Settings className="w-8 h-8 text-white" />
-                <h2 className="text-3xl font-bold text-white">Game Selection</h2>
-              </div>
-
-              {/* Selected Game Display */}
-              {selectedGame && (
-                <div className="mb-6 p-6 rounded-2xl border-2 border-white/30 bg-white/5 animate-fade-in-up" style={{ animationDelay: '600ms' }}>
-                  <div className="text-6xl mb-4">{selectedGame.icon}</div>
-                  <h3 className="text-2xl font-bold text-white mb-2">
-                    {selectedGame.title}
-                  </h3>
-                  <p className="text-slate-300 mb-4">
-                    {selectedGame.description}
-                  </p>
-                  <div className="flex justify-center gap-6 text-sm text-slate-400">
-                    <span className="flex items-center gap-1">
-                      <Users className="w-4 h-4" />
-                      {selectedGame.players}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Clock className="w-4 h-4" />
-                      {selectedGame.duration}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Star className="w-4 h-4" />
-                      {selectedGame.difficulty}
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {/* Game Selection Controls */}
-              <div className="space-y-4">
-                <button
-                  onClick={() => onGameSelect?.('toggle')}
-                  className={buttonVariants({
-                    variant: "accent",
-                    size: "lg",
-                    fullWidth: true,
-                    animation: "glow"
-                  })}
-                >
-                  {selectedGame ? 'Change Game' : 'Select a Game'}
-                </button>
-
-                {/* Expanded Game List */}
-                {showAllGames && (
-                  <div className="mt-6 space-y-3 animate-fade-in-up" style={{ animationDelay: '700ms' }}>
-                    <div className="text-sm text-white/70 mb-3">
-                      Available Games:
-                    </div>
-                    <div className="grid gap-3">
-                      {availableGames.map((game, index) => (
-                        <button
-                          key={game.id}
-                          onClick={() => onGameSelect?.(game.id)}
-                          className={`w-full p-4 rounded-xl border-2 transition-all duration-200 text-left animate-fade-in-up ${
-                            selectedGame?.id === game.id
-                              ? 'border-white/50 bg-white/20'
-                              : 'border-white/20 hover:border-white/40 bg-white/5 hover:bg-white/10'
-                          }`}
-                          style={{ animationDelay: `${800 + index * 100}ms` }}
-                        >
-                          <div className="flex items-center gap-4">
-                            <div className="text-2xl">{game.icon}</div>
-                            <div className="flex-1 text-left">
-                              <div className="font-bold text-white text-lg">
-                                {game.title}
-                              </div>
-                              <div className="text-sm text-slate-300">
-                                {game.description}
-                              </div>
-                              <div className="flex gap-4 mt-2 text-xs text-slate-400">
-                                <span className="flex items-center gap-1">
-                                  <Users className="w-3 h-3" />
-                                  {game.players}
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  <Clock className="w-3 h-3" />
-                                  {game.duration}
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  <Star className="w-3 h-3" />
-                                  {game.difficulty}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
+      <div className={`max-w-6xl mx-auto space-y-8 pt-8 transition-opacity duration-300 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
         {/* Player Status */}
-        <div className="text-center animate-fade-in-up" style={{ animationDelay: '600ms' }}>
+        <div className="text-center animate-fade-in-up" style={{ animationDelay: '100ms' }}>
           <div className="inline-flex items-center gap-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-6 py-3">
             <Users className="w-5 h-5 text-white" />
             <span className="text-lg text-white font-medium">
@@ -257,7 +88,7 @@ export function LobbyView({
         </div>
 
         {/* Players Grid */}
-        <div className="animate-fade-in-up" style={{ animationDelay: '700ms' }}>
+        <div className="animate-fade-in-up" style={{ animationDelay: '150ms' }}>
           <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-3xl p-8">
             <h2 className="text-3xl font-bold text-white mb-8 text-center">Players</h2>
             
@@ -267,27 +98,26 @@ export function LobbyView({
                     <div
                       key={player.id}
                       className="text-center animate-fade-in-up"
-                      style={{ animationDelay: `${800 + index * 100}ms` }}
+                      style={{ animationDelay: `${200 + index * 50}ms` }}
                     >
                       <div className="relative group mb-3">
-                        <PlayerAvatar avatar={player.avatar} />
-                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
-                          <Wifi className="w-2 h-2 text-white" />
+                        <div className="relative inline-block">
+                          <PlayerAvatar avatar={player.avatar} size="xl" />
+                          <div className="absolute -top-2 -right-2 w-5 h-5 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
+                            <Wifi className="w-2.5 h-2.5 text-white" />
+                          </div>
                         </div>
-                        <div className="absolute inset-0 rounded-full bg-white/0 group-hover:bg-white/10 transition-colors duration-200 rounded-full"></div>
+                        <div className="absolute inset-0 rounded-full bg-white/0 group-hover:bg-white/10 transition-colors duration-200"></div>
                       </div>
                       <div className="text-white font-medium text-sm">
                         {player.name}
-                      </div>
-                      <div className="text-xs text-slate-400">
-                        Score: {player.score}
                       </div>
                     </div>
                   ))
                 : Array.from({ length: 6 }).map((_, i) => (
                     <div key={i} className="text-center animate-pulse">
-                      <div className="w-16 h-16 rounded-full bg-white/20 border-2 border-dashed border-white/30 flex items-center justify-center mx-auto mb-3">
-                        <div className="text-2xl opacity-50">👤</div>
+                      <div className="w-24 h-24 rounded-full bg-white/20 border-2 border-dashed border-white/30 flex items-center justify-center mx-auto mb-3">
+                        <div style={{ fontSize: 'var(--avatar-font-lg)' }} className="opacity-50">👤</div>
                       </div>
                       <div className="text-white/50 text-sm">Waiting...</div>
                     </div>
@@ -304,9 +134,11 @@ export function LobbyView({
                   {disconnectedPlayers.map(player => (
                     <div key={player.id} className="text-center">
                       <div className="relative mb-3">
-                        <PlayerAvatar avatar={player.avatar} />
-                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-white flex items-center justify-center">
-                          <WifiOff className="w-2 h-2 text-white" />
+                        <div className="relative inline-block">
+                          <PlayerAvatar avatar={player.avatar} size="xl" />
+                          <div className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 rounded-full border-2 border-white flex items-center justify-center">
+                            <WifiOff className="w-2.5 h-2.5 text-white" />
+                          </div>
                         </div>
                       </div>
                       <div className="text-white/60 font-medium text-sm">
@@ -331,12 +163,6 @@ export function LobbyView({
                 <p className="mb-3">
                   Share the room code with friends to get started!
                 </p>
-                <div className="bg-white/10 rounded-lg p-3 border border-white/20 max-w-xs mx-auto">
-                  <p className="text-sm text-white/70 mb-1">Room Code:</p>
-                  <p className="text-lg font-mono text-white font-bold">
-                    {roomCode}
-                  </p>
-                </div>
               </div>
             )}
           </div>
@@ -348,22 +174,35 @@ export function LobbyView({
             <button
               onClick={onStartGame}
               disabled={!canStartGame}
-              className={buttonVariants({
-                variant: canStartGame ? "accent" : "secondary",
-                size: "xl",
-                fullWidth: true,
-                animation: canStartGame ? "glow" : "none",
-                className: canStartGame ? "" : "opacity-50 cursor-not-allowed"
-              })}
+              className={`
+                relative w-full max-w-md mx-auto py-6 px-8 rounded-3xl font-bold text-xl
+                transition-all duration-300 transform
+                ${canStartGame 
+                  ? 'bg-gradient-to-r from-teal-500 via-blue-600 to-purple-600 hover:from-teal-400 hover:via-blue-500 hover:to-purple-500 text-white shadow-2xl hover:shadow-glow hover:-translate-y-2 hover:scale-105 active:translate-y-0 active:scale-100'
+                  : 'bg-slate-700/50 text-slate-400 cursor-not-allowed border border-slate-600/50'
+                }
+              `}
             >
               {canStartGame ? (
-                <div className="flex items-center justify-center gap-3">
-                  <Play className="w-6 h-6" />
-                  <span className="text-xl font-bold">Start Game!</span>
-                  <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                <div className="flex items-center justify-center gap-4">
+                  <div className="relative">
+                    <Play className="w-7 h-7 relative z-10" />
+                    <div className="absolute inset-0 bg-white/30 rounded-full blur-sm animate-pulse"></div>
+                  </div>
+                  <span className="text-2xl font-bold tracking-wide">Start Game!</span>
+                  <div className="flex gap-1">
+                    <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                    <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                    <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                  </div>
                 </div>
               ) : (
-                `Need at least 2 players${!selectedGame ? ' and a game selected' : ''}`
+                <span className="text-lg">Need at least 2 players to start</span>
+              )}
+              
+              {/* Animated background gradient for enabled state */}
+              {canStartGame && (
+                <div className="absolute inset-0 rounded-3xl bg-gradient-to-r from-teal-600/20 via-blue-700/20 to-purple-700/20 blur-xl animate-pulse"></div>
               )}
             </button>
             
@@ -373,12 +212,6 @@ export function LobbyView({
                 {!selectedGame && ' • Select a game to begin'}
               </div>
             )}
-            
-            {canStartGame && (
-              <div className="mt-3 text-sm text-green-400 animate-pulse">
-                ✨ All players are ready! Click to begin the adventure!
-              </div>
-            )}
           </div>
         )}
 
@@ -386,7 +219,6 @@ export function LobbyView({
         {!isHost && connectedPlayers.length >= 2 && (
           <div className="text-center animate-fade-in-up" style={{ animationDelay: '800ms' }}>
             <div className="bg-green-500/20 border border-green-500/30 rounded-2xl p-6">
-              <div className="text-4xl mb-3">🎯</div>
               <h3 className="text-xl font-semibold text-green-400 mb-2">
                 Ready to Play!
               </h3>
