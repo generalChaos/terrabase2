@@ -36,6 +36,7 @@ export interface BaseGamePhaseManagerProps {
     connected?: boolean;
   }>;
   playerId?: string;
+  onStartGame?: () => void;
   [key: string]: unknown; // Allow game-specific props
 }
 

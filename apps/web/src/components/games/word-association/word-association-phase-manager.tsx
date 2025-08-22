@@ -47,6 +47,7 @@ export class WordAssociationPhaseManager extends BaseGamePhaseManager {
             roomCode={roomCode || 'XXXX'}
             players={players}
             isHost={isHost}
+            onStartGame={props.onStartGame}
           />
         );
 

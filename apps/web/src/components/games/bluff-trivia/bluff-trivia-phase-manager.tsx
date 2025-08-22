@@ -66,6 +66,7 @@ export class BluffTriviaPhaseManager extends BaseGamePhaseManager {
             roomCode={roomCode || 'XXXX'}
             players={players}
             isHost={isHost}
+            onStartGame={onStartGame}
             selectedGame={getGameInfo('bluff-trivia')}
           />
         );
