@@ -23,7 +23,7 @@ export function PlayerAvatar({ avatar, size = 'lg' }: PlayerAvatarProps) {
 
   return (
     <div 
-      className="rounded-full bg-white/20 border-2 border-white/30 flex items-center justify-center transition-all duration-200 hover:scale-105"
+      className="rounded-full bg-white/20 border-2 border-white/30 flex items-center justify-center transition-all duration-200"
       style={{ 
         width: sizeMap[size],
         height: sizeMap[size]

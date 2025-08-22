@@ -90,28 +90,41 @@ export function LobbyView({
         {/* Players Grid */}
         <div className="animate-fade-in-up" style={{ animationDelay: '150ms' }}>
           <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-3xl p-8">
-            <h2 className="text-3xl font-bold text-white mb-8 text-center">Players</h2>
             
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
-              {connectedPlayers.length > 0
-                ? connectedPlayers.map((player, index) => (
+              {players.length > 0
+                ? players.map((player, index) => (
                     <div
                       key={player.id}
                       className="text-center animate-fade-in-up"
                       style={{ animationDelay: `${200 + index * 50}ms` }}
                     >
-                      <div className="relative group mb-3">
+                      <div className="relative mb-3">
                         <div className="relative inline-block">
                           <PlayerAvatar avatar={player.avatar} size="xl" />
-                          <div className="absolute -top-2 -right-2 w-5 h-5 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
-                            <Wifi className="w-2.5 h-2.5 text-white" />
+                          <div className={`absolute -top-2 -right-2 w-5 h-5 rounded-full border-2 border-white flex items-center justify-center ${
+                            player.connected !== false 
+                              ? 'bg-green-500' 
+                              : 'bg-red-500'
+                          }`}>
+                            {player.connected !== false ? (
+                              <Wifi className="w-2.5 h-2.5 text-white" />
+                            ) : (
+                              <WifiOff className="w-2.5 h-2.5 text-white" />
+                            )}
                           </div>
                         </div>
-                        <div className="absolute inset-0 rounded-full bg-white/0 group-hover:bg-white/10 transition-colors duration-200"></div>
                       </div>
-                      <div className="text-white font-medium text-sm">
+                      <div className={`font-medium text-sm ${
+                        player.connected !== false 
+                          ? 'text-white' 
+                          : 'text-white/60'
+                      }`}>
                         {player.name}
                       </div>
+                      {player.connected === false && (
+                        <div className="text-xs text-white/40">Disconnected</div>
+                      )}
                     </div>
                   ))
                 : Array.from({ length: 6 }).map((_, i) => (
@@ -123,33 +136,6 @@ export function LobbyView({
                     </div>
                   ))}
             </div>
-
-            {/* Disconnected Players */}
-            {disconnectedPlayers.length > 0 && (
-              <div className="mt-8 pt-6 border-t border-white/20">
-                <h3 className="text-lg font-semibold text-orange-400 mb-4 text-center">
-                  Disconnected Players
-                </h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {disconnectedPlayers.map(player => (
-                    <div key={player.id} className="text-center">
-                      <div className="relative mb-3">
-                        <div className="relative inline-block">
-                          <PlayerAvatar avatar={player.avatar} size="xl" />
-                          <div className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 rounded-full border-2 border-white flex items-center justify-center">
-                            <WifiOff className="w-2.5 h-2.5 text-white" />
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-white/60 font-medium text-sm">
-                        {player.name}
-                      </div>
-                      <div className="text-xs text-white/40">Disconnected</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
 
             {/* Empty State */}
             {players.length === 0 && (
