@@ -1,10 +1,12 @@
 "use client";
-import { BaseGamePhaseManager, BaseGamePhaseManagerProps } from "../shared";
+import { BaseGamePhaseManager, BaseGamePhaseManagerProps, LobbyView } from "../shared";
 
 type WordAssociationPhaseManagerProps = BaseGamePhaseManagerProps & {
+  roomCode?: string;
   word?: string;
   associations?: Array<{ id: string; text: string; playerId: string }>;
   timeLeft?: number;
+  totalTime?: number;
   round?: number;
   maxRounds?: number;
   onSubmitAssociation?: (association: string) => void;
@@ -18,11 +20,14 @@ export class WordAssociationPhaseManager extends BaseGamePhaseManager {
     const {
       phase,
       isHost,
+      roomCode,
       word,
       associations = [],
       timeLeft = 0,
+      totalTime,
       round = 1,
       maxRounds = 5,
+      players = [],
       hasSubmitted = false,
       onSubmitAssociation,
     } = props;
@@ -33,6 +38,19 @@ export class WordAssociationPhaseManager extends BaseGamePhaseManager {
     }
 
     switch (phase) {
+      case 'lobby':
+        return (
+          <LobbyView
+            roomCode={roomCode || "XXXX"}
+            players={players}
+            timeLeft={timeLeft}
+            totalTime={timeLeft}
+            round={round}
+            maxRounds={maxRounds}
+            isHost={isHost}
+          />
+        );
+      
       case 'prompt':
         if (isHost) {
           return (

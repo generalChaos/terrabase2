@@ -58,6 +58,8 @@ export class FibbingItPhaseManager extends BaseGamePhaseManager {
         return (
           <LobbyView
             gameTitle="FIBBING IT!"
+            gameIcon="🎭"
+            gameDescription="Players create answers and vote on the best ones. Can you spot the truth from the lies?"
             roomCode={roomCode}
             players={players}
             timeLeft={timeLeft}

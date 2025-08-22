@@ -84,6 +84,15 @@ export type GameAction =
   | { type: 'submitAnswer'; data: SubmitAnswerData }
   | { type: 'submitVote'; data: SubmitVoteData };
 
+// Game theming
+export interface GameTheme {
+  primary: string;      // Main background color (e.g., 'bg-purple-600')
+  accent: string;       // Accent/button colors (e.g., 'bg-purple-400')
+  background: string;   // Background pattern/style (e.g., 'bg-purple-800')
+  icon: string;         // Game icon (e.g., '🎭')
+  name: string;         // Game display name (e.g., 'Fibbing It!')
+}
+
 // Socket event names
 export type SocketEvent = 
   | 'join'

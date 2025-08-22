@@ -5,7 +5,7 @@ import { VotingView } from "../../voting-view";
 import { PlayerVotingView } from "../../player-voting-view";
 import { ScoringView } from "../../scoring-view";
 import { PlayerScoringView } from "../../player-scoring-view";
-import { BaseGamePhaseManager, BaseGamePhaseManagerProps } from "../shared";
+import { BaseGamePhaseManager, BaseGamePhaseManagerProps, LobbyView } from "../shared";
 import type { Choice } from "@party/types";
 
 type BluffTriviaPhaseManagerProps = BaseGamePhaseManagerProps & {
@@ -54,6 +54,22 @@ export class BluffTriviaPhaseManager extends BaseGamePhaseManager {
     }
 
     switch (phase) {
+      case 'lobby':
+        return (
+          <LobbyView
+            gameTitle="BLUFF TRIVIA"
+            gameIcon="🧠"
+            gameDescription="Classic trivia with bluffing mechanics. Make up answers and see if others believe you!"
+            roomCode={roomCode || "XXXX"}
+            players={players}
+            timeLeft={timeLeft}
+            totalTime={totalTime}
+            round={round}
+            maxRounds={maxRounds}
+            isHost={isHost}
+          />
+        );
+      
       case 'prompt':
         if (isHost) {
           return (

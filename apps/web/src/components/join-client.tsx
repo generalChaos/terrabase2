@@ -4,6 +4,7 @@ import { connectToRoom } from '@/lib/socket';
 import { notify } from '@/lib/notify';
 import { GamePhaseManager } from './game-phase-manager';
 import { RoomStateDebug } from './room-state-debug';
+import { PlayerCreationForm, type PlayerCreationData } from './player-creation-form';
 import type { RoomState, JoinRoomData, SubmitAnswerData, SubmitVoteData, Choice } from '@party/types';
 import { DUR } from '@party/types';
 
@@ -21,6 +22,7 @@ export function JoinClient({ code }: { code: string }) {
   const [previousRound, setPreviousRound] = useState<number>(0);
   const [timer, setTimer] = useState<number>(0);
   const [playerId, setPlayerId] = useState<string>("");
+  const [showPlayerCreation, setShowPlayerCreation] = useState(true);
   const socketRef = useRef<ReturnType<typeof connectToRoom> | null>(null);
 
   // Use refs to avoid dependency issues in useEffect
@@ -36,9 +38,14 @@ export function JoinClient({ code }: { code: string }) {
     playerIdRef.current = playerId;
   }, [playerId]);
 
-  useEffect(() => {
-    const s = connectToRoom(code);
-    socketRef.current = s;
+  const handlePlayerCreation = async (data: PlayerCreationData) => {
+    setNickname(data.nickname);
+    setShowPlayerCreation(false);
+    
+    try {
+      // Try to connect to socket and join room
+      const s = connectToRoom(code);
+      socketRef.current = s;
     
     console.log('🔌 Setting up socket listeners for room:', code);
     
@@ -98,115 +105,60 @@ export function JoinClient({ code }: { code: string }) {
       }
       
       // Also reset submission state when entering a new prompt round
-      if (roomState.phase === 'prompt' && roomState.round && 
-          roomState.round !== previousRound) {
-        console.log(`🔄 New prompt round started: ${roomState.round}`);
+      if (previousRound !== roomState.round && roomState.phase === 'prompt') {
+        console.log(`🔄 New round started: ${previousRound} → ${roomState.round}`);
         setHasSubmittedAnswer(false);
+        setHasVoted(false);
         setSelectedChoiceId(undefined);
-        setPreviousRound(roomState.round);
       }
       
       setPreviousPhase(roomState.phase);
+      setPreviousRound(roomState.round);
       setRoomState(roomState);
       setTimer(roomState.timeLeft || 0);
-      
-      // Check if player is already in correctAnswerPlayers and update state accordingly
-      if (roomState.current?.correctAnswerPlayers?.includes(playerIdRef.current || '')) {
-        console.log('🏠 Player found in correctAnswerPlayers, setting hasSubmittedAnswer to true');
-        setHasSubmittedAnswer(true);
-      }
-      
-      console.log('🏠 Has submitted answer after update:', hasSubmittedAnswerRef.current);
-      
-      // If we received a room state for an active game but we're not joined yet,
-      // this might be a race condition - log it for debugging
-      if (!joined && roomState.phase !== 'lobby') {
-        console.log('⚠️ Received active game state before join confirmation');
-      }
     });
 
+    // Listen for timer updates
     s.on('timer', (data: { timeLeft: number }) => {
       console.log('⏰ Timer update:', data.timeLeft);
       setTimer(data.timeLeft);
     });
 
+    // Listen for game events
+    s.on('prompt', (data: { question: string }) => {
+      console.log('🎯 Prompt received:', data);
+    });
+
     s.on('choices', (data: { choices: Choice[] }) => {
       console.log('🎲 Choices received:', data);
       setChoices(data.choices);
-      // Don't reset vote state here - it should persist through the phase
-      // setHasVoted(false);
-      // setSelectedChoiceId(undefined);
-    });
-
-    s.on('submitted', (data: { kind: string }) => {
-      console.log('✅ Action submitted:', data);
-      console.log('✅ Current hasSubmittedAnswer before update:', hasSubmittedAnswer);
-      
-      if (data.kind === 'correct_answer') {
-        console.log('🎯 Setting hasSubmittedAnswer to true (correct answer)');
-        setHasSubmittedAnswer(true);
-        notify.success('🎯 Correct answer! +1000 points! You cannot vote since you know the truth!');
-      } else if (data.kind === 'bluff') {
-        console.log('🎭 Setting hasSubmittedAnswer to true (bluff)');
-        setHasSubmittedAnswer(true);
-        notify.success('🎭 Bluff submitted successfully!');
-      } else if (data.kind === 'vote') {
-        console.log('🗳️ Setting hasVoted to true');
-        setHasVoted(true);
-        notify.success('Vote submitted successfully!');
-      }
-      
-      console.log('✅ hasSubmittedAnswer after update:', hasSubmittedAnswer);
     });
 
     s.on('scores', (data: { totals: Array<{ playerId: string; score: number }> }) => {
       console.log('🏆 Scores received:', data);
       setScores(data.totals);
     });
-    
-    s.on('connect_error', (error: Error) => {
-      console.log('❌ Connection error:', error);
-      console.log('❌ Error details:', error.message);
-      setErr('Failed to connect to server');
-    });
-    
-    s.on('disconnect', (reason) => {
-      console.log('🔌 Socket disconnected:', reason);
-    });
-    
-    return () => {
-      console.log('🔌 Disconnecting socket from room:', code);
-      s.disconnect();
-      socketRef.current = null;
-    };
-  }, [socketRef, code, previousPhase, previousRound, joined]);
 
-  function submit() {
-    const trimmedNickname = nickname.trim();
-    
-    if (!trimmedNickname) {
-      notify.error('Please enter a nickname');
-      return;
+    s.on('gameOver', (data: { winners: Array<{ id: string; name: string; score: number }> }) => {
+      console.log('🎉 Game over:', data);
+    });
+
+      // Join the room with player data
+      const joinData: JoinRoomData = { 
+        nickname: data.nickname, 
+        avatar: data.avatar 
+      };
+      
+      console.log('👋 Attempting to join room:', code, 'with data:', joinData);
+      s.emit('join', joinData);
+      console.log('📤 Join event emitted');
+      
+    } catch (error) {
+      console.error('❌ Failed to join room:', error);
+      setShowPlayerCreation(true); // Show form again on error
+      setNickname('');
     }
-    
-    if (!socketRef.current) {
-      notify.error('Socket not connected');
-      return;
-    }
-    
-    console.log('🔘 Submit button clicked');
-    console.log('🔘 Socket connected:', socketRef.current.connected);
-    console.log('🔘 Socket ID:', socketRef.current.id);
-    
-    const joinData: JoinRoomData = { 
-      nickname: trimmedNickname, 
-      avatar: '🙂' 
-    };
-    
-    console.log('👋 Attempting to join room:', code, 'with data:', joinData);
-    socketRef.current.emit('join', joinData);
-    console.log('📤 Join event emitted');
-  }
+  };
 
   const handleSubmitAnswer = (answer: string) => {
     if (!socketRef.current) return;
@@ -226,8 +178,22 @@ export function JoinClient({ code }: { code: string }) {
     setSelectedChoiceId(choiceId);
   };
 
-  // Show game phase manager if in a game phase
-  if (roomState?.phase && roomState.phase !== 'lobby' && (joined || roomState.players?.some(p => p.id === playerId))) {
+  // Show player creation form first
+  if (showPlayerCreation) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
+        <PlayerCreationForm
+          onSubmit={handlePlayerCreation}
+          onCancel={() => window.history.back()}
+          isHost={false}
+          roomCode={code}
+        />
+      </div>
+    );
+  }
+
+  // Show game phase manager if we have room state and are joined
+  if (roomState && (joined || roomState.players?.some(p => p.id === playerId))) {
     // Get the correct total time for the current phase
     const getTotalTimeForPhase = (phase: string) => {
       switch (phase) {
@@ -241,8 +207,9 @@ export function JoinClient({ code }: { code: string }) {
     return (
       <GamePhaseManager
         gameType={roomState.gameType || "fibbing-it"}
-        phase={roomState.phase}
+        phase={roomState.phase || "lobby"}
         isHost={false}
+        roomCode={code}
         question={roomState.current?.prompt || ""}
         correctAnswer={roomState.current?.answer || ""}
         choices={choices}
@@ -264,57 +231,11 @@ export function JoinClient({ code }: { code: string }) {
     );
   }
 
-  // Show lobby/join form
+  // This should never show now, but keeping as fallback
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <div className="text-center">
-          <div className="text-4xl h1 text-white tracking-wider">FIBBING IT!</div>
-          <div className="mt-2 text-slate-300">Joining room <span className="font-mono text-teal-400">{code}</span></div>
-        </div>
-        
-        {!joined ? (
-          <div className="mt-8 space-y-4">
-            <div>
-              <label htmlFor="nickname" className="block text-sm font-medium mb-2">
-                Nickname
-              </label>
-              <input
-                id="nickname"
-                type="text"
-                value={nickname}
-                onChange={(e) => setNickname(e.target.value)}
-                placeholder="Enter your nickname"
-                className="w-full px-3 py-2 border border-slate-600 rounded-lg bg-slate-800 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent"
-                maxLength={20}
-              />
-              {err && <div className="mt-2 text-sm text-danger">{err}</div>}
-            </div>
-            
-            <button 
-              onClick={submit} 
-              className="mt-4 h-12 w-full rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-medium transition-all duration-200 transform hover:scale-105 shadow-lg"
-            >
-              Join Game
-            </button>
-          </div>
-        ) : (
-          <div className="mt-8 rounded-2xl bg-slate-800/50 border border-slate-600 p-6 text-center">
-            <div className="text-2xl text-white">✅ Joined!</div>
-            <div className="text-slate-300 mt-1">Waiting for the host to start…</div>
-            {roomState && (
-              <div className="mt-2 text-sm text-slate-400">
-                Room phase: {roomState.phase} | Players: {roomState.players?.length || 0}
-              </div>
-            )}
-          </div>
-        )}
-        
-        <RoomStateDebug 
-          roomState={roomState} 
-          hasSubmittedAnswer={hasSubmittedAnswer}
-          hasVoted={hasVoted}
-        />
+      <div className="text-center text-slate-400">
+        <p>Connecting to room...</p>
       </div>
     </div>
   );
