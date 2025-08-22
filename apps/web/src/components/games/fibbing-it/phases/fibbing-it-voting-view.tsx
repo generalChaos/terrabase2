@@ -1,6 +1,6 @@
-"use client";
-import { TimerRing, PlayerAvatar } from "../../shared/ui";
-import type { Choice } from "@party/types";
+'use client';
+import { TimerRing, PlayerAvatar } from '../../shared/ui';
+import type { Choice } from '@party/types';
 
 type FibbingItVotingViewProps = {
   question: string;
@@ -10,7 +10,13 @@ type FibbingItVotingViewProps = {
   round: number;
   maxRounds: number;
   votes?: Array<{ voter: string; choiceId: string }>;
-  players?: Array<{ id: string; name: string; avatar?: string; score: number; connected?: boolean }>;
+  players?: Array<{
+    id: string;
+    name: string;
+    avatar?: string;
+    score: number;
+    connected?: boolean;
+  }>;
   onSubmitVote?: (choiceId: string) => void;
   hasVoted?: boolean;
   selectedChoiceId?: string;
@@ -30,7 +36,7 @@ export function FibbingItVotingView({
   hasVoted,
   selectedChoiceId,
   gotAnswerCorrect,
-  isPlayer = false
+  isPlayer = false,
 }: FibbingItVotingViewProps) {
   const handleVote = (choiceId: string) => {
     if (onSubmitVote && !hasVoted && !gotAnswerCorrect) {
@@ -59,7 +65,7 @@ export function FibbingItVotingView({
 
           {/* Choices */}
           <div className="w-full max-w-md space-y-4">
-            {choices.map((choice) => (
+            {choices.map(choice => (
               <button
                 key={choice.id}
                 onClick={() => handleVote(choice.id)}
@@ -90,7 +96,9 @@ export function FibbingItVotingView({
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col">
       {/* Header */}
       <div className="flex justify-between items-center p-6">
-        <h1 className="text-4xl font-bold text-white tracking-wider">FIBBING IT!</h1>
+        <h1 className="text-4xl font-bold text-white tracking-wider">
+          FIBBING IT!
+        </h1>
         <div className="text-2xl font-mono text-teal-400 bg-slate-800 px-4 py-2 rounded-lg">
           GR7A
         </div>
@@ -100,7 +108,9 @@ export function FibbingItVotingView({
       <div className="flex-1 flex flex-col items-center justify-center px-6">
         <div className="text-center space-y-8 w-full max-w-4xl">
           {/* Title */}
-          <h2 className="text-6xl font-bold text-white tracking-wider">VOTING</h2>
+          <h2 className="text-6xl font-bold text-white tracking-wider">
+            VOTING
+          </h2>
 
           {/* Timer */}
           <div className="flex justify-center">
@@ -111,13 +121,11 @@ export function FibbingItVotingView({
           </div>
 
           {/* Question */}
-          <h3 className="text-2xl text-white mb-8">
-            {question}
-          </h3>
+          <h3 className="text-2xl text-white mb-8">{question}</h3>
 
           {/* Choices Grid */}
           <div className="grid grid-cols-2 gap-6 mb-8">
-            {choices.map((choice) => (
+            {choices.map(choice => (
               <div
                 key={choice.id}
                 className="bg-slate-800/50 rounded-2xl p-6 border border-slate-600 hover:border-slate-500 transition-colors"
@@ -132,14 +140,14 @@ export function FibbingItVotingView({
 
           {/* Player Status */}
           <div className="grid grid-cols-3 gap-4">
-            {players.slice(0, 6).map((player) => {
+            {players.slice(0, 6).map(player => {
               const hasVoted = votes.some(v => v.voter === player.id);
               return (
                 <div key={player.id} className="text-center">
-                  <PlayerAvatar
-                    avatar={player.avatar}
-                  />
-                  <div className={`text-sm mt-2 ${hasVoted ? 'text-teal-400' : 'text-slate-400'}`}>
+                  <PlayerAvatar avatar={player.avatar} />
+                  <div
+                    className={`text-sm mt-2 ${hasVoted ? 'text-teal-400' : 'text-slate-400'}`}
+                  >
                     {hasVoted ? 'Voted' : 'Waiting...'}
                   </div>
                 </div>

@@ -20,11 +20,15 @@ export class ImmutableRoomState implements RoomState {
     public readonly phase: string,
     public readonly hostId: string | null,
     public readonly lastActivity: Date,
-    public readonly version: number = 0
+    public readonly version: number = 0,
   ) {}
 
   // Factory method for creating new state
-  static create(code: string, gameType: string, gameState: any): ImmutableRoomState {
+  static create(
+    code: string,
+    gameType: string,
+    gameState: any,
+  ): ImmutableRoomState {
     return new ImmutableRoomState(
       code,
       gameType,
@@ -33,7 +37,7 @@ export class ImmutableRoomState implements RoomState {
       gameState.phase,
       null,
       new Date(),
-      0
+      0,
     );
   }
 
@@ -41,7 +45,7 @@ export class ImmutableRoomState implements RoomState {
   withPlayerAdded(player: Player): ImmutableRoomState {
     const newPlayers = [...this.players, player];
     const newHostId = this.players.length === 0 ? player.id : this.hostId;
-    
+
     return new ImmutableRoomState(
       this.code,
       this.gameType,
@@ -50,16 +54,19 @@ export class ImmutableRoomState implements RoomState {
       this.phase,
       newHostId,
       new Date(),
-      this.version + 1
+      this.version + 1,
     );
   }
 
   withPlayerRemoved(playerId: string): ImmutableRoomState {
-    const newPlayers = this.players.filter(p => p.id !== playerId);
-    const newHostId = this.hostId === playerId ? 
-      (newPlayers.length > 0 ? newPlayers[0].id : null) : 
-      this.hostId;
-    
+    const newPlayers = this.players.filter((p) => p.id !== playerId);
+    const newHostId =
+      this.hostId === playerId
+        ? newPlayers.length > 0
+          ? newPlayers[0].id
+          : null
+        : this.hostId;
+
     return new ImmutableRoomState(
       this.code,
       this.gameType,
@@ -68,15 +75,18 @@ export class ImmutableRoomState implements RoomState {
       this.phase,
       newHostId,
       new Date(),
-      this.version + 1
+      this.version + 1,
     );
   }
 
-  withPlayerUpdated(playerId: string, updates: Partial<Player>): ImmutableRoomState {
-    const newPlayers = this.players.map(p => 
-      p.id === playerId ? { ...p, ...updates } : p
+  withPlayerUpdated(
+    playerId: string,
+    updates: Partial<Player>,
+  ): ImmutableRoomState {
+    const newPlayers = this.players.map((p) =>
+      p.id === playerId ? { ...p, ...updates } : p,
     );
-    
+
     return new ImmutableRoomState(
       this.code,
       this.gameType,
@@ -85,7 +95,7 @@ export class ImmutableRoomState implements RoomState {
       this.phase,
       this.hostId,
       new Date(),
-      this.version + 1
+      this.version + 1,
     );
   }
 
@@ -98,7 +108,7 @@ export class ImmutableRoomState implements RoomState {
       newGameState.phase,
       this.hostId,
       new Date(),
-      this.version + 1
+      this.version + 1,
     );
   }
 
@@ -111,7 +121,7 @@ export class ImmutableRoomState implements RoomState {
       newPhase,
       this.hostId,
       new Date(),
-      this.version + 1
+      this.version + 1,
     );
   }
 
@@ -124,21 +134,21 @@ export class ImmutableRoomState implements RoomState {
       this.phase,
       this.hostId,
       new Date(),
-      this.version + 1
+      this.version + 1,
     );
   }
 
   // Utility methods
   hasPlayer(playerId: string): boolean {
-    return this.players.some(p => p.id === playerId);
+    return this.players.some((p) => p.id === playerId);
   }
 
   getPlayer(playerId: string): Player | undefined {
-    return this.players.find(p => p.id === playerId);
+    return this.players.find((p) => p.id === playerId);
   }
 
   getConnectedPlayers(): readonly Player[] {
-    return this.players.filter(p => p.connected);
+    return this.players.filter((p) => p.connected);
   }
 
   getPlayerCount(): number {
@@ -146,7 +156,7 @@ export class ImmutableRoomState implements RoomState {
   }
 
   getConnectedPlayerCount(): number {
-    return this.players.filter(p => p.connected).length;
+    return this.players.filter((p) => p.connected).length;
   }
 
   isHost(playerId: string): boolean {
@@ -163,11 +173,11 @@ export class ImmutableRoomState implements RoomState {
       this.code,
       this.gameType,
       { ...this.gameState },
-      this.players.map(p => ({ ...p })),
+      this.players.map((p) => ({ ...p })),
       this.phase,
       this.hostId,
       new Date(this.lastActivity),
-      this.version
+      this.version,
     );
   }
 }

@@ -50,9 +50,11 @@ export class EventBroadcasterService {
       if (roomState) {
         this.broadcastRoomUpdate(roomCode, roomState);
       }
-
     } catch (error) {
-      this.logger.error(`❌ Error broadcasting events for room ${roomCode}:`, error);
+      this.logger.error(
+        `❌ Error broadcasting events for room ${roomCode}:`,
+        error,
+      );
     }
   }
 
@@ -93,14 +95,20 @@ export class EventBroadcasterService {
 
     try {
       const serializedRoom = this.serializeRoom(roomState);
-      console.log(`📡 Broadcasting room update for room ${roomCode}:`, serializedRoom);
+      console.log(
+        `📡 Broadcasting room update for room ${roomCode}:`,
+        serializedRoom,
+      );
       console.log(`📡 Namespace ready:`, this.isReady());
       console.log(`📡 Broadcasting to room:`, roomCode);
       // Broadcast to specific room instead of entire namespace
       this.namespace!.to(roomCode).emit('room', serializedRoom);
       this.logger.debug(`📡 Room state broadcasted for room ${roomCode}`);
     } catch (error) {
-      this.logger.error(`❌ Error broadcasting room update for room ${roomCode}:`, error);
+      this.logger.error(
+        `❌ Error broadcasting room update for room ${roomCode}:`,
+        error,
+      );
     }
   }
 
@@ -128,7 +136,10 @@ export class EventBroadcasterService {
       // Broadcast to the specific room instead of entire namespace
       this.namespace!.to(roomCode).emit(event.type, event.data);
     } catch (error) {
-      this.logger.error(`❌ Error broadcasting to host for room ${roomCode}:`, error);
+      this.logger.error(
+        `❌ Error broadcasting to host for room ${roomCode}:`,
+        error,
+      );
     }
   }
 
@@ -146,7 +157,10 @@ export class EventBroadcasterService {
         }
       }
     } catch (error) {
-      this.logger.error(`❌ Error broadcasting timer events for room ${roomCode}:`, error);
+      this.logger.error(
+        `❌ Error broadcasting timer events for room ${roomCode}:`,
+        error,
+      );
     }
   }
 
@@ -158,18 +172,23 @@ export class EventBroadcasterService {
 
     try {
       if (roomState.gameState.currentRound) {
-        this.namespace!.to(clientId).emit('prompt', { 
-          question: roomState.gameState.currentRound.prompt 
+        this.namespace!.to(clientId).emit('prompt', {
+          question: roomState.gameState.currentRound.prompt,
         });
-        
-        if (roomState.gameState.phase === 'choose' || roomState.gameState.phase === 'scoring') {
-          const choices = this.generateChoices(roomState.gameState.currentRound);
+
+        if (
+          roomState.gameState.phase === 'choose' ||
+          roomState.gameState.phase === 'scoring'
+        ) {
+          const choices = this.generateChoices(
+            roomState.gameState.currentRound,
+          );
           this.namespace!.to(clientId).emit('choices', { choices });
         }
-        
+
         if (roomState.gameState.phase === 'scoring') {
           this.namespace!.to(clientId).emit('scores', {
-            totals: roomState.players.map(p => ({
+            totals: roomState.players.map((p) => ({
               playerId: p.id,
               score: p.score,
             })),
@@ -177,7 +196,10 @@ export class EventBroadcasterService {
         }
       }
     } catch (error) {
-      this.logger.error(`❌ Error sending mid-game context to client ${clientId}:`, error);
+      this.logger.error(
+        `❌ Error sending mid-game context to client ${clientId}:`,
+        error,
+      );
     }
   }
 
@@ -191,16 +213,19 @@ export class EventBroadcasterService {
       // Convert Map to array for frontend
       const votesArray = Array.from(current.votes.entries()).map((entry) => ({
         voter: (entry as [string, string])[0],
-        choiceId: (entry as [string, string])[1]
+        choiceId: (entry as [string, string])[1],
       }));
       current = { ...current, votes: votesArray };
     }
-    
+
     // Convert correctAnswerPlayers Set to array for frontend
     if (current && current.correctAnswerPlayers instanceof Set) {
-      current = { ...current, correctAnswerPlayers: Array.from(current.correctAnswerPlayers) };
+      current = {
+        ...current,
+        correctAnswerPlayers: Array.from(current.correctAnswerPlayers),
+      };
     }
-    
+
     return {
       code: roomState.code,
       gameType: roomState.gameType,
@@ -217,9 +242,11 @@ export class EventBroadcasterService {
   /**
    * Generate choices for voting
    */
-  private generateChoices(round: any): Array<{ id: string; text: string; by: string }> {
+  private generateChoices(
+    round: any,
+  ): Array<{ id: string; text: string; by: string }> {
     if (!round) return [];
-    
+
     // Find players who got the correct answer
     let correctAnswerPlayers: string[] = [];
     if (round.correctAnswerPlayers instanceof Set) {
@@ -227,23 +254,27 @@ export class EventBroadcasterService {
     } else if (Array.isArray(round.correctAnswerPlayers)) {
       correctAnswerPlayers = round.correctAnswerPlayers;
     }
-    
+
     // Create truth choice - show who got it right, or 'system' if no one did
-    const truth = { 
-      id: `TRUE::${round.promptId}`, 
-      text: round.answer, 
-      by: correctAnswerPlayers.length > 0 ? correctAnswerPlayers[0] : 'system' 
+    const truth = {
+      id: `TRUE::${round.promptId}`,
+      text: round.answer,
+      by: correctAnswerPlayers.length > 0 ? correctAnswerPlayers[0] : 'system',
     };
-    
-    const bluffChoices = round.bluffs.map((b: any) => ({ id: b.id, text: b.text, by: b.by }));
-    
+
+    const bluffChoices = round.bluffs.map((b: any) => ({
+      id: b.id,
+      text: b.text,
+      by: b.by,
+    }));
+
     // Simple shuffle for now
     const allChoices = [truth, ...bluffChoices];
     for (let i = allChoices.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [allChoices[i], allChoices[j]] = [allChoices[j], allChoices[i]];
     }
-    
+
     return allChoices;
   }
 }

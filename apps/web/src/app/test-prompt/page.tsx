@@ -1,8 +1,8 @@
-"use client";
-import { useState, useEffect } from "react";
-import { GamePhaseManager } from "@/components/game-phase-manager";
-import type { Choice } from "@party/types";
-import { DUR } from "@party/types";
+'use client';
+import { useState, useEffect } from 'react';
+import { GamePhaseManager } from '@/components/game-phase-manager';
+import type { Choice } from '@party/types';
+import { DUR } from '@party/types';
 
 export default function TestPromptPage() {
   const [timeLeft, setTimeLeft] = useState(30);
@@ -11,7 +11,9 @@ export default function TestPromptPage() {
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [hasVoted, setHasVoted] = useState(false);
   const [choices, setChoices] = useState<Choice[]>([]);
-  const [scores, setScores] = useState<Array<{ playerId: string; score: number }>>([
+  const [scores, setScores] = useState<
+    Array<{ playerId: string; score: number }>
+  >([
     { playerId: '1', score: 1500 },
     { playerId: '2', score: 1000 },
   ]);
@@ -19,7 +21,7 @@ export default function TestPromptPage() {
   // Simulate countdown
   useEffect(() => {
     const interval = setInterval(() => {
-      setTimeLeft((prev) => {
+      setTimeLeft(prev => {
         if (prev <= 0) {
           // Switch phases when timer runs out
           if (phase === 'prompt') {
@@ -49,12 +51,12 @@ export default function TestPromptPage() {
   }, [phase]);
 
   const handleSubmitAnswer = (answer: string) => {
-    console.log("Submitted answer:", answer);
+    console.log('Submitted answer:', answer);
     setHasSubmitted(true);
   };
 
   const handleSubmitVote = (choiceId: string) => {
-    console.log("Submitted vote:", choiceId);
+    console.log('Submitted vote:', choiceId);
     setHasVoted(true);
   };
 
@@ -98,13 +100,19 @@ export default function TestPromptPage() {
             onClick={() => setIsHost(!isHost)}
             className="px-4 py-2 bg-[--accent] text-black rounded-lg"
           >
-            Switch to {isHost ? "Player" : "Host"} View
+            Switch to {isHost ? 'Player' : 'Host'} View
           </button>
           <button
             onClick={switchPhase}
             className="px-4 py-2 bg-[--warning] text-black rounded-lg"
           >
-            Switch to {phase === 'prompt' ? 'Voting' : phase === 'choose' ? 'Scoring' : 'Prompt'} Phase
+            Switch to{' '}
+            {phase === 'prompt'
+              ? 'Voting'
+              : phase === 'choose'
+                ? 'Scoring'
+                : 'Prompt'}{' '}
+            Phase
           </button>
           <button
             onClick={resetGame}
@@ -116,9 +124,15 @@ export default function TestPromptPage() {
 
         <div className="mb-4 text-center">
           <p className="text-[--muted]">
-            Phase: {phase} | Time Left: {timeLeft}s | View: {isHost ? "Host" : "Player"} | 
-            {phase === 'prompt' ? (hasSubmitted ? " Answer Submitted" : " Answer Not Submitted") : 
-             (hasVoted ? " Vote Submitted" : " Vote Not Submitted")}
+            Phase: {phase} | Time Left: {timeLeft}s | View:{' '}
+            {isHost ? 'Host' : 'Player'} |
+            {phase === 'prompt'
+              ? hasSubmitted
+                ? ' Answer Submitted'
+                : ' Answer Not Submitted'
+              : hasVoted
+                ? ' Vote Submitted'
+                : ' Vote Not Submitted'}
           </p>
         </div>
 
@@ -128,7 +142,13 @@ export default function TestPromptPage() {
           question="What is the national animal of Scotland?"
           correctAnswer="Unicorn"
           timeLeft={timeLeft}
-          totalTime={phase === 'prompt' ? DUR.PROMPT : phase === 'choose' ? DUR.CHOOSE : DUR.SCORING}
+          totalTime={
+            phase === 'prompt'
+              ? DUR.PROMPT
+              : phase === 'choose'
+                ? DUR.CHOOSE
+                : DUR.SCORING
+          }
           round={1}
           maxRounds={5}
           choices={choices}

@@ -1,10 +1,10 @@
-"use client";
-import { FibbingItPromptView } from "./phases/fibbing-it-prompt-view";
-import { FibbingItVotingView } from "./phases/fibbing-it-voting-view";
-import { FibbingItScoringView } from "./phases/fibbing-it-scoring-view";
-import { LobbyView } from "../shared";
-import { BaseGamePhaseManager, BaseGamePhaseManagerProps } from "../shared";
-import type { Choice } from "@party/types";
+'use client';
+import { FibbingItPromptView } from './phases/fibbing-it-prompt-view';
+import { FibbingItVotingView } from './phases/fibbing-it-voting-view';
+import { FibbingItScoringView } from './phases/fibbing-it-scoring-view';
+import { LobbyView } from '../shared';
+import { BaseGamePhaseManager, BaseGamePhaseManagerProps } from '../shared';
+import type { Choice } from '@party/types';
 import { getGameInfo } from '@party/config';
 
 type FibbingItPhaseManagerProps = BaseGamePhaseManagerProps & {
@@ -45,7 +45,7 @@ export class FibbingItPhaseManager extends BaseGamePhaseManager {
       hasSubmittedAnswer = false,
       hasVoted = false,
       selectedChoiceId,
-      roomCode = "GR7A",
+      roomCode = 'GR7A',
     } = props;
 
     if (!this.isValidPhase(phase)) {
@@ -68,7 +68,7 @@ export class FibbingItPhaseManager extends BaseGamePhaseManager {
         if (isHost) {
           return (
             <FibbingItPromptView
-              question={question || "Loading question..."}
+              question={question || 'Loading question...'}
               timeLeft={timeLeft}
               totalTime={totalTime}
               round={round}
@@ -78,7 +78,7 @@ export class FibbingItPhaseManager extends BaseGamePhaseManager {
         } else {
           return (
             <FibbingItPromptView
-              question={question || "Loading question..."}
+              question={question || 'Loading question...'}
               timeLeft={timeLeft}
               totalTime={totalTime}
               round={round}
@@ -89,12 +89,12 @@ export class FibbingItPhaseManager extends BaseGamePhaseManager {
             />
           );
         }
-      
+
       case 'choose':
         if (isHost) {
           return (
             <FibbingItVotingView
-              question={question || "Loading question..."}
+              question={question || 'Loading question...'}
               choices={choices}
               timeLeft={timeLeft}
               totalTime={totalTime}
@@ -107,7 +107,7 @@ export class FibbingItPhaseManager extends BaseGamePhaseManager {
         } else {
           return (
             <FibbingItVotingView
-              question={question || "Loading question..."}
+              question={question || 'Loading question...'}
               choices={choices}
               timeLeft={timeLeft}
               totalTime={totalTime}
@@ -120,28 +120,31 @@ export class FibbingItPhaseManager extends BaseGamePhaseManager {
             />
           );
         }
-      
+
       case 'scoring':
         if (isHost) {
           return (
             <FibbingItScoringView
-              question={question || "Loading question..."}
-              correctAnswer={correctAnswer || "Loading answer..."}
+              question={question || 'Loading question...'}
+              correctAnswer={correctAnswer || 'Loading answer...'}
               choices={choices}
               timeLeft={timeLeft}
               totalTime={totalTime}
               round={round}
               maxRounds={maxRounds}
               votes={votes}
-              players={players.map(p => ({ ...p, connected: p.connected ?? true }))}
+              players={players.map(p => ({
+                ...p,
+                connected: p.connected ?? true,
+              }))}
               scores={scores}
             />
           );
         } else {
           return (
             <FibbingItScoringView
-              question={question || "Loading question..."}
-              correctAnswer={correctAnswer || "Loading answer..."}
+              question={question || 'Loading question...'}
+              correctAnswer={correctAnswer || 'Loading answer...'}
               choices={choices}
               timeLeft={timeLeft}
               totalTime={totalTime}
@@ -149,12 +152,12 @@ export class FibbingItPhaseManager extends BaseGamePhaseManager {
               maxRounds={maxRounds}
               votes={votes}
               scores={scores}
-              playerId={playerId || ""}
+              playerId={playerId || ''}
               isPlayer={true}
             />
           );
         }
-      
+
       case 'over':
         return (
           <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
@@ -162,7 +165,7 @@ export class FibbingItPhaseManager extends BaseGamePhaseManager {
             <div className="text-[--muted]">Final scores coming soon...</div>
           </div>
         );
-      
+
       default:
         return null;
     }

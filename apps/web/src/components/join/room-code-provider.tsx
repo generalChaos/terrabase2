@@ -1,19 +1,27 @@
-"use client";
-import { ReactNode, createContext, useContext, useState, useEffect } from "react";
-import { useParams } from "next/navigation";
-import { RoomCodeChip } from "@/components/games/shared/ui";
+'use client';
+import {
+  ReactNode,
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+} from 'react';
+import { useParams } from 'next/navigation';
+import { RoomCodeChip } from '@/components/games/shared/ui';
 
 type RoomCodeContextType = {
   roomCode: string;
   setRoomCode: (code: string) => void;
 };
 
-const RoomCodeContext = createContext<RoomCodeContextType | undefined>(undefined);
+const RoomCodeContext = createContext<RoomCodeContextType | undefined>(
+  undefined
+);
 
 export function useRoomCode() {
   const context = useContext(RoomCodeContext);
   if (!context) {
-    throw new Error("useRoomCode must be used within a RoomCodeProvider");
+    throw new Error('useRoomCode must be used within a RoomCodeProvider');
   }
   return context;
 }
@@ -24,8 +32,8 @@ type RoomCodeProviderProps = {
 
 export function RoomCodeProvider({ children }: RoomCodeProviderProps) {
   const params = useParams();
-  const [roomCode, setRoomCode] = useState<string>("");
-  
+  const [roomCode, setRoomCode] = useState<string>('');
+
   useEffect(() => {
     if (params.code) {
       setRoomCode(params.code as string);
@@ -44,16 +52,14 @@ export function RoomCodeProvider({ children }: RoomCodeProviderProps) {
             {roomCode && <RoomCodeChip code={roomCode} />}
           </div>
         </header>
-        
+
         {roomCode && (
           <div className="mt-3 text-sm opacity-80">
             Joining room: <span className="font-mono">{roomCode}</span>
           </div>
         )}
-        
-        <main className="mt-6">
-          {children}
-        </main>
+
+        <main className="mt-6">{children}</main>
       </div>
     </RoomCodeContext.Provider>
   );

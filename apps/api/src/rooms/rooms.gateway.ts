@@ -2,10 +2,15 @@ import { RoomManager } from './room-manager';
 import { TimerService } from './timer.service';
 import { GameAction, GameEvent, Player } from '@party/types';
 import { BluffTriviaState } from './games/bluff-trivia.engine';
-import { GAME_PHASE_DURATIONS, EventType, EventTarget, GAME_TYPES } from './constants';
-import { 
-  GameError, 
-  InsufficientPlayersError, 
+import {
+  GAME_PHASE_DURATIONS,
+  EventType,
+  EventTarget,
+  GAME_TYPES,
+} from './constants';
+import {
+  GameError,
+  InsufficientPlayersError,
   PlayerNotHostError,
   PlayerNotJoinedError,
   PlayerNameTakenError,
@@ -14,7 +19,7 @@ import {
   ValidationError,
   EmptyInputError,
   RoomCodeRequiredError,
-  ConnectionError
+  ConnectionError,
 } from './errors';
 import { ErrorHandlerService } from './error-handler.service';
 import { ImmutableRoomState } from './state/room.state';
@@ -51,7 +56,7 @@ export class RoomsGateway
     private eventBroadcaster: EventBroadcasterService,
     private connectionGateway: ConnectionGatewayService,
     private gameGateway: GameGatewayService,
-    private eventGateway: EventGatewayService
+    private eventGateway: EventGatewayService,
   ) {}
 
   afterInit(nsp: Namespace) {
@@ -94,11 +99,19 @@ export class RoomsGateway
         console.log(`✅ Game started in room ${roomCode}`);
       } else {
         // Handle error
-        const errorResponse = this.errorHandler.createWebSocketErrorResponse(result.error, 'startGame', client.id);
+        const errorResponse = this.errorHandler.createWebSocketErrorResponse(
+          result.error,
+          'startGame',
+          client.id,
+        );
         client.emit('error', errorResponse);
       }
     } catch (error) {
-      const errorResponse = this.errorHandler.createWebSocketErrorResponse(error, 'startGame', client.id);
+      const errorResponse = this.errorHandler.createWebSocketErrorResponse(
+        error,
+        'startGame',
+        client.id,
+      );
       console.error(`❌ Error in startGame:`, errorResponse);
       client.emit('error', errorResponse);
     }
@@ -111,17 +124,29 @@ export class RoomsGateway
   ) {
     try {
       const roomCode = this.codeFromNs(client);
-      const result = await this.gameGateway.submitAnswer(client, roomCode, body);
+      const result = await this.gameGateway.submitAnswer(
+        client,
+        roomCode,
+        body,
+      );
       if (result.isSuccess()) {
         // Answer submitted successfully
         console.log(`✅ Answer submitted in room ${roomCode}`);
       } else {
         // Handle error
-        const errorResponse = this.errorHandler.createWebSocketErrorResponse(result.error, 'submitAnswer', client.id);
+        const errorResponse = this.errorHandler.createWebSocketErrorResponse(
+          result.error,
+          'submitAnswer',
+          client.id,
+        );
         client.emit('error', errorResponse);
       }
     } catch (error) {
-      const errorResponse = this.errorHandler.createWebSocketErrorResponse(error, 'submitAnswer', client.id);
+      const errorResponse = this.errorHandler.createWebSocketErrorResponse(
+        error,
+        'submitAnswer',
+        client.id,
+      );
       console.error(`❌ Error in submitAnswer:`, errorResponse);
       client.emit('error', errorResponse);
     }
@@ -140,11 +165,19 @@ export class RoomsGateway
         console.log(`✅ Vote submitted in room ${roomCode}`);
       } else {
         // Handle error
-        const errorResponse = this.errorHandler.createWebSocketErrorResponse(result.error, 'submitVote', client.id);
+        const errorResponse = this.errorHandler.createWebSocketErrorResponse(
+          result.error,
+          'submitVote',
+          client.id,
+        );
         client.emit('error', errorResponse);
       }
     } catch (error) {
-      const errorResponse = this.errorHandler.createWebSocketErrorResponse(error, 'submitVote', client.id);
+      const errorResponse = this.errorHandler.createWebSocketErrorResponse(
+        error,
+        'submitVote',
+        client.id,
+      );
       console.error(`❌ Error in submitVote:`, errorResponse);
       client.emit('error', errorResponse);
     }
@@ -159,13 +192,16 @@ export class RoomsGateway
     if (!roomCode) {
       throw new RoomCodeRequiredError();
     }
-    
+
     // Validate room code format
-    const validationResult = this.errorHandler.validateRoomCode(roomCode, 'codeFromNs');
+    const validationResult = this.errorHandler.validateRoomCode(
+      roomCode,
+      'codeFromNs',
+    );
     if (validationResult.isFailure()) {
       throw new Error(validationResult.error.message);
     }
-    
+
     return roomCode;
   }
 }

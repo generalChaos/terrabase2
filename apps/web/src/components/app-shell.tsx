@@ -1,14 +1,20 @@
-"use client";
-import { ReactNode } from "react";
-import { TimerRing } from "./games/shared/ui";
+'use client';
+import { ReactNode } from 'react';
+import { TimerRing } from './games/shared/ui';
 
 export function AppShell({
   title,
   right,
   timer,
   children,
-  sub
-}: { title: string; right?: ReactNode; timer?: { seconds: number; total: number } | null; children: ReactNode; sub?: ReactNode; }) {
+  sub,
+}: {
+  title: string;
+  right?: ReactNode;
+  timer?: { seconds: number; total: number } | null;
+  children: ReactNode;
+  sub?: ReactNode;
+}) {
   return (
     <div className="max-w-[1100px] mx-auto px-6 py-6 text-white text-6xl font-bold">
       <header className="flex items-center justify-between gap-3">
@@ -17,7 +23,9 @@ export function AppShell({
           <div className="hidden sm:block opacity-70">{title}</div>
         </div>
         <div className="flex items-center gap-4">
-          {timer ? <TimerRing seconds={timer.seconds} total={timer.total} /> : null}
+          {timer ? (
+            <TimerRing seconds={timer.seconds} total={timer.total} />
+          ) : null}
           {right}
         </div>
       </header>

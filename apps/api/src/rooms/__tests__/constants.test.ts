@@ -1,10 +1,10 @@
-import { 
-  GAME_PHASE_DURATIONS, 
-  GAME_CONFIG, 
-  PHASE_NAMES, 
-  EventType, 
-  EventTarget, 
-  GAME_TYPES 
+import {
+  GAME_PHASE_DURATIONS,
+  GAME_CONFIG,
+  PHASE_NAMES,
+  EventType,
+  EventTarget,
+  GAME_TYPES,
 } from '../constants';
 
 describe('Game Constants', () => {
@@ -106,9 +106,16 @@ describe('Game Constants', () => {
   describe('Constants Integration', () => {
     it('should have consistent phase durations and names', () => {
       // All timed phases should have durations > 0
-      const timedPhases = [PHASE_NAMES.PROMPT, PHASE_NAMES.CHOOSE, PHASE_NAMES.SCORING];
-      timedPhases.forEach(phase => {
-        const duration = GAME_PHASE_DURATIONS[phase.toUpperCase() as keyof typeof GAME_PHASE_DURATIONS];
+      const timedPhases = [
+        PHASE_NAMES.PROMPT,
+        PHASE_NAMES.CHOOSE,
+        PHASE_NAMES.SCORING,
+      ];
+      timedPhases.forEach((phase) => {
+        const duration =
+          GAME_PHASE_DURATIONS[
+            phase.toUpperCase() as keyof typeof GAME_PHASE_DURATIONS
+          ];
         expect(duration).toBeGreaterThan(0);
       });
     });

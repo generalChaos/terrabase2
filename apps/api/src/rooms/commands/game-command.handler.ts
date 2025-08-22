@@ -3,12 +3,12 @@ import { RoomManager } from '../room-manager';
 import { TimerService } from '../timer.service';
 import { GameAction, GameEvent, Player } from '@party/types';
 import { GAME_PHASE_DURATIONS } from '../constants';
-import { 
-  InsufficientPlayersError, 
+import {
+  InsufficientPlayersError,
   PlayerNotHostError,
   PlayerNotJoinedError,
   RoomNotFoundError,
-  InvalidGamePhaseError
+  InvalidGamePhaseError,
 } from '../errors';
 
 export interface GameCommand {
@@ -28,13 +28,16 @@ export interface GameCommandResult {
 export class GameCommandHandler {
   constructor(
     private readonly roomManager: RoomManager,
-    private readonly timerService: TimerService
+    private readonly timerService: TimerService,
   ) {}
 
   /**
    * Handle start game command
    */
-  async handleStartGame(roomCode: string, playerId: string): Promise<GameCommandResult> {
+  async handleStartGame(
+    roomCode: string,
+    playerId: string,
+  ): Promise<GameCommandResult> {
     try {
       // Validate room exists
       const room = this.roomManager.getRoom(roomCode);
@@ -42,17 +45,17 @@ export class GameCommandHandler {
         return {
           success: false,
           events: [],
-          error: 'Room not found'
+          error: 'Room not found',
         };
       }
 
       // Validate player has joined
-      const currentPlayer = room.players.find(p => p.id === playerId);
+      const currentPlayer = room.players.find((p) => p.id === playerId);
       if (!currentPlayer) {
         return {
           success: false,
           events: [],
-          error: 'Player not joined'
+          error: 'Player not joined',
         };
       }
 
@@ -61,7 +64,7 @@ export class GameCommandHandler {
         return {
           success: false,
           events: [],
-          error: 'Player not host'
+          error: 'Player not host',
         };
       }
 
@@ -70,7 +73,7 @@ export class GameCommandHandler {
         return {
           success: false,
           events: [],
-          error: 'Insufficient players'
+          error: 'Insufficient players',
         };
       }
 
@@ -78,21 +81,24 @@ export class GameCommandHandler {
       const action: GameAction = {
         type: 'start',
         playerId,
-        data: {}
+        data: {},
       };
 
-      const events = await this.roomManager.processGameAction(roomCode, playerId, action);
+      const events = await this.roomManager.processGameAction(
+        roomCode,
+        playerId,
+        action,
+      );
 
       return {
         success: true,
-        events
+        events,
       };
-
     } catch (error) {
       return {
         success: false,
         events: [],
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
@@ -100,7 +106,11 @@ export class GameCommandHandler {
   /**
    * Handle submit answer command
    */
-  async handleSubmitAnswer(roomCode: string, playerId: string, answer: string): Promise<GameCommandResult> {
+  async handleSubmitAnswer(
+    roomCode: string,
+    playerId: string,
+    answer: string,
+  ): Promise<GameCommandResult> {
     try {
       // Validate room exists
       const room = this.roomManager.getRoomSafe(roomCode);
@@ -108,7 +118,7 @@ export class GameCommandHandler {
         return {
           success: false,
           events: [],
-          error: 'Room not found'
+          error: 'Room not found',
         };
       }
 
@@ -117,7 +127,7 @@ export class GameCommandHandler {
         return {
           success: false,
           events: [],
-          error: 'Invalid game phase'
+          error: 'Invalid game phase',
         };
       }
 
@@ -125,21 +135,24 @@ export class GameCommandHandler {
       const action: GameAction = {
         type: 'submitAnswer',
         playerId,
-        data: { answer }
+        data: { answer },
       };
 
-      const events = await this.roomManager.processGameAction(roomCode, playerId, action);
+      const events = await this.roomManager.processGameAction(
+        roomCode,
+        playerId,
+        action,
+      );
 
       return {
         success: true,
-        events
+        events,
       };
-
     } catch (error) {
       return {
         success: false,
         events: [],
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
@@ -147,7 +160,11 @@ export class GameCommandHandler {
   /**
    * Handle submit bluff command
    */
-  async handleSubmitBluff(roomCode: string, playerId: string, text: string): Promise<GameCommandResult> {
+  async handleSubmitBluff(
+    roomCode: string,
+    playerId: string,
+    text: string,
+  ): Promise<GameCommandResult> {
     try {
       // Validate room exists
       const room = this.roomManager.getRoomSafe(roomCode);
@@ -155,7 +172,7 @@ export class GameCommandHandler {
         return {
           success: false,
           events: [],
-          error: 'Room not found'
+          error: 'Room not found',
         };
       }
 
@@ -164,7 +181,7 @@ export class GameCommandHandler {
         return {
           success: false,
           events: [],
-          error: 'Invalid game phase'
+          error: 'Invalid game phase',
         };
       }
 
@@ -172,21 +189,24 @@ export class GameCommandHandler {
       const action: GameAction = {
         type: 'submitBluff',
         playerId,
-        data: { text }
+        data: { text },
       };
 
-      const events = await this.roomManager.processGameAction(roomCode, playerId, action);
+      const events = await this.roomManager.processGameAction(
+        roomCode,
+        playerId,
+        action,
+      );
 
       return {
         success: true,
-        events
+        events,
       };
-
     } catch (error) {
       return {
         success: false,
         events: [],
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
@@ -194,7 +214,11 @@ export class GameCommandHandler {
   /**
    * Handle submit vote command
    */
-  async handleSubmitVote(roomCode: string, playerId: string, choiceId: string): Promise<GameCommandResult> {
+  async handleSubmitVote(
+    roomCode: string,
+    playerId: string,
+    choiceId: string,
+  ): Promise<GameCommandResult> {
     try {
       // Validate room exists
       const room = this.roomManager.getRoomSafe(roomCode);
@@ -202,7 +226,7 @@ export class GameCommandHandler {
         return {
           success: false,
           events: [],
-          error: 'Room not found'
+          error: 'Room not found',
         };
       }
 
@@ -211,7 +235,7 @@ export class GameCommandHandler {
         return {
           success: false,
           events: [],
-          error: 'Invalid game phase'
+          error: 'Invalid game phase',
         };
       }
 
@@ -219,21 +243,24 @@ export class GameCommandHandler {
       const action: GameAction = {
         type: 'submitVote',
         playerId,
-        data: { choiceId }
+        data: { choiceId },
       };
 
-      const events = await this.roomManager.processGameAction(roomCode, playerId, action);
+      const events = await this.roomManager.processGameAction(
+        roomCode,
+        playerId,
+        action,
+      );
 
       return {
         success: true,
-        events
+        events,
       };
-
     } catch (error) {
       return {
         success: false,
         events: [],
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }

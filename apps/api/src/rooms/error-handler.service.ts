@@ -1,19 +1,19 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { 
-  Result, 
-  success, 
-  failure, 
-  StandardError, 
+import {
+  Result,
+  success,
+  failure,
+  StandardError,
   ErrorCategory,
   createErrorResponse,
   createSuccessResponse,
   shouldRetry,
   getUserActionRequired,
-  getLogLevel
+  getLogLevel,
 } from '@party/config';
-import { 
-  GameError, 
-  ValidationError, 
+import {
+  GameError,
+  ValidationError,
   EmptyInputError,
   RoomCodeRequiredError,
   ConnectionError,
@@ -32,7 +32,7 @@ import {
   TimerServiceError,
   TimerNotFoundError,
   GameEngineError,
-  DatabaseError
+  DatabaseError,
 } from './errors';
 
 @Injectable()
@@ -42,12 +42,16 @@ export class ErrorHandlerService {
   /**
    * Convert any error to a standardized Result
    */
-  handleError(error: unknown, context: string, requestId?: string): Result<never, StandardError> {
+  handleError(
+    error: unknown,
+    context: string,
+    requestId?: string,
+  ): Result<never, StandardError> {
     const standardError = this.toStandardError(error, context, requestId);
-    
+
     // Log based on error category
     this.logError(standardError, context);
-    
+
     return failure(standardError);
   }
 
@@ -57,7 +61,7 @@ export class ErrorHandlerService {
   async handleAsync<T>(
     operation: () => Promise<T>,
     context: string,
-    requestId?: string
+    requestId?: string,
   ): Promise<Result<T, StandardError>> {
     try {
       const result = await operation();
@@ -74,7 +78,7 @@ export class ErrorHandlerService {
     operation: () => Promise<T>,
     errorMapper: (error: unknown) => E,
     context: string,
-    requestId?: string
+    requestId?: string,
   ): Promise<Result<T, E>> {
     try {
       const result = await operation();
@@ -89,7 +93,11 @@ export class ErrorHandlerService {
   /**
    * Convert any error to a standardized error format
    */
-  private toStandardError(error: unknown, context: string, requestId?: string): StandardError {
+  private toStandardError(
+    error: unknown,
+    context: string,
+    requestId?: string,
+  ): StandardError {
     // Handle known GameError instances
     if (error instanceof GameError) {
       return {
@@ -135,10 +143,11 @@ export class ErrorHandlerService {
     // Handle unknown errors
     return {
       code: 'INTERNAL_ERROR',
-      message: error instanceof Error ? error.message : 'An unexpected error occurred',
+      message:
+        error instanceof Error ? error.message : 'An unexpected error occurred',
       category: ErrorCategory.SYSTEM,
       statusCode: 500,
-      details: { 
+      details: {
         originalError: error instanceof Error ? error.name : typeof error,
         stack: error instanceof Error ? error.stack : undefined,
       },
@@ -174,8 +183,10 @@ export class ErrorHandlerService {
   private logError(error: StandardError | unknown, context: string): void {
     if (typeof error === 'object' && error !== null && 'category' in error) {
       const standardError = error as StandardError;
-      const logLevel = getLogLevel(standardError.category.toLowerCase() as keyof typeof getLogLevel);
-      
+      const logLevel = getLogLevel(
+        standardError.category.toLowerCase() as keyof typeof getLogLevel,
+      );
+
       const logData = {
         code: standardError.code,
         message: standardError.message,
@@ -211,12 +222,18 @@ export class ErrorHandlerService {
   /**
    * Create a standardized error response for WebSocket clients
    */
-  createWebSocketErrorResponse(error: unknown, context: string, clientId: string, requestId?: string) {
+  createWebSocketErrorResponse(
+    error: unknown,
+    context: string,
+    clientId: string,
+    requestId?: string,
+  ) {
     const standardError = this.toStandardError(error, context, requestId);
-    
+
     // Normalize category to uppercase for config lookup
-    const normalizedCategory = standardError.category.toUpperCase() as keyof typeof shouldRetry;
-    
+    const normalizedCategory =
+      standardError.category.toUpperCase() as keyof typeof shouldRetry;
+
     return {
       error: standardError.message,
       code: standardError.code,
@@ -234,7 +251,11 @@ export class ErrorHandlerService {
   /**
    * Validate input fields with centralized limits
    */
-  validateInput(value: any, fieldName: string, context: string): Result<void, StandardError> {
+  validateInput(
+    value: any,
+    fieldName: string,
+    context: string,
+  ): Result<void, StandardError> {
     if (value === null || value === undefined) {
       return failure({
         code: 'EMPTY_INPUT',
@@ -265,7 +286,10 @@ export class ErrorHandlerService {
   /**
    * Validate room code format
    */
-  validateRoomCode(roomCode: string, context: string): Result<void, StandardError> {
+  validateRoomCode(
+    roomCode: string,
+    context: string,
+  ): Result<void, StandardError> {
     if (!roomCode) {
       return failure({
         code: 'ROOM_CODE_REQUIRED',
@@ -286,10 +310,10 @@ export class ErrorHandlerService {
         message: 'Room code must be 4-8 alphanumeric characters',
         category: ErrorCategory.VALIDATION,
         statusCode: 400,
-        details: { 
+        details: {
           field: 'roomCode',
           value: roomCode,
-          pattern: '4-8 alphanumeric characters'
+          pattern: '4-8 alphanumeric characters',
         },
         timestamp: new Date().toISOString(),
         context,
@@ -302,7 +326,10 @@ export class ErrorHandlerService {
   /**
    * Validate nickname format
    */
-  validateNickname(nickname: string, context: string): Result<void, StandardError> {
+  validateNickname(
+    nickname: string,
+    context: string,
+  ): Result<void, StandardError> {
     if (!nickname) {
       return failure({
         code: 'EMPTY_INPUT',
@@ -321,10 +348,10 @@ export class ErrorHandlerService {
         message: 'Nickname must be at least 2 characters',
         category: ErrorCategory.VALIDATION,
         statusCode: 400,
-        details: { 
+        details: {
           field: 'nickname',
           minLength: 2,
-          actualLength: nickname.length
+          actualLength: nickname.length,
         },
         timestamp: new Date().toISOString(),
         context,
@@ -337,10 +364,10 @@ export class ErrorHandlerService {
         message: 'Nickname must be 20 characters or less',
         category: ErrorCategory.VALIDATION,
         statusCode: 400,
-        details: { 
+        details: {
           field: 'nickname',
           maxLength: 20,
-          actualLength: nickname.length
+          actualLength: nickname.length,
         },
         timestamp: new Date().toISOString(),
         context,
@@ -354,20 +381,26 @@ export class ErrorHandlerService {
    * Check if an error is retryable
    */
   isRetryable(error: StandardError): boolean {
-    return shouldRetry(error.category.toLowerCase() as keyof typeof shouldRetry);
+    return shouldRetry(
+      error.category.toLowerCase() as keyof typeof shouldRetry,
+    );
   }
 
   /**
    * Check if user action is required for an error
    */
   requiresUserAction(error: StandardError): boolean {
-    return getUserActionRequired(error.category.toLowerCase() as keyof typeof getUserActionRequired);
+    return getUserActionRequired(
+      error.category.toLowerCase() as keyof typeof getUserActionRequired,
+    );
   }
 
   /**
    * Get appropriate log level for an error
    */
   getLogLevel(error: StandardError): string {
-    return getLogLevel(error.category.toLowerCase() as keyof typeof getLogLevel);
+    return getLogLevel(
+      error.category.toLowerCase() as keyof typeof getLogLevel,
+    );
   }
 }

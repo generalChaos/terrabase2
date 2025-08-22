@@ -41,6 +41,7 @@ The Party Game platform uses a clean service architecture with dependency inject
 **Purpose**: Main entry point for game-related WebSocket events
 
 **Responsibilities**:
+
 - Handle game start requests
 - Process answer submissions
 - Manage voting
@@ -48,18 +49,31 @@ The Party Game platform uses a clean service architecture with dependency inject
 - Coordinate timer events
 
 **Key Methods**:
+
 ```typescript
 @Injectable()
 export class GameGatewayService {
-  async startGame(client: Socket, roomCode: string): Promise<Result<void, any>>
-  async submitAnswer(client: Socket, roomCode: string, body: { answer: string }): Promise<Result<void, any>>
-  async submitVote(client: Socket, roomCode: string, body: { choiceId: string }): Promise<Result<void, any>>
-  async advancePhase(client: Socket, roomCode: string): Promise<Result<void, any>>
-  async handleTimerTick(roomCode: string): Promise<Result<void, any>>
+  async startGame(client: Socket, roomCode: string): Promise<Result<void, any>>;
+  async submitAnswer(
+    client: Socket,
+    roomCode: string,
+    body: { answer: string }
+  ): Promise<Result<void, any>>;
+  async submitVote(
+    client: Socket,
+    roomCode: string,
+    body: { choiceId: string }
+  ): Promise<Result<void, any>>;
+  async advancePhase(
+    client: Socket,
+    roomCode: string
+  ): Promise<Result<void, any>>;
+  async handleTimerTick(roomCode: string): Promise<Result<void, any>>;
 }
 ```
 
 **Dependencies**:
+
 - `StateManagerService` - For state operations
 - `ErrorHandlerService` - For error handling and validation
 
@@ -68,6 +82,7 @@ export class GameGatewayService {
 **Purpose**: Central state management for all game rooms
 
 **Responsibilities**:
+
 - Maintain room state
 - Process game actions
 - Coordinate with game engines
@@ -75,20 +90,26 @@ export class GameGatewayService {
 - Manage room lifecycle
 
 **Key Methods**:
+
 ```typescript
 @Injectable()
 export class StateManagerService {
-  getRoom(roomCode: string): RoomState | undefined
-  createRoom(roomCode: string, hostId: string): RoomState
-  addPlayer(roomCode: string, player: Player): Result<RoomState, any>
-  removePlayer(roomCode: string, playerId: string): Result<RoomState, any>
-  processGameAction(roomCode: string, playerId: string, action: GameAction): Promise<Result<void, any>>
-  advanceGamePhase(roomCode: string): Promise<Result<void, any>>
-  updateTimer(roomCode: string, delta: number): Promise<Result<void, any>>
+  getRoom(roomCode: string): RoomState | undefined;
+  createRoom(roomCode: string, hostId: string): RoomState;
+  addPlayer(roomCode: string, player: Player): Result<RoomState, any>;
+  removePlayer(roomCode: string, playerId: string): Result<RoomState, any>;
+  processGameAction(
+    roomCode: string,
+    playerId: string,
+    action: GameAction
+  ): Promise<Result<void, any>>;
+  advanceGamePhase(roomCode: string): Promise<Result<void, any>>;
+  updateTimer(roomCode: string, delta: number): Promise<Result<void, any>>;
 }
 ```
 
 **Dependencies**:
+
 - `GameRegistry` - For game engine access
 - `ErrorHandlerService` - For validation
 - `TimerService` - For timing management
@@ -98,6 +119,7 @@ export class StateManagerService {
 **Purpose**: Centralized error handling and validation
 
 **Responsibilities**:
+
 - Validate input data
 - Format error responses
 - Provide consistent error handling
@@ -105,17 +127,26 @@ export class StateManagerService {
 - Handle validation logic
 
 **Key Methods**:
+
 ```typescript
 @Injectable()
 export class ErrorHandlerService {
-  validateRoomCode(code: string, context: string): Result<string, ValidationError>
-  validateInput(input: string, fieldName: string, context: string): Result<string, ValidationError>
-  formatError(error: any, context: string): ErrorResponse
-  handleError(error: any, context: string): void
+  validateRoomCode(
+    code: string,
+    context: string
+  ): Result<string, ValidationError>;
+  validateInput(
+    input: string,
+    fieldName: string,
+    context: string
+  ): Result<string, ValidationError>;
+  formatError(error: any, context: string): ErrorResponse;
+  handleError(error: any, context: string): void;
 }
 ```
 
 **Features**:
+
 - Input sanitization
 - Type validation
 - Business rule validation
@@ -126,6 +157,7 @@ export class ErrorHandlerService {
 **Purpose**: Manage available game engines
 
 **Responsibilities**:
+
 - Register game engines
 - Provide game instances
 - List available games
@@ -133,18 +165,20 @@ export class ErrorHandlerService {
 - Handle game type selection
 
 **Key Methods**:
+
 ```typescript
 @Injectable()
 export class GameRegistry {
-  register(gameType: string, engine: GameEngine<any, any, any>): void
-  getGame(gameType: string): GameEngine<any, any, any> | undefined
-  listGames(): string[]
-  hasGame(gameType: string): boolean
-  getDefaultGame(): string
+  register(gameType: string, engine: GameEngine<any, any, any>): void;
+  getGame(gameType: string): GameEngine<any, any, any> | undefined;
+  listGames(): string[];
+  hasGame(gameType: string): boolean;
+  getDefaultGame(): string;
 }
 ```
 
 **Registered Games**:
+
 - `bluff-trivia` - BluffTriviaEngine
 - `fibbing-it` - FibbingItEngine
 - `word-association` - WordAssociationEngine
@@ -154,6 +188,7 @@ export class GameRegistry {
 **Purpose**: Manage game timing and phase transitions
 
 **Responsibilities**:
+
 - Start game timers
 - Handle timer ticks
 - Trigger phase transitions
@@ -161,18 +196,20 @@ export class GameRegistry {
 - Coordinate with state management
 
 **Key Methods**:
+
 ```typescript
 @Injectable()
 export class TimerService {
-  startTimer(roomCode: string, duration: number, callback: () => void): void
-  stopTimer(roomCode: string): void
-  updateTimer(roomCode: string, delta: number): void
-  getTimeLeft(roomCode: string): number
-  cleanupTimers(): void
+  startTimer(roomCode: string, duration: number, callback: () => void): void;
+  stopTimer(roomCode: string): void;
+  updateTimer(roomCode: string, delta: number): void;
+  getTimeLeft(roomCode: string): number;
+  cleanupTimers(): void;
 }
 ```
 
 **Features**:
+
 - Automatic phase progression
 - Manual phase advancement
 - Timer synchronization
@@ -197,6 +234,7 @@ export class GameGatewayService {
 ### Service Communication Patterns
 
 #### 1. **Direct Method Calls**
+
 ```typescript
 // Synchronous operations
 const room = this.stateManager.getRoom(roomCode);
@@ -206,9 +244,14 @@ if (!room) {
 ```
 
 #### 2. **Async Result Pattern**
+
 ```typescript
 // Asynchronous operations with error handling
-const result = await this.stateManager.processGameAction(roomCode, playerId, action);
+const result = await this.stateManager.processGameAction(
+  roomCode,
+  playerId,
+  action
+);
 if (result.isSuccess()) {
   // Handle success
 } else {
@@ -218,6 +261,7 @@ if (result.isSuccess()) {
 ```
 
 #### 3. **Event-Based Communication**
+
 ```typescript
 // Timer events
 this.timerService.startTimer(roomCode, duration, () => {
@@ -238,10 +282,14 @@ type Result<T, E> = Success<T> | Failure<E>;
 export class Success<T> {
   readonly _tag = 'Success';
   constructor(readonly value: T) {}
-  
-  isSuccess(): this is Success<T> { return true; }
-  isFailure(): this is Failure<any> { return false; }
-  
+
+  isSuccess(): this is Success<T> {
+    return true;
+  }
+  isFailure(): this is Failure<any> {
+    return false;
+  }
+
   map<U>(fn: (value: T) => U): Result<U, any> {
     return new Success(fn(this.value));
   }
@@ -251,15 +299,20 @@ export class Success<T> {
 export class Failure<E> {
   readonly _tag = 'Failure';
   constructor(readonly error: E) {}
-  
-  isSuccess(): this is Success<any> { return false; }
-  isFailure(): this is Failure<E> { return true; }
+
+  isSuccess(): this is Success<any> {
+    return false;
+  }
+  isFailure(): this is Failure<E> {
+    return true;
+  }
 }
 ```
 
 ### Error Categories
 
 #### **Validation Errors**
+
 ```typescript
 export class ValidationError extends Error {
   constructor(
@@ -275,6 +328,7 @@ export class ValidationError extends Error {
 ```
 
 #### **Business Logic Errors**
+
 ```typescript
 export class InsufficientPlayersError extends Error {
   constructor(required: number, actual: number) {
@@ -285,6 +339,7 @@ export class InsufficientPlayersError extends Error {
 ```
 
 #### **System Errors**
+
 ```typescript
 export class RoomNotFoundError extends Error {
   constructor(roomCode: string) {
@@ -316,7 +371,7 @@ room.players.push(newPlayer);
 // Create new state
 const newRoom = {
   ...room,
-  players: [...room.players, newPlayer]
+  players: [...room.players, newPlayer],
 };
 ```
 
@@ -331,19 +386,19 @@ async processGameAction(roomCode: string, playerId: string, action: GameAction):
   if (!room) {
     return failure(new RoomNotFoundError(roomCode));
   }
-  
+
   // Validate action
   const validationResult = this.validateAction(room, action);
   if (validationResult.isFailure()) {
     return failure(validationResult.error);
   }
-  
+
   // Apply action
   const newState = this.applyAction(room, action);
-  
+
   // Update state
   this.updateRoom(roomCode, newState);
-  
+
   return success(undefined);
 }
 ```
@@ -365,7 +420,7 @@ export const GameConfig = {
     TIMER: {
       TICK_MS: 1000,
       CLEANUP_INTERVAL_MS: 5 * 60 * 1000,
-    }
+    },
   },
   RULES: {
     ROUNDS: {
@@ -376,8 +431,8 @@ export const GameConfig = {
       MAX_PLAYERS_PER_ROOM: 8,
       MIN_NICKNAME_LENGTH: 2,
       MAX_NICKNAME_LENGTH: 20,
-    }
-  }
+    },
+  },
 };
 ```
 
@@ -454,16 +509,19 @@ export function createMockStateManager(): jest.Mocked<StateManagerService> {
 ### Service Optimization
 
 #### **Memory Management**
+
 - Immutable state prevents memory leaks
 - Automatic cleanup of old states
 - Efficient state updates
 
 #### **Connection Management**
+
 - WebSocket connection pooling
 - Efficient event broadcasting
 - Room-based message routing
 
 #### **Timer Optimization**
+
 - Single timer per room
 - Efficient timer tick handling
 - Automatic timer cleanup
@@ -471,11 +529,13 @@ export function createMockStateManager(): jest.Mocked<StateManagerService> {
 ### Scalability Features
 
 #### **Horizontal Scaling**
+
 - Stateless service design
 - Room isolation for parallel processing
 - Efficient state synchronization
 
 #### **Resource Management**
+
 - Automatic cleanup of inactive rooms
 - Memory-efficient state storage
 - Connection limit enforcement

@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { PlayerCreationForm } from '@/components/player-creation-form';
 

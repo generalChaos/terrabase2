@@ -1,1 +1,4 @@
-export { WordAssociationPhaseManager, WordAssociationPhaseManagerFC } from './word-association-phase-manager';
+export {
+  WordAssociationPhaseManager,
+  WordAssociationPhaseManagerFC,
+} from './word-association-phase-manager';

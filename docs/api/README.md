@@ -16,16 +16,19 @@ The Party Game API is a real-time multiplayer game platform built with **NestJS*
 ## Available Games
 
 ### **Bluff Trivia** 🎭
+
 - **Description**: Classic bluff trivia where players compete to find correct answers while trying to fool others
 - **Type**: `bluff-trivia`
 - **Phases**: Lobby → Prompt (15s) → Choose (20s) → Scoring (6s) → Next Round
 
 ### **Fibbing It** 🤥
+
 - **Description**: Storytelling game where players create believable lies and try to spot the truth
 - **Type**: `fibbing-it`
 - **Phases**: Lobby → Prompt (60s) → Voting (30s) → Scoring (15s) → Next Round
 
 ### **Word Association** 🔗
+
 - **Description**: Creative word game where players build on each other's word associations
 - **Type**: `word-association`
 - **Phases**: Lobby → Prompt (45s) → Voting (25s) → Scoring (15s) → Next Round
@@ -33,21 +36,24 @@ The Party Game API is a real-time multiplayer game platform built with **NestJS*
 ## Connection
 
 ### Base URL
+
 ```
 ws://localhost:3001/rooms
 ```
 
 ### Connection Parameters
+
 ```typescript
 // Connect to a specific room
 const socket = io('http://localhost:3001/rooms', {
   query: {
-    roomCode: 'ABC123'  // 4-8 character alphanumeric room code
-  }
+    roomCode: 'ABC123', // 4-8 character alphanumeric room code
+  },
 });
 ```
 
 ### Room Code Format
+
 - **Pattern**: `^[a-zA-Z0-9]{4,8}$`
 - **Examples**: `ABC1`, `ROOM123`, `GAME4567`
 - **Validation**: Must be unique, alphanumeric only
@@ -55,30 +61,34 @@ const socket = io('http://localhost:3001/rooms', {
 ## Message Format
 
 All messages follow this structure:
+
 ```typescript
 interface GameMessage {
-  type: string;           // Message type identifier
-  data?: any;            // Message payload
-  target?: 'all' | 'player' | 'host';  // Target audience
-  playerId?: string;     // Specific player (if target is 'player')
+  type: string; // Message type identifier
+  data?: any; // Message payload
+  target?: 'all' | 'player' | 'host'; // Target audience
+  playerId?: string; // Specific player (if target is 'player')
 }
 ```
 
 ## Error Handling
 
 Errors are returned in a consistent format using the Result pattern:
+
 ```typescript
 interface ErrorResponse {
-  error: string;         // Human-readable error message
-  code: string;          // Error code for programmatic handling
-  statusCode: number;    // HTTP-style status code
-  details?: any;         // Additional error context
-  context: string;       // Where the error occurred
+  error: string; // Human-readable error message
+  code: string; // Error code for programmatic handling
+  statusCode: number; // HTTP-style status code
+  details?: any; // Additional error context
+  context: string; // Where the error occurred
 }
 ```
 
 ### Result Pattern
+
 The API uses a Result pattern for consistent error handling:
+
 ```typescript
 type Result<T, E> = Success<T> | Failure<E>;
 
@@ -95,27 +105,29 @@ if (result.isSuccess()) {
 ## Game Configuration
 
 ### Centralized Configuration
+
 All game settings are centralized in the `GameConfig` object:
+
 ```typescript
 const GameConfig = {
   TIMING: {
     PHASES: {
-      PROMPT: 15,    // Time to submit answer/bluff
-      CHOOSE: 20,    // Time to vote
-      SCORING: 6,    // Time to show results
-    }
+      PROMPT: 15, // Time to submit answer/bluff
+      CHOOSE: 20, // Time to vote
+      SCORING: 6, // Time to show results
+    },
   },
   RULES: {
     ROUNDS: {
-      MAX_ROUNDS: 5,           // Maximum rounds per game
+      MAX_ROUNDS: 5, // Maximum rounds per game
       MIN_PLAYERS_TO_START: 2, // Minimum players required
     },
     PLAYERS: {
       MAX_PLAYERS_PER_ROOM: 8, // Maximum players in room
-      MIN_NICKNAME_LENGTH: 2,  // Minimum nickname length
+      MIN_NICKNAME_LENGTH: 2, // Minimum nickname length
       MAX_NICKNAME_LENGTH: 20, // Maximum nickname length
-    }
-  }
+    },
+  },
 };
 ```
 
@@ -130,6 +142,7 @@ const GameConfig = {
 **Endpoint**: `GET /health`
 
 **Response**:
+
 ```json
 {
   "status": "ok",

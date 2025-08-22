@@ -1,5 +1,9 @@
-"use client";
-import { BaseGamePhaseManager, BaseGamePhaseManagerProps, LobbyView } from "../shared";
+'use client';
+import {
+  BaseGamePhaseManager,
+  BaseGamePhaseManagerProps,
+  LobbyView,
+} from '../shared';
 
 type WordAssociationPhaseManagerProps = BaseGamePhaseManagerProps & {
   roomCode?: string;
@@ -40,18 +44,22 @@ export class WordAssociationPhaseManager extends BaseGamePhaseManager {
       case 'lobby':
         return (
           <LobbyView
-            roomCode={roomCode || "XXXX"}
+            roomCode={roomCode || 'XXXX'}
             players={players}
             isHost={isHost}
           />
         );
-      
+
       case 'prompt':
         if (isHost) {
           return (
             <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
-              <h2 className="text-2xl font-bold mb-4">Round {round} of {maxRounds}</h2>
-              <div className="text-4xl font-bold mb-8">{word || "Loading word..."}</div>
+              <h2 className="text-2xl font-bold mb-4">
+                Round {round} of {maxRounds}
+              </h2>
+              <div className="text-4xl font-bold mb-8">
+                {word || 'Loading word...'}
+              </div>
               <div className="text-lg text-[--muted] mb-4">
                 Players are thinking of associations...
               </div>
@@ -63,8 +71,12 @@ export class WordAssociationPhaseManager extends BaseGamePhaseManager {
         } else {
           return (
             <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
-              <h2 className="text-2xl font-bold mb-4">Round {round} of {maxRounds}</h2>
-              <div className="text-4xl font-bold mb-8">{word || "Loading word..."}</div>
+              <h2 className="text-2xl font-bold mb-4">
+                Round {round} of {maxRounds}
+              </h2>
+              <div className="text-4xl font-bold mb-8">
+                {word || 'Loading word...'}
+              </div>
               <div className="text-lg mb-6">
                 What word comes to mind when you think of &quot;{word}&quot;?
               </div>
@@ -74,7 +86,7 @@ export class WordAssociationPhaseManager extends BaseGamePhaseManager {
                     type="text"
                     placeholder="Enter your association..."
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    onKeyPress={(e) => {
+                    onKeyPress={e => {
                       if (e.key === 'Enter' && e.currentTarget.value.trim()) {
                         onSubmitAssociation?.(e.currentTarget.value.trim());
                       }
@@ -107,19 +119,23 @@ export class WordAssociationPhaseManager extends BaseGamePhaseManager {
       case 'choose':
         return (
           <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
-            <h2 className="text-2xl font-bold mb-4">Round {round} of {maxRounds}</h2>
+            <h2 className="text-2xl font-bold mb-4">
+              Round {round} of {maxRounds}
+            </h2>
             <div className="text-4xl font-bold mb-8">{word}</div>
             <div className="text-lg mb-6">
               Vote for the most creative association!
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-2xl">
-              {associations.map((association) => (
+              {associations.map(association => (
                 <div
                   key={association.id}
                   className="p-4 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer"
                 >
                   <div className="text-lg font-medium">{association.text}</div>
-                  <div className="text-sm text-gray-500">Submitted by a player</div>
+                  <div className="text-sm text-gray-500">
+                    Submitted by a player
+                  </div>
                 </div>
               ))}
             </div>
@@ -132,12 +148,12 @@ export class WordAssociationPhaseManager extends BaseGamePhaseManager {
       case 'scoring':
         return (
           <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
-            <h2 className="text-2xl font-bold mb-4">Round {round} of {maxRounds}</h2>
+            <h2 className="text-2xl font-bold mb-4">
+              Round {round} of {maxRounds}
+            </h2>
             <div className="text-4xl font-bold mb-8">{word}</div>
             <div className="text-lg mb-6">Round complete!</div>
-            <div className="text-sm text-[--muted]">
-              Time left: {timeLeft}s
-            </div>
+            <div className="text-sm text-[--muted]">Time left: {timeLeft}s</div>
           </div>
         );
 
@@ -156,7 +172,9 @@ export class WordAssociationPhaseManager extends BaseGamePhaseManager {
 }
 
 // Export a function component for easier use
-export function WordAssociationPhaseManagerFC(props: WordAssociationPhaseManagerProps) {
+export function WordAssociationPhaseManagerFC(
+  props: WordAssociationPhaseManagerProps
+) {
   const manager = new WordAssociationPhaseManager();
   return manager.renderPhase(props);
 }

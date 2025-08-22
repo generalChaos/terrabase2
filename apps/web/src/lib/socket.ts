@@ -5,19 +5,19 @@ import { getApiUrl, AppConfig } from '@party/config';
 export function connectToRoom(code: string): Socket {
   const url = `${getApiUrl('ws')}${AppConfig.API.ROOMS_ENDPOINT}`;
   console.log('connecting to', url, 'with room code:', code);
-  
-  const socket = io(url, { 
+
+  const socket = io(url, {
     transports: ['websocket'],
-    query: { roomCode: code }
+    query: { roomCode: code },
   });
-  
+
   return socket;
 }
 
 // Type-safe event emitter helper
 export function emitTyped<T>(
-  socket: Socket, 
-  event: SocketEvent, 
+  socket: Socket,
+  event: SocketEvent,
   data?: T
 ): void {
   socket.emit(event, data);
@@ -25,8 +25,8 @@ export function emitTyped<T>(
 
 // Type-safe event listener helper
 export function onTyped<T>(
-  socket: Socket, 
-  event: SocketEvent, 
+  socket: Socket,
+  event: SocketEvent,
   callback: (data: T) => void
 ): void {
   socket.on(event, callback);

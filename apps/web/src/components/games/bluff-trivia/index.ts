@@ -1,1 +1,4 @@
-export { BluffTriviaPhaseManager, BluffTriviaPhaseManagerFC } from './bluff-trivia-phase-manager';
+export {
+  BluffTriviaPhaseManager,
+  BluffTriviaPhaseManagerFC,
+} from './bluff-trivia-phase-manager';

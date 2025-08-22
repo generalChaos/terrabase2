@@ -5,7 +5,7 @@ export const GAME_PHASE_DURATIONS = GameConfig.TIMING.PHASES;
 export const GAME_CONFIG = {
   MAX_ROUNDS: GameConfig.RULES.ROUNDS.MAX_ROUNDS,
   CLEANUP_INTERVAL_MS: GameConfig.TIMING.TIMER.CLEANUP_INTERVAL_MS,
-  TIMER_TICK_MS: GameConfig.TIMING.TIMER.TICK_MS
+  TIMER_TICK_MS: GameConfig.TIMING.TIMER.TICK_MS,
 };
 
 export const PHASE_NAMES = {
@@ -13,7 +13,7 @@ export const PHASE_NAMES = {
   PROMPT: 'prompt',
   CHOOSE: 'choose',
   SCORING: 'scoring',
-  OVER: 'over'
+  OVER: 'over',
 } as const;
 
 export enum EventType {
@@ -22,13 +22,13 @@ export enum EventType {
   CHOICES = 'choices',
   SCORES = 'scores',
   ROOM_UPDATE = 'roomUpdate',
-  GAME_OVER = 'gameOver'
+  GAME_OVER = 'gameOver',
 }
 
 export enum EventTarget {
   ALL = 'all',
   PLAYER = 'player',
-  HOST = 'host'
+  HOST = 'host',
 }
 
 export const GAME_TYPES = GameConfig.GAME_TYPES;

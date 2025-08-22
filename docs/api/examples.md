@@ -34,12 +34,12 @@ class PartyGameClient {
   connect() {
     try {
       this.socket = io('http://localhost:3001/rooms', {
-        query: { roomCode: this.roomCode }
+        query: { roomCode: this.roomCode },
       });
 
       this.setupEventListeners();
       this.setupErrorHandling();
-      
+
       console.log(`Connecting to room: ${this.roomCode}`);
     } catch (error) {
       console.error('Failed to connect:', error);
@@ -61,19 +61,19 @@ class PartyGameClient {
     });
 
     // Game events
-    this.socket.on('room', (roomState) => {
+    this.socket.on('room', roomState => {
       console.log('Room state updated:', roomState);
       this.onStateUpdate?.(roomState);
     });
 
-    this.socket.on('joined', (response) => {
+    this.socket.on('joined', response => {
       if (response.ok) {
         console.log('Successfully joined room!');
       }
     });
 
     // Game-specific prompt events
-    this.socket.on('prompt', (data) => {
+    this.socket.on('prompt', data => {
       if (data.question) {
         console.log('New trivia question:', data.question);
         this.showTriviaQuestion(data.question);
@@ -86,22 +86,22 @@ class PartyGameClient {
       }
     });
 
-    this.socket.on('choices', (data) => {
+    this.socket.on('choices', data => {
       console.log('Voting choices:', data.choices);
       this.showVotingChoices(data.choices);
     });
 
-    this.socket.on('scores', (data) => {
+    this.socket.on('scores', data => {
       console.log('Scores updated:', data.scores);
       this.updateScoreboard(data.scores);
     });
 
-    this.socket.on('timer', (data) => {
+    this.socket.on('timer', data => {
       console.log('Time remaining:', data.timeLeft);
       this.updateTimer(data.timeLeft);
     });
 
-    this.socket.on('gameOver', (data) => {
+    this.socket.on('gameOver', data => {
       console.log('Game over! Winners:', data.winners);
       this.showGameOver(data.winners);
     });
@@ -110,7 +110,7 @@ class PartyGameClient {
   private setupErrorHandling() {
     if (!this.socket) return;
 
-    this.socket.on('error', (errorResponse) => {
+    this.socket.on('error', errorResponse => {
       console.error('Game error:', errorResponse);
       this.handleError(errorResponse);
     });
@@ -141,7 +141,7 @@ class PartyGameClient {
 
     this.socket.emit('join', {
       nickname: this.playerName,
-      avatar: '🎮'
+      avatar: '🎮',
     });
   }
 
@@ -227,7 +227,7 @@ class BluffTriviaClient extends PartyGameClient {
     if (!this.socket) return;
 
     // Bluff Trivia specific events
-    this.socket.on('submitted', (data) => {
+    this.socket.on('submitted', data => {
       if (data.playerId === this.socket?.id) {
         this.hasSubmitted = true;
         this.showSubmissionConfirmation();
@@ -250,7 +250,10 @@ class BluffTriviaClient extends PartyGameClient {
     // Update UI to show submission confirmation
   }
 
-  private updatePlayerSubmissionStatus(playerId: string, hasSubmitted: boolean) {
+  private updatePlayerSubmissionStatus(
+    playerId: string,
+    hasSubmitted: boolean
+  ) {
     // Update UI to show which players have submitted
   }
 }
@@ -273,7 +276,7 @@ class FibbingItClient extends PartyGameClient {
     if (!this.socket) return;
 
     // Fibbing It specific events
-    this.socket.on('storySubmitted', (data) => {
+    this.socket.on('storySubmitted', data => {
       if (data.playerId === this.socket?.id) {
         this.storySubmitted = true;
         this.showStorySubmissionConfirmation();
@@ -319,7 +322,7 @@ class WordAssociationClient extends PartyGameClient {
     if (!this.socket) return;
 
     // Word Association specific events
-    this.socket.on('associationSubmitted', (data) => {
+    this.socket.on('associationSubmitted', data => {
       if (data.playerId === this.socket?.id) {
         this.associationSubmitted = true;
         this.showAssociationSubmissionConfirmation();
@@ -338,7 +341,10 @@ class WordAssociationClient extends PartyGameClient {
     // Update UI to show association submission confirmation
   }
 
-  private updatePlayerAssociationStatus(playerId: string, hasSubmitted: boolean) {
+  private updatePlayerAssociationStatus(
+    playerId: string,
+    hasSubmitted: boolean
+  ) {
     // Update UI to show which players have submitted associations
   }
 }
@@ -391,7 +397,7 @@ export const GameComponent: React.FC<GameProps> = ({ roomCode, playerName }) => 
     newSocket.on('connect', () => {
       console.log('Connected to server');
       setConnected(true);
-      
+
       // Join the room
       newSocket.emit('join', {
         nickname: playerName,
@@ -596,13 +602,13 @@ class RobustGameClient extends PartyGameClient {
     if (!this.socket) return;
 
     // Connection error handling
-    this.socket.on('connect_error', (error) => {
+    this.socket.on('connect_error', error => {
       console.error('Connection error:', error);
       this.handleConnectionError();
     });
 
     // Reconnection handling
-    this.socket.on('disconnect', (reason) => {
+    this.socket.on('disconnect', reason => {
       console.log('Disconnected:', reason);
       if (reason === 'io server disconnect') {
         // Server disconnected, try to reconnect
@@ -614,19 +620,22 @@ class RobustGameClient extends PartyGameClient {
   private handleConnectionError() {
     if (this.reconnectAttempts < this.maxReconnectAttempts) {
       this.reconnectAttempts++;
-      const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
-      
-      console.log(`Reconnection attempt ${this.reconnectAttempts} in ${delay}ms`);
-      
+      const delay =
+        this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
+
+      console.log(
+        `Reconnection attempt ${this.reconnectAttempts} in ${delay}ms`
+      );
+
       setTimeout(() => {
         this.attemptReconnection();
       }, delay);
     } else {
       console.error('Max reconnection attempts reached');
-      this.onError?.({ 
+      this.onError?.({
         error: 'Unable to connect to server after multiple attempts',
         code: 'MAX_RECONNECT_ATTEMPTS',
-        statusCode: 500
+        statusCode: 500,
       });
     }
   }
@@ -644,7 +653,7 @@ class RobustGameClient extends PartyGameClient {
       message: error.error,
       context: error.context,
       details: error.details,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
 
     // Handle specific error types
@@ -662,7 +671,9 @@ class RobustGameClient extends PartyGameClient {
         this.showMessage('Room not found. Please check the room code.');
         break;
       case 'VALIDATION_ERROR':
-        this.showMessage(`Invalid input: ${error.details?.field || 'unknown field'}`);
+        this.showMessage(
+          `Invalid input: ${error.details?.field || 'unknown field'}`
+        );
         break;
       case 'BUSINESS_LOGIC_ERROR':
         this.showMessage(error.error || 'Game rule violation');
@@ -711,7 +722,7 @@ describe('GameComponent', () => {
 
   it('should connect to room on mount', () => {
     render(<GameComponent {...mockProps} />);
-    
+
     expect(screen.getByText('Connecting to game...')).toBeInTheDocument();
   });
 
@@ -759,30 +770,35 @@ describe('GameComponent', () => {
 ## Best Practices
 
 ### 1. **Error Handling**
+
 - Always implement comprehensive error handling
 - Use the Result pattern for consistent error responses
 - Provide user-friendly error messages
 - Log errors for debugging
 
 ### 2. **State Management**
+
 - Keep client state synchronized with server state
 - Use immutable state updates
 - Handle loading and error states gracefully
 - Implement proper cleanup on unmount
 
 ### 3. **Performance**
+
 - Debounce user inputs when appropriate
 - Implement efficient re-rendering
 - Use WebSocket connection pooling
 - Clean up event listeners
 
 ### 4. **User Experience**
+
 - Show loading states during operations
 - Provide immediate feedback for user actions
 - Handle edge cases gracefully
 - Implement proper accessibility features
 
 ### 5. **Testing**
+
 - Test all game phases and transitions
 - Mock external dependencies
 - Test error scenarios

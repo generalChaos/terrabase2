@@ -32,7 +32,7 @@ describe('AppController', () => {
   describe('getHealth', () => {
     it('should return health status', () => {
       const result = appController.getHealth();
-      
+
       expect(result.status).toBe('ok');
       expect(result.timestamp).toBeDefined();
       expect(result.resources.activeRooms).toBe(5);

@@ -1,4 +1,4 @@
-"use client";
+'use client';
 import { useState } from 'react';
 
 export type PlayerCreationData = {
@@ -17,8 +17,22 @@ export type PlayerCreationFormProps = {
 
 // Default avatar options - we can expand this later
 const DEFAULT_AVATARS = [
-  '👤', '👑', '🎭', '🧠', '🎮', '🎯', '🏆', '⭐',
-  '🦊', '🐱', '🐶', '🐼', '🦁', '🐸', '🐙', '🦄'
+  '👤',
+  '👑',
+  '🎭',
+  '🧠',
+  '🎮',
+  '🎯',
+  '🏆',
+  '⭐',
+  '🦊',
+  '🐱',
+  '🐶',
+  '🐼',
+  '🦁',
+  '🐸',
+  '🐙',
+  '🦄',
 ];
 
 export function PlayerCreationForm({
@@ -27,17 +41,19 @@ export function PlayerCreationForm({
   defaultValues = {},
   isHost = false,
   roomCode,
-  className = ''
+  className = '',
 }: PlayerCreationFormProps) {
   const [nickname, setNickname] = useState(defaultValues.nickname || '');
-  const [selectedAvatar, setSelectedAvatar] = useState(defaultValues.avatar || '👤');
+  const [selectedAvatar, setSelectedAvatar] = useState(
+    defaultValues.avatar || '👤'
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<{ nickname?: string }>({});
 
   // Validation
   const validateForm = (): boolean => {
     const newErrors: { nickname?: string } = {};
-    
+
     if (!nickname.trim()) {
       newErrors.nickname = 'Please enter a nickname';
     } else if (nickname.trim().length < 2) {
@@ -45,20 +61,20 @@ export function PlayerCreationForm({
     } else if (nickname.trim().length > 20) {
       newErrors.nickname = 'Nickname must be 20 characters or less';
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
-    
+
     setIsSubmitting(true);
     onSubmit({
       nickname: nickname.trim(),
-      avatar: selectedAvatar
+      avatar: selectedAvatar,
     });
   };
 
@@ -80,7 +96,9 @@ export function PlayerCreationForm({
           </p>
         )}
         <p className="text-slate-400 mt-2">
-          {isHost ? 'Set up your player profile to get started' : 'Enter your details to join the game'}
+          {isHost
+            ? 'Set up your player profile to get started'
+            : 'Enter your details to join the game'}
         </p>
       </div>
 
@@ -90,7 +108,7 @@ export function PlayerCreationForm({
           <label className="block text-sm font-medium text-white mb-3 text-center">
             Choose Your Avatar
           </label>
-          
+
           {/* Single Large Avatar with Sideways Sliding */}
           <div className="relative">
             {/* Navigation Arrows */}
@@ -98,26 +116,32 @@ export function PlayerCreationForm({
               type="button"
               onClick={() => {
                 const currentIndex = DEFAULT_AVATARS.indexOf(selectedAvatar);
-                const prevIndex = currentIndex <= 0 ? DEFAULT_AVATARS.length - 1 : currentIndex - 1;
+                const prevIndex =
+                  currentIndex <= 0
+                    ? DEFAULT_AVATARS.length - 1
+                    : currentIndex - 1;
                 setSelectedAvatar(DEFAULT_AVATARS[prevIndex]);
               }}
               className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-12 h-12 bg-slate-800/90 hover:bg-slate-700/90 border border-slate-600 rounded-full flex items-center justify-center text-white hover:text-teal-400 transition-all duration-200 shadow-lg"
             >
               ←
             </button>
-            
+
             <button
               type="button"
               onClick={() => {
                 const currentIndex = DEFAULT_AVATARS.indexOf(selectedAvatar);
-                const nextIndex = currentIndex >= DEFAULT_AVATARS.length - 1 ? 0 : currentIndex + 1;
+                const nextIndex =
+                  currentIndex >= DEFAULT_AVATARS.length - 1
+                    ? 0
+                    : currentIndex + 1;
                 setSelectedAvatar(DEFAULT_AVATARS[nextIndex]);
               }}
               className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-12 h-12 bg-slate-800/90 hover:bg-slate-700/90 border border-slate-600 rounded-full flex items-center justify-center text-white hover:text-teal-400 transition-all duration-200 shadow-lg"
             >
               →
             </button>
-            
+
             {/* Single Large Avatar Display */}
             <div className="flex justify-center mb-6">
               <div className="w-32 h-32 rounded-3xl border-4 border-teal-400 bg-teal-400/20 shadow-2xl flex items-center justify-center">
@@ -126,24 +150,28 @@ export function PlayerCreationForm({
                 </div>
               </div>
             </div>
-            
+
             {/* Avatar Counter */}
             <div className="text-center text-sm text-slate-400 mb-4">
-              {DEFAULT_AVATARS.indexOf(selectedAvatar) + 1} of {DEFAULT_AVATARS.length}
+              {DEFAULT_AVATARS.indexOf(selectedAvatar) + 1} of{' '}
+              {DEFAULT_AVATARS.length}
             </div>
           </div>
         </div>
 
         {/* Nickname Input */}
         <div>
-          <label htmlFor="nickname" className="block text-sm font-medium text-white mb-2">
+          <label
+            htmlFor="nickname"
+            className="block text-sm font-medium text-white mb-2"
+          >
             Your Name
           </label>
           <input
             id="nickname"
             type="text"
             value={nickname}
-            onChange={(e) => {
+            onChange={e => {
               setNickname(e.target.value);
               if (errors.nickname) {
                 setErrors({});
@@ -183,13 +211,18 @@ export function PlayerCreationForm({
             disabled={isSubmitting || !nickname.trim()}
             className={`
               flex-1 px-4 py-3 rounded-lg font-medium transition-all duration-200 transform
-              ${isSubmitting || !nickname.trim()
-                ? 'bg-slate-600 text-slate-400 cursor-not-allowed'
-                : 'bg-gradient-to-r from-teal-600 to-blue-600 hover:from-teal-700 hover:to-blue-700 text-white hover:scale-105 shadow-lg'
+              ${
+                isSubmitting || !nickname.trim()
+                  ? 'bg-slate-600 text-slate-400 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-teal-600 to-blue-600 hover:from-teal-700 hover:to-blue-700 text-white hover:scale-105 shadow-lg'
               }
             `}
           >
-            {isSubmitting ? 'Creating...' : (isHost ? 'Create Room' : 'Join Game')}
+            {isSubmitting
+              ? 'Creating...'
+              : isHost
+                ? 'Create Room'
+                : 'Join Game'}
           </button>
         </div>
       </form>

@@ -1,6 +1,6 @@
 /**
  * Centralized Configuration for Party Game
- * 
+ *
  * This file contains all configuration values that should be shared
  * across the frontend and backend. It ensures consistency and makes
  * configuration changes easier to manage.
@@ -25,7 +25,8 @@ export const AppConfig = {
     'fibbing-it': {
       id: 'fibbing-it',
       title: 'Fibbing It!',
-      description: 'Players create answers and vote on the best ones. Can you spot the truth from the lies?',
+      description:
+        'Players create answers and vote on the best ones. Can you spot the truth from the lies?',
       players: '3-8',
       duration: '15-30 min',
       difficulty: 'Easy',
@@ -37,13 +38,14 @@ export const AppConfig = {
         accent: 'bg-purple-400',
         background: 'bg-purple-800',
         icon: '🎭',
-        name: 'Fibbing It!'
-      }
+        name: 'Fibbing It!',
+      },
     },
     'bluff-trivia': {
       id: 'bluff-trivia',
       title: 'Bluff Trivia',
-      description: 'Classic trivia with bluffing mechanics. Make up answers and see if others believe you!',
+      description:
+        'Classic trivia with bluffing mechanics. Make up answers and see if others believe you!',
       players: '3-10',
       duration: '20-40 min',
       difficulty: 'Medium',
@@ -55,13 +57,14 @@ export const AppConfig = {
         accent: 'bg-blue-400',
         background: 'bg-blue-800',
         icon: '🧠',
-        name: 'Bluff Trivia'
-      }
+        name: 'Bluff Trivia',
+      },
     },
     'word-association': {
       id: 'word-association',
       title: 'Word Association',
-      description: 'Create word associations and vote on the most creative ones. Simple but endlessly fun!',
+      description:
+        'Create word associations and vote on the most creative ones. Simple but endlessly fun!',
       players: '3-6',
       duration: '10-20 min',
       difficulty: 'Easy',
@@ -73,9 +76,9 @@ export const AppConfig = {
         accent: 'bg-teal-400',
         background: 'bg-teal-800',
         icon: '🔗',
-        name: 'Word Association'
-      }
-    }
+        name: 'Word Association',
+      },
+    },
   } as const,
 
   // Environment detection helpers
@@ -92,7 +95,7 @@ export const AppConfig = {
       STATIC_OPTIMIZATION: true,
       STRICT_MODE: true,
     },
-    
+
     // Socket.io client configuration
     SOCKET: {
       AUTO_CONNECT: true,
@@ -101,7 +104,7 @@ export const AppConfig = {
       RECONNECTION_DELAY: 1000,
       TIMEOUT: 20000,
     },
-    
+
     // UI Constants
     UI: {
       // Animation durations (in ms)
@@ -110,7 +113,7 @@ export const AppConfig = {
         NORMAL: 300,
         SLOW: 500,
       },
-      
+
       // Breakpoints (matching Tailwind)
       BREAKPOINTS: {
         SM: 640,
@@ -129,13 +132,13 @@ export const AppConfig = {
       PORT: 3001,
       GLOBAL_PREFIX: '',
     },
-    
+
     // Database configuration
     DATABASE: {
       RETRY_ATTEMPTS: 3,
       RETRY_DELAY: 3000,
     },
-    
+
     // WebSocket configuration
     WEBSOCKET: {
       NAMESPACE: '/rooms',
@@ -153,7 +156,7 @@ export const AppConfig = {
       MAX_DELAY_MS: 10000,
       BACKOFF_MULTIPLIER: 2,
     },
-    
+
     // Logging configuration
     LOGGING: {
       INCLUDE_STACK_TRACE: true,
@@ -161,14 +164,14 @@ export const AppConfig = {
       INCLUDE_CONTEXT: true,
       LOG_LEVEL: 'error', // 'debug' | 'info' | 'warn' | 'error'
     },
-    
+
     // Error recovery strategies
     RECOVERY: {
       AUTO_RETRY: true,
       GRACEFUL_DEGRADATION: true,
       FALLBACK_BEHAVIOR: true,
     },
-    
+
     // Error categorization
     CATEGORIES: {
       VALIDATION: {
@@ -202,7 +205,7 @@ export const AppConfig = {
 
 // Type definitions for better TypeScript support
 export type GameId = keyof typeof AppConfig.GAMES;
-export type GameInfo = typeof AppConfig.GAMES[GameId];
+export type GameInfo = (typeof AppConfig.GAMES)[GameId];
 
 // Helper functions for accessing configuration
 export const getGameInfo = (gameId: GameId): GameInfo => {
@@ -220,13 +223,19 @@ export const getAllGames = (): GameInfo[] => {
 export const getApiUrl = (type: 'http' | 'ws' = 'http'): string => {
   if (typeof window === 'undefined') {
     // Server-side: use default URLs
-    return type === 'http' ? AppConfig.API.DEFAULT_HTTP_URL : AppConfig.API.DEFAULT_WS_URL;
+    return type === 'http'
+      ? AppConfig.API.DEFAULT_HTTP_URL
+      : AppConfig.API.DEFAULT_WS_URL;
   }
-  
+
   // Client-side: use environment variables with fallbacks
-  const envVar = type === 'http' ? 'NEXT_PUBLIC_API_HTTP' : 'NEXT_PUBLIC_API_WS';
-  const defaultUrl = type === 'http' ? AppConfig.API.DEFAULT_HTTP_URL : AppConfig.API.DEFAULT_WS_URL;
-  
+  const envVar =
+    type === 'http' ? 'NEXT_PUBLIC_API_HTTP' : 'NEXT_PUBLIC_API_WS';
+  const defaultUrl =
+    type === 'http'
+      ? AppConfig.API.DEFAULT_HTTP_URL
+      : AppConfig.API.DEFAULT_WS_URL;
+
   return process.env[envVar] ?? defaultUrl;
 };
 
@@ -253,10 +262,7 @@ export const createErrorResponse = (
   },
 });
 
-export const createSuccessResponse = <T>(
-  data: T,
-  requestId?: string
-) => ({
+export const createSuccessResponse = <T>(data: T, requestId?: string) => ({
   success: true as const,
   data,
   timestamp: new Date().toISOString(),
@@ -264,15 +270,21 @@ export const createSuccessResponse = <T>(
 });
 
 // Error recovery utilities
-export const shouldRetry = (category: keyof typeof AppConfig.ERROR_HANDLING.CATEGORIES): boolean => {
+export const shouldRetry = (
+  category: keyof typeof AppConfig.ERROR_HANDLING.CATEGORIES
+): boolean => {
   return AppConfig.ERROR_HANDLING.CATEGORIES[category].RETRYABLE;
 };
 
-export const getUserActionRequired = (category: keyof typeof AppConfig.ERROR_HANDLING.CATEGORIES): boolean => {
+export const getUserActionRequired = (
+  category: keyof typeof AppConfig.ERROR_HANDLING.CATEGORIES
+): boolean => {
   return AppConfig.ERROR_HANDLING.CATEGORIES[category].USER_ACTION_REQUIRED;
 };
 
-export const getLogLevel = (category: keyof typeof AppConfig.ERROR_HANDLING.CATEGORIES): string => {
+export const getLogLevel = (
+  category: keyof typeof AppConfig.ERROR_HANDLING.CATEGORIES
+): string => {
   return AppConfig.ERROR_HANDLING.CATEGORIES[category].LOG_LEVEL;
 };
 

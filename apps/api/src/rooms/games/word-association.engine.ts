@@ -1,4 +1,12 @@
-import { GameEngine, BaseGameState, GameAction, GameEvent, GameResult, Player, GamePhase } from '@party/types';
+import {
+  GameEngine,
+  BaseGameState,
+  GameAction,
+  GameEvent,
+  GameResult,
+  Player,
+  GamePhase,
+} from '@party/types';
 
 export interface WordAssociationGameState extends BaseGameState {
   phase: 'lobby' | 'prompt' | 'voting' | 'scoring' | 'over';
@@ -25,8 +33,18 @@ export interface WordAssociationGameState extends BaseGameState {
   }>;
 }
 
-export class WordAssociationEngine implements GameEngine<WordAssociationGameState, GameAction, GameEvent> {
-  initialize(players: Array<{ id: string; name: string; avatar?: string; score: number; connected: boolean }>): WordAssociationGameState {
+export class WordAssociationEngine
+  implements GameEngine<WordAssociationGameState, GameAction, GameEvent>
+{
+  initialize(
+    players: Array<{
+      id: string;
+      name: string;
+      avatar?: string;
+      score: number;
+      connected: boolean;
+    }>,
+  ): WordAssociationGameState {
     return {
       phase: 'lobby',
       players,
@@ -37,12 +55,15 @@ export class WordAssociationEngine implements GameEngine<WordAssociationGameStat
     };
   }
 
-  processAction(state: WordAssociationGameState, action: GameAction): GameResult<WordAssociationGameState, GameEvent> {
+  processAction(
+    state: WordAssociationGameState,
+    action: GameAction,
+  ): GameResult<WordAssociationGameState, GameEvent> {
     // Basic implementation - can be expanded later
     return {
       newState: state,
       events: [],
-      isValid: true
+      isValid: true,
     };
   }
 
@@ -65,10 +86,15 @@ export class WordAssociationEngine implements GameEngine<WordAssociationGameStat
   getNextPhase(currentPhase: string): string {
     const phaseOrder = ['lobby', 'prompt', 'voting', 'scoring', 'over'];
     const currentIndex = phaseOrder.indexOf(currentPhase);
-    return currentIndex < phaseOrder.length - 1 ? phaseOrder[currentIndex + 1] : currentPhase;
+    return currentIndex < phaseOrder.length - 1
+      ? phaseOrder[currentIndex + 1]
+      : currentPhase;
   }
 
-  getValidActions(state: WordAssociationGameState, playerId: string): GameAction[] {
+  getValidActions(
+    state: WordAssociationGameState,
+    playerId: string,
+  ): GameAction[] {
     return [];
   }
 
@@ -84,12 +110,14 @@ export class WordAssociationEngine implements GameEngine<WordAssociationGameStat
     return {
       name: state.phase,
       duration: this.getPhaseDuration(state.phase),
-      allowedActions: []
+      allowedActions: [],
     };
   }
 
   advancePhase(state: WordAssociationGameState): WordAssociationGameState {
-    const nextPhase = this.getNextPhase(state.phase) as WordAssociationGameState['phase'];
+    const nextPhase = this.getNextPhase(
+      state.phase,
+    ) as WordAssociationGameState['phase'];
     return { ...state, phase: nextPhase };
   }
 
@@ -97,7 +125,10 @@ export class WordAssociationEngine implements GameEngine<WordAssociationGameStat
     return state.timeLeft;
   }
 
-  updateTimer(state: WordAssociationGameState, delta: number): WordAssociationGameState {
+  updateTimer(
+    state: WordAssociationGameState,
+    delta: number,
+  ): WordAssociationGameState {
     return { ...state, timeLeft: Math.max(0, state.timeLeft - delta) };
   }
 

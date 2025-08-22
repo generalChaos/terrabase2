@@ -1,11 +1,13 @@
-{ 
-  "name": "@party/types", 
-  "version": "0.0.0", 
+{
+  "name": "@party/types",
+  "version": "0.0.0",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "type-check": "tsc --noEmit",
+    "format": "prettier --write \"src/**/*.{ts,js,json,md}\""
   },
   "devDependencies": {
     "typescript": "^5.7.3"

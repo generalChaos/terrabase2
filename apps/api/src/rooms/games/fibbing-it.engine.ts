@@ -1,4 +1,12 @@
-import { GameEngine, BaseGameState, GameAction, GameEvent, GameResult, Player, GamePhase } from '@party/types';
+import {
+  GameEngine,
+  BaseGameState,
+  GameAction,
+  GameEvent,
+  GameResult,
+  Player,
+  GamePhase,
+} from '@party/types';
 
 export interface FibbingItGameState extends BaseGameState {
   phase: 'lobby' | 'prompt' | 'voting' | 'scoring' | 'over';
@@ -26,8 +34,18 @@ export interface FibbingItGameState extends BaseGameState {
   }>;
 }
 
-export class FibbingItEngine implements GameEngine<FibbingItGameState, GameAction, GameEvent> {
-  initialize(players: Array<{ id: string; name: string; avatar?: string; score: number; connected: boolean }>): FibbingItGameState {
+export class FibbingItEngine
+  implements GameEngine<FibbingItGameState, GameAction, GameEvent>
+{
+  initialize(
+    players: Array<{
+      id: string;
+      name: string;
+      avatar?: string;
+      score: number;
+      connected: boolean;
+    }>,
+  ): FibbingItGameState {
     return {
       phase: 'lobby',
       players,
@@ -38,12 +56,15 @@ export class FibbingItEngine implements GameEngine<FibbingItGameState, GameActio
     };
   }
 
-  processAction(state: FibbingItGameState, action: GameAction): GameResult<FibbingItGameState, GameEvent> {
+  processAction(
+    state: FibbingItGameState,
+    action: GameAction,
+  ): GameResult<FibbingItGameState, GameEvent> {
     // Basic implementation - can be expanded later
     return {
       newState: state,
       events: [],
-      isValid: true
+      isValid: true,
     };
   }
 
@@ -66,7 +87,9 @@ export class FibbingItEngine implements GameEngine<FibbingItGameState, GameActio
   getNextPhase(currentPhase: string): string {
     const phaseOrder = ['lobby', 'prompt', 'voting', 'scoring', 'over'];
     const currentIndex = phaseOrder.indexOf(currentPhase);
-    return currentIndex < phaseOrder.length - 1 ? phaseOrder[currentIndex + 1] : currentPhase;
+    return currentIndex < phaseOrder.length - 1
+      ? phaseOrder[currentIndex + 1]
+      : currentPhase;
   }
 
   getValidActions(state: FibbingItGameState, playerId: string): GameAction[] {
@@ -85,12 +108,14 @@ export class FibbingItEngine implements GameEngine<FibbingItGameState, GameActio
     return {
       name: state.phase,
       duration: this.getPhaseDuration(state.phase),
-      allowedActions: []
+      allowedActions: [],
     };
   }
 
   advancePhase(state: FibbingItGameState): FibbingItGameState {
-    const nextPhase = this.getNextPhase(state.phase) as FibbingItGameState['phase'];
+    const nextPhase = this.getNextPhase(
+      state.phase,
+    ) as FibbingItGameState['phase'];
     return { ...state, phase: nextPhase };
   }
 

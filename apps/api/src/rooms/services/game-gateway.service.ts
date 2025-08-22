@@ -2,12 +2,12 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Socket } from 'socket.io';
 import { StateManagerService } from '../state/state-manager.service';
 import { ErrorHandlerService } from '../error-handler.service';
-import { 
+import {
   InsufficientPlayersError,
   PlayerNotHostError,
   PlayerNotJoinedError,
   RoomNotFoundError,
-  InvalidGamePhaseError
+  InvalidGamePhaseError,
 } from '../errors';
 import { Result, success, failure } from '@party/types';
 
@@ -17,26 +17,32 @@ export class GameGatewayService {
 
   constructor(
     private readonly stateManager: StateManagerService,
-    private readonly errorHandler: ErrorHandlerService
+    private readonly errorHandler: ErrorHandlerService,
   ) {}
 
   /**
    * Start a game with proper error handling
    */
-  async startGame(client: Socket, roomCode: string): Promise<Result<void, any>> {
+  async startGame(
+    client: Socket,
+    roomCode: string,
+  ): Promise<Result<void, any>> {
     try {
       if (!roomCode) {
         throw new Error('Room code required');
       }
 
       // Validate room code format
-      const validationResult = this.errorHandler.validateRoomCode(roomCode, 'start-game');
+      const validationResult = this.errorHandler.validateRoomCode(
+        roomCode,
+        'start-game',
+      );
       if (validationResult.isFailure()) {
         return failure(validationResult.error);
       }
 
       const code = roomCode.toUpperCase();
-      
+
       // Get room and validate
       const room = this.stateManager.getRoom(code);
       if (!room) {
@@ -44,7 +50,7 @@ export class GameGatewayService {
       }
 
       // Check if player has joined
-      const player = room.players.find(p => p.id === client.id);
+      const player = room.players.find((p) => p.id === client.id);
       if (!player) {
         throw new PlayerNotJoinedError(client.id, code);
       }
@@ -62,7 +68,7 @@ export class GameGatewayService {
       // Start the game by processing a start action
       const action = { type: 'start', playerId: client.id, data: {} };
       await this.stateManager.processGameAction(code, client.id, action);
-      
+
       this.logger.log(`Game started in room ${code} by host ${client.id}`);
       return success(undefined);
     } catch (error) {
@@ -74,20 +80,28 @@ export class GameGatewayService {
   /**
    * Submit an answer with proper error handling
    */
-  async submitAnswer(client: Socket, roomCode: string, body: { answer: string }): Promise<Result<void, any>> {
+  async submitAnswer(
+    client: Socket,
+    roomCode: string,
+    body: { answer: string },
+  ): Promise<Result<void, any>> {
     try {
       if (!roomCode) {
         throw new Error('Room code required');
       }
 
       // Validate input
-      const inputValidation = this.errorHandler.validateInput(body.answer, 'answer', 'submitAnswer');
+      const inputValidation = this.errorHandler.validateInput(
+        body.answer,
+        'answer',
+        'submitAnswer',
+      );
       if (inputValidation.isFailure()) {
         return failure(inputValidation.error);
       }
 
       const code = roomCode.toUpperCase();
-      
+
       // Get room and validate
       const room = this.stateManager.getRoom(code);
       if (!room) {
@@ -100,10 +114,16 @@ export class GameGatewayService {
       }
 
       // Submit answer by processing a submitAnswer action
-      const action = { type: 'submitAnswer', playerId: client.id, data: { answer: body.answer } };
+      const action = {
+        type: 'submitAnswer',
+        playerId: client.id,
+        data: { answer: body.answer },
+      };
       await this.stateManager.processGameAction(code, client.id, action);
-      
-      this.logger.log(`Answer submitted in room ${code} by player ${client.id}`);
+
+      this.logger.log(
+        `Answer submitted in room ${code} by player ${client.id}`,
+      );
       return success(undefined);
     } catch (error) {
       this.logger.error(`Error in submitAnswer:`, error);
@@ -114,20 +134,28 @@ export class GameGatewayService {
   /**
    * Submit a vote with proper error handling
    */
-  async submitVote(client: Socket, roomCode: string, body: { choiceId: string }): Promise<Result<void, any>> {
+  async submitVote(
+    client: Socket,
+    roomCode: string,
+    body: { choiceId: string },
+  ): Promise<Result<void, any>> {
     try {
       if (!roomCode) {
         throw new Error('Room code required');
       }
 
       // Validate input
-      const inputValidation = this.errorHandler.validateInput(body.choiceId, 'choiceId', 'submitVote');
+      const inputValidation = this.errorHandler.validateInput(
+        body.choiceId,
+        'choiceId',
+        'submitVote',
+      );
       if (inputValidation.isFailure()) {
         return failure(inputValidation.error);
       }
 
       const code = roomCode.toUpperCase();
-      
+
       // Get room and validate
       const room = this.stateManager.getRoom(code);
       if (!room) {
@@ -140,9 +168,13 @@ export class GameGatewayService {
       }
 
       // Submit vote by processing a submitVote action
-      const action = { type: 'submitVote', playerId: client.id, data: { choiceId: body.choiceId } };
+      const action = {
+        type: 'submitVote',
+        playerId: client.id,
+        data: { choiceId: body.choiceId },
+      };
       await this.stateManager.processGameAction(code, client.id, action);
-      
+
       this.logger.log(`Vote submitted in room ${code} by player ${client.id}`);
       return success(undefined);
     } catch (error) {
@@ -154,14 +186,17 @@ export class GameGatewayService {
   /**
    * Advance game phase with proper error handling
    */
-  async advancePhase(client: Socket, roomCode: string): Promise<Result<void, any>> {
+  async advancePhase(
+    client: Socket,
+    roomCode: string,
+  ): Promise<Result<void, any>> {
     try {
       if (!roomCode) {
         throw new Error('Room code required');
       }
 
       const code = roomCode.toUpperCase();
-      
+
       // Get room and validate
       const room = this.stateManager.getRoom(code);
       if (!room) {
@@ -175,7 +210,7 @@ export class GameGatewayService {
 
       // Advance phase
       await this.stateManager.advanceGamePhase(code);
-      
+
       this.logger.log(`Phase advanced in room ${code} by host ${client.id}`);
       return success(undefined);
     } catch (error) {
@@ -190,10 +225,10 @@ export class GameGatewayService {
   async handleTimerTick(roomCode: string): Promise<Result<void, any>> {
     try {
       const code = roomCode.toUpperCase();
-      
+
       // Process timer tick by updating the timer
       await this.stateManager.updateTimer(code, 1);
-      
+
       return success(undefined);
     } catch (error) {
       this.logger.error(`Error in timer tick for room ${roomCode}:`, error);

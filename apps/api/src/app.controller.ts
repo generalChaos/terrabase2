@@ -6,7 +6,7 @@ import { TimerService } from './rooms/timer.service';
 export class AppController {
   constructor(
     private readonly roomManager: RoomManager,
-    private readonly timerService: TimerService
+    private readonly timerService: TimerService,
   ) {}
 
   @Get('health')
@@ -18,7 +18,7 @@ export class AppController {
         activeRooms: this.roomManager.getRoomCount(),
         activePlayers: this.roomManager.getActivePlayerCount(),
         activeTimers: this.timerService.getTimerCount(),
-      }
+      },
     };
   }
 }

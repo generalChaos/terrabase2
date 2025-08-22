@@ -39,6 +39,7 @@ games/
 ## Architecture Overview
 
 The system uses a **router pattern** where:
+
 - `GamePhaseManager` (main component) routes to game-specific managers
 - Each game has its own phase manager that implements `GamePhaseManagerInterface`
 - Common functionality is shared through `BaseGamePhaseManager` and shared components
@@ -120,7 +121,10 @@ export function YourGamePhaseManagerFC(props: YourGamePhaseManagerProps) {
 Create `apps/web/src/components/games/your-game/index.ts`:
 
 ```typescript
-export { YourGamePhaseManager, YourGamePhaseManagerFC } from './your-game-phase-manager';
+export {
+  YourGamePhaseManager,
+  YourGamePhaseManagerFC,
+} from './your-game-phase-manager';
 ```
 
 ### 4. Register the Game
@@ -137,10 +141,10 @@ export function GamePhaseManager(props: GamePhaseManagerProps) {
   switch (gameType) {
     case 'bluff-trivia':
       return <BluffTriviaPhaseManagerFC {...gameProps} />;
-    
+
     case 'your-game': // Add this case
       return <YourGamePhaseManagerFC {...gameProps} />;
-    
+
     default:
       return <BluffTriviaPhaseManagerFC {...gameProps} />;
   }
@@ -165,9 +169,18 @@ Implement the `GameEngine` interface:
 
 ```typescript
 // In apps/api/src/rooms/games/your-game.engine.ts
-import { GameEngine, GameAction, GameEvent, GameResult, GamePhase, BaseGameState, Player } from '@party/types';
+import {
+  GameEngine,
+  GameAction,
+  GameEvent,
+  GameResult,
+  GamePhase,
+  BaseGameState,
+  Player,
+} from '@party/types';
 
-export class YourGameEngine implements GameEngine<YourGameState, YourGameAction, YourGameEvent> {
+export class YourGameEngine
+  implements GameEngine<YourGameState, YourGameAction, YourGameEvent> {
   // Implement all required methods
 }
 ```
@@ -227,6 +240,7 @@ import { TimerRing, PlayerAvatar, RoomCodeChip } from "../shared/ui";
 ## Required Phases
 
 All games must support these phases:
+
 - `lobby` - Waiting for players
 - `prompt` - Game-specific input phase
 - `choose` - Voting/selection phase
@@ -252,6 +266,7 @@ All games must support these phases:
 ## Testing
 
 Test your new game by:
+
 1. Setting `gameType="your-game"` in the `GamePhaseManager`
 2. Ensuring all phases render correctly
 3. Testing both host and player views
@@ -260,6 +275,7 @@ Test your new game by:
 ## Need Help?
 
 Check the existing implementations:
+
 - `BluffTriviaPhaseManager` - Full-featured trivia game
 - `FibbingItPhaseManager` - Complex game with multiple phases
 - `WordAssociationPhaseManager` - Simple word association game
