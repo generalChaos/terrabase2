@@ -1,15 +1,11 @@
 import type { Player } from "@party/types";
 
-type PlayerAvatarProps = Pick<Player, 'name' | 'avatar' | 'connected'>;
+type PlayerAvatarProps = Pick<Player, 'avatar'>;
 
-export function PlayerAvatar({ name, avatar, connected }: PlayerAvatarProps) {
+export function PlayerAvatar({ avatar }: PlayerAvatarProps) {
   return (
-    <div className="rounded-2xl bg-[--panel] border border-slate-800 p-4">
+    <div className="w-16 h-16 rounded-full bg-white/20 border-2 border-white/30 flex items-center justify-center transition-all duration-200 hover:scale-105">
       <div className="text-3xl">{avatar ?? "🙂"}</div>
-      <div className="mt-1 font-medium">{name}</div>
-      <div className={`text-xs mt-1 ${connected ? "text-[--success]" : "text-slate-400"}`}>
-        {connected ? "online" : "disconnected"}
-      </div>
     </div>
   );
 }

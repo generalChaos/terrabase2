@@ -41,24 +41,72 @@ export function JoinClient({ code }: { code: string }) {
     setShowPlayerCreation(false);
     
     try {
+      console.log(`🎮 Attempting to join room: ${code}`);
+      
+      // Validate room code format
+      if (!code || code.length !== 4) {
+        setErr('Invalid room code. Room codes should be 4 characters long.');
+        return;
+      }
+      
       // Try to connect to socket and join room
-      const s = connectToRoom(code);
+      const s = connectToRoom(code.toUpperCase());
       socketRef.current = s;
+      
+      // Set up a timeout to avoid getting stuck
+      const joinTimeout = setTimeout(() => {
+        if (!joined) {
+          setErr(`Failed to join room ${code}. The room may not exist or the host may not be online.`);
+        }
+      }, 10000); // 10 second timeout
     
     s.on('connect', () => {
       console.log('✅ Connected to socket server');
       console.log('✅ Socket ID:', s.id);
+      
+      // Join the room with player data AFTER connection is established
+      const joinData: JoinRoomData = { 
+        nickname: data.nickname, 
+        avatar: data.avatar 
+      };
+      
+      console.log('👋 Attempting to join room:', code, 'with data:', joinData);
+      s.emit('join', joinData);
+      console.log('📤 Join event emitted');
     });
     
-    s.on('joined', () => {
-      console.log('✅ Successfully joined room:', code);
+    s.on('joined', (response: { roomCode?: string; playerId?: string; nickname?: string; isHost?: boolean }) => {
+      console.log('✅ Successfully joined room:', code, 'Response:', response);
+      clearTimeout(joinTimeout);
       setJoined(true);
       setPlayerId(s.id || "");
     });
     
-    s.on('error', (e: { msg?: string }) => {
+    s.on('connected', (response: { roomCode?: string; playerId?: string }) => {
+      console.log('✅ Connected to room:', code, 'Response:', response);
+    });
+    
+    s.on('reconnected', (response: { roomCode?: string; playerId?: string }) => {
+      console.log('✅ Reconnected to room:', code, 'Response:', response);
+    });
+    
+    s.on('connect_error', (error: Error) => {
+      console.error('❌ WebSocket connection error:', error);
+      setErr(`Connection failed: ${error.message || 'Unknown error'}`);
+    });
+    
+    s.on('disconnect', (reason: string) => {
+      console.log('🔌 Disconnected from room:', reason);
+      if (reason === 'io server disconnect') {
+        // Server disconnected us, don't try to reconnect
+        setErr('Disconnected by server');
+      }
+    });
+    
+    s.on('error', (e: { msg?: string; message?: string; error?: string }) => {
       console.log('❌ Socket error:', e);
-      setErr(e?.msg ?? 'ERROR');
+      const errorMessage = e?.msg || e?.message || e?.error || JSON.stringify(e) || 'Unknown error';
+      setErr(`Join failed: ${errorMessage}`);
     });
     
     s.on('room', (roomState: RoomState) => {
@@ -133,16 +181,6 @@ export function JoinClient({ code }: { code: string }) {
       console.log('🎉 Game over:', data);
     });
 
-      // Join the room with player data
-      const joinData: JoinRoomData = { 
-        nickname: data.nickname, 
-        avatar: data.avatar 
-      };
-      
-      console.log('👋 Attempting to join room:', code, 'with data:', joinData);
-      s.emit('join', joinData);
-      console.log('📤 Join event emitted');
-      
     } catch (error) {
       console.error('❌ Failed to join room:', error);
       setShowPlayerCreation(true); // Show form again on error
@@ -171,13 +209,33 @@ export function JoinClient({ code }: { code: string }) {
   // Show player creation form first
   if (showPlayerCreation) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
-        <PlayerCreationForm
-          onSubmit={handlePlayerCreation}
-          onCancel={() => window.history.back()}
-          isHost={false}
-          roomCode={code}
-        />
+      <PlayerCreationForm
+        onSubmit={handlePlayerCreation}
+        onCancel={() => window.history.back()}
+        isHost={false}
+        roomCode={code}
+      />
+    );
+  }
+
+  // Show error state if there's an error
+  if (err) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <div className="text-red-500 text-6xl mb-4">❌</div>
+          <h2 className="text-xl font-semibold text-white mb-2">Connection Error</h2>
+          <p className="text-slate-300 mb-4">{err}</p>
+          <button
+            onClick={() => {
+              setErr(null);
+              setShowPlayerCreation(true);
+            }}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
       </div>
     );
   }
@@ -223,9 +281,14 @@ export function JoinClient({ code }: { code: string }) {
 
   // This should never show now, but keeping as fallback
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
-      <div className="text-center text-slate-400">
-        <p>Connecting to room...</p>
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4"></div>
+        <p className="text-slate-300">Connecting to room {code}...</p>
+        <p className="text-slate-500 text-sm mt-2">
+          {!joined && "Joining room..."}
+          {joined && !roomState && "Waiting for room data..."}
+        </p>
       </div>
     </div>
   );

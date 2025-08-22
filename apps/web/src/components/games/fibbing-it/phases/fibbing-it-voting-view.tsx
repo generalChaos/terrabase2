@@ -137,9 +137,7 @@ export function FibbingItVotingView({
               return (
                 <div key={player.id} className="text-center">
                   <PlayerAvatar
-                    name={player.name}
                     avatar={player.avatar}
-                    connected={player.connected ?? true}
                   />
                   <div className={`text-sm mt-2 ${hasVoted ? 'text-teal-400' : 'text-slate-400'}`}>
                     {hasVoted ? 'Voted' : 'Waiting...'}

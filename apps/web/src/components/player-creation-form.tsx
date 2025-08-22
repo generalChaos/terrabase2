@@ -90,23 +90,47 @@ export function PlayerCreationForm({
           <label className="block text-sm font-medium text-white mb-3 text-center">
             Choose Your Avatar
           </label>
-          <div className="grid grid-cols-4 gap-3">
-            {DEFAULT_AVATARS.map((avatar) => (
-              <button
-                key={avatar}
-                type="button"
-                onClick={() => setSelectedAvatar(avatar)}
-                className={`
-                  w-16 h-16 text-3xl rounded-xl border-2 transition-all duration-200
-                  ${selectedAvatar === avatar
-                    ? 'border-teal-400 bg-teal-400/20 scale-110'
-                    : 'border-slate-600 bg-slate-800/50 hover:border-slate-500 hover:bg-slate-700/50'
-                  }
-                `}
-              >
-                {avatar}
-              </button>
-            ))}
+          
+          {/* Single Large Avatar with Sideways Sliding */}
+          <div className="relative">
+            {/* Navigation Arrows */}
+            <button
+              type="button"
+              onClick={() => {
+                const currentIndex = DEFAULT_AVATARS.indexOf(selectedAvatar);
+                const prevIndex = currentIndex <= 0 ? DEFAULT_AVATARS.length - 1 : currentIndex - 1;
+                setSelectedAvatar(DEFAULT_AVATARS[prevIndex]);
+              }}
+              className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-12 h-12 bg-slate-800/90 hover:bg-slate-700/90 border border-slate-600 rounded-full flex items-center justify-center text-white hover:text-teal-400 transition-all duration-200 shadow-lg"
+            >
+              ←
+            </button>
+            
+            <button
+              type="button"
+              onClick={() => {
+                const currentIndex = DEFAULT_AVATARS.indexOf(selectedAvatar);
+                const nextIndex = currentIndex >= DEFAULT_AVATARS.length - 1 ? 0 : currentIndex + 1;
+                setSelectedAvatar(DEFAULT_AVATARS[nextIndex]);
+              }}
+              className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-12 h-12 bg-slate-800/90 hover:bg-slate-700/90 border border-slate-600 rounded-full flex items-center justify-center text-white hover:text-teal-400 transition-all duration-200 shadow-lg"
+            >
+              →
+            </button>
+            
+            {/* Single Large Avatar Display */}
+            <div className="flex justify-center mb-6">
+              <div className="w-32 h-32 rounded-3xl border-4 border-teal-400 bg-teal-400/20 shadow-2xl flex items-center justify-center">
+                <div className="text-8xl transition-all duration-300 ease-in-out transform hover:scale-110">
+                  {selectedAvatar}
+                </div>
+              </div>
+            </div>
+            
+            {/* Avatar Counter */}
+            <div className="text-center text-sm text-slate-400 mb-4">
+              {DEFAULT_AVATARS.indexOf(selectedAvatar) + 1} of {DEFAULT_AVATARS.length}
+            </div>
           </div>
         </div>
 

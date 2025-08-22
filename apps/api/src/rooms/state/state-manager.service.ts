@@ -24,18 +24,19 @@ export class StateManagerService {
    */
   private updateRoom(roomCode: string, updater: (room: ImmutableRoomState) => ImmutableRoomState): void {
     try {
-      const room = this.getRoom(roomCode);
+      const normalizedCode = roomCode.toUpperCase();
+      const room = this.getRoom(normalizedCode);
       const newState = updater(room);
       
       // Validate the new state before updating
       if (!newState) {
-        throw new Error(`Invalid state update for room ${roomCode}`);
+        throw new Error(`Invalid state update for room ${normalizedCode}`);
       }
       
       // Update the room
-      this.rooms.set(roomCode, newState);
+      this.rooms.set(normalizedCode, newState);
       
-      console.log(`🔄 Updated room ${roomCode} (version: ${newState.version})`);
+      console.log(`🔄 Updated room ${normalizedCode} (version: ${newState.version})`);
     } catch (error) {
       console.error(`❌ Failed to update room ${roomCode}:`, error);
       throw error;
@@ -46,13 +47,14 @@ export class StateManagerService {
    * Create a new room with immutable state
    */
   createRoom(code: string, gameType: string = GameConfig.GAME_TYPES.BLUFF_TRIVIA): ImmutableRoomState {
-
+    // Normalize room code to uppercase for consistency
+    const normalizedCode = code.toUpperCase();
     
     const engine = this.gameRegistry.getGame(gameType)!;
     const gameState = engine.initialize([]);
     
     const immutableRoom = new ImmutableRoomState(
-      code,
+      normalizedCode,
       gameType,
       gameState,
       [],
@@ -62,9 +64,9 @@ export class StateManagerService {
       0
     );
     
-    this.rooms.set(code, immutableRoom);
+    this.rooms.set(normalizedCode, immutableRoom);
     
-    console.log(`🏠 Created room ${code} with game type ${gameType}`);
+    console.log(`🏠 Created room ${normalizedCode} with game type ${gameType}`);
     return immutableRoom;
   }
 
@@ -72,9 +74,10 @@ export class StateManagerService {
    * Get a room by code
    */
   getRoom(code: string): ImmutableRoomState {
-    const room = this.rooms.get(code);
+    const normalizedCode = code.toUpperCase();
+    const room = this.rooms.get(normalizedCode);
     if (!room) {
-      throw new RoomNotFoundError(code);
+      throw new RoomNotFoundError(normalizedCode);
     }
     return room;
   }
@@ -83,21 +86,24 @@ export class StateManagerService {
    * Check if a room exists
    */
   hasRoom(code: string): boolean {
-    return this.rooms.has(code);
+    const normalizedCode = code.toUpperCase();
+    return this.rooms.has(normalizedCode);
   }
 
   /**
    * Get a room safely (returns undefined if not found)
    */
   getRoomSafe(code: string): ImmutableRoomState | undefined {
-    return this.rooms.get(code);
+    const normalizedCode = code.toUpperCase();
+    return this.rooms.get(normalizedCode);
   }
 
   /**
    * Delete a room
    */
   deleteRoom(code: string): boolean {
-    return this.rooms.delete(code);
+    const normalizedCode = code.toUpperCase();
+    return this.rooms.delete(normalizedCode);
   }
 
   /**

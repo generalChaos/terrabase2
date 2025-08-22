@@ -3,6 +3,7 @@ import { Socket } from 'socket.io';
 import { ConnectionManagerService } from '../services/connection-manager.service';
 import { RoomManager } from '../room-manager';
 import { ErrorHandlerService } from '../error-handler.service';
+import { EventGatewayService } from '../services/event-gateway.service';
 import { ConnectionError, RoomCodeRequiredError } from '../errors';
 import { Result, success, failure } from '@party/types';
 
@@ -13,7 +14,8 @@ export class ConnectionGatewayService {
   constructor(
     private readonly connectionManager: ConnectionManagerService,
     private readonly roomManager: RoomManager,
-    private readonly errorHandler: ErrorHandlerService
+    private readonly errorHandler: ErrorHandlerService,
+    private readonly eventGateway: EventGatewayService
   ) {}
 
   /**
@@ -45,6 +47,9 @@ export class ConnectionGatewayService {
         if (isReconnection) {
           this.logger.log(`Player reconnected to room ${code}`);
           client.emit('reconnected', { roomCode: code, playerId: client.id });
+          
+          // Broadcast updated room state to all clients when someone reconnects
+          await this.eventGateway.broadcastRoomUpdate(code, room);
         } else {
           this.logger.log(`Player connected to room ${code}`);
           client.emit('connected', { roomCode: code, playerId: client.id });
@@ -71,8 +76,17 @@ export class ConnectionGatewayService {
     try {
       const roomCode = client.handshake.query.roomCode as string;
       if (roomCode) {
-        await this.connectionManager.handleDisconnection(roomCode.toUpperCase(), client.id);
-        this.logger.log(`Player disconnected from room ${roomCode}`);
+        const code = roomCode.toUpperCase();
+        await this.connectionManager.handleDisconnection(code, client.id);
+        
+        // Get updated room state after player disconnection
+        const updatedRoom = this.roomManager.getRoomSafe(code);
+        if (updatedRoom) {
+          // Broadcast updated room state to remaining players
+          await this.eventGateway.broadcastRoomUpdate(code, updatedRoom);
+        }
+        
+        this.logger.log(`Player disconnected from room ${code}`);
       }
       return success(undefined);
     } catch (error) {
@@ -85,7 +99,7 @@ export class ConnectionGatewayService {
   /**
    * Handle player join with proper error handling
    */
-  async handlePlayerJoin(client: Socket, body: { nickname: string }): Promise<Result<void, any>> {
+  async handlePlayerJoin(client: Socket, body: { nickname: string; avatar?: string }): Promise<Result<void, any>> {
     try {
       const roomCode = client.handshake.query.roomCode as string;
       
@@ -105,14 +119,19 @@ export class ConnectionGatewayService {
       const { success: joinSuccess, room, isReconnection, error } = await this.connectionManager.handlePlayerJoin(
         code,
         client.id,
-        body.nickname
+        body.nickname,
+        body.avatar
       );
       
       if (joinSuccess && room) {
-        // Notify all players in the room
+        // Broadcast updated room state to all clients in the room
+        await this.eventGateway.broadcastRoomUpdate(code, room);
+        
+        // Notify all players in the room about the new player
         client.to(code).emit('playerJoined', {
           playerId: client.id,
           nickname: body.nickname,
+          avatar: body.avatar || '🙂',
           roomCode: code
         });
         
@@ -121,6 +140,7 @@ export class ConnectionGatewayService {
           roomCode: code,
           playerId: client.id,
           nickname: body.nickname,
+          avatar: body.avatar || '🙂',
           isHost: room.hostId === client.id
         });
         

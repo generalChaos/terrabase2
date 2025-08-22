@@ -82,9 +82,7 @@ export function ResultsView({
                     >
                       <div className="flex items-center space-x-3">
                         <PlayerAvatar
-                          name={player.name}
                           avatar={player.avatar}
-                          connected={player.connected ?? true}
                         />
                         <span className={`font-medium ${isWinner ? 'text-yellow-400' : 'text-white'}`}>
                           {player.name}

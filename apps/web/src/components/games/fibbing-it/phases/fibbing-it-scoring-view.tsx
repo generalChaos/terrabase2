@@ -127,9 +127,7 @@ export function FibbingItScoringView({
             {players.slice(0, 6).map((player) => (
               <div key={player.id} className="text-center">
                 <PlayerAvatar
-                  name={player.name}
                   avatar={player.avatar}
-                  connected={player.connected ?? true}
                 />
                 <div className="text-lg text-white font-bold mt-2">
                   {getPlayerScore(player.id)}
