@@ -32,7 +32,7 @@ export const buttonVariants = cva(
       },
       animation: {
         none: "",
-        scale: "hover:scale-105 active:scale-95",
+        scale: "hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0 active:shadow-sm",
         bounce: "hover:animate-bounce",
         pulse: "hover:animate-pulse",
         glow: "hover:shadow-glow active:shadow-glow-lg",

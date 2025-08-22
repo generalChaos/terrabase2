@@ -7,7 +7,7 @@ import { cva } from 'class-variance-authority';
 
 export const cardVariants = cva(
   // Base styles
-  "rounded-xl border-2 transition-all duration-200",
+  "rounded-xl border-2 transition-all duration-200 overflow-hidden",
   {
     variants: {
       variant: {
@@ -17,7 +17,7 @@ export const cardVariants = cva(
         warning: "border-[--warning] bg-[--warning]/10 hover:bg-[--warning]/20",
         danger: "border-[--danger] bg-[--danger]/10 hover:bg-[--danger]/20",
         glass: "border-white/20 bg-white/10 backdrop-blur-sm hover:bg-white/20",
-        elevated: "border-[--border] bg-[--panel] shadow-lg hover:shadow-xl hover:scale-[1.02]",
+        elevated: "border-[--border] bg-[--panel] shadow-lg hover:shadow-xl hover:-translate-y-1",
       },
       size: {
         sm: "p-3 gap-2",
@@ -26,7 +26,7 @@ export const cardVariants = cva(
         xl: "p-8 gap-6",
       },
       interactive: {
-        true: "cursor-pointer hover:scale-[1.02] active:scale-[0.98]",
+        true: "cursor-pointer hover:-translate-y-1 hover:shadow-lg active:translate-y-0",
         false: "",
       },
       animation: {

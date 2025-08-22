@@ -1,7 +1,12 @@
-'use client';
-import { useState } from 'react';
-import { TimerRing } from './games/shared/ui';
-import type { Choice } from '@party/types';
+"use client";
+import { useState } from "react";
+import { buttonVariants } from "@party/ui";
+
+type Choice = {
+  id: string;
+  text: string;
+  by: string;
+};
 
 type PlayerVotingViewProps = {
   question: string;
@@ -10,8 +15,8 @@ type PlayerVotingViewProps = {
   totalTime: number;
   round: number;
   maxRounds: number;
-  onSubmitVote: (choiceId: string) => void;
-  hasVoted: boolean;
+  onSubmitVote?: (choiceId: string) => void;
+  hasVoted?: boolean;
   selectedChoiceId?: string;
   gotAnswerCorrect?: boolean;
 };
@@ -32,140 +37,148 @@ export function PlayerVotingView({
     selectedChoiceId
   );
 
+  const handleChoiceSelect = (choiceId: string) => {
+    setSelectedChoice(choiceId);
+  };
+
   const handleSubmitVote = () => {
-    if (selectedChoice) {
+    if (selectedChoice && onSubmitVote) {
       onSubmitVote(selectedChoice);
     }
   };
 
-  const handleChoiceSelect = (choiceId: string) => {
-    if (!hasVoted) {
-      setSelectedChoice(choiceId);
-    }
-  };
-
-  const getSelectedChoice = () => {
-    return choices.find(c => c.id === selectedChoice);
-  };
+  const progressPercentage = Math.max(0, Math.min(100, (timeLeft / totalTime) * 100));
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
-      {/* Round indicator */}
-      <div className="mb-8">
-        <div className="text-sm text-[--muted] mb-2">
-          Round {round} of {maxRounds}
-        </div>
-        <div className="w-24 h-1 bg-[--panel] rounded-full overflow-hidden">
-          <div
-            className="h-full bg-[--accent] transition-all duration-300 ease-out"
-            style={{ width: `${(round / maxRounds) * 100}%` }}
-          />
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col animate-fade-in">
+      {/* Progress Bar */}
+      <div className="w-full bg-slate-800/50 p-4 animate-slide-down">
+        <div className="max-w-md mx-auto">
+          <div className="text-center text-sm text-[--muted] mb-2">
+            Round {round} of {maxRounds}
+          </div>
+          <div className="w-24 h-1 bg-[--panel] rounded-full overflow-hidden mx-auto">
+            <div
+              className="h-full bg-[--accent] transition-all duration-300 ease-out"
+              style={{ width: `${progressPercentage}%` }}
+            />
+          </div>
         </div>
       </div>
 
-      {/* Timer and Question */}
-      <div className="flex flex-col items-center gap-8 mb-8">
-        <TimerRing seconds={timeLeft} total={totalTime} />
-
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col items-center gap-8 mb-8 animate-fade-in-up" style={{ animationDelay: '300ms' }}>
         <div className="max-w-2xl">
-          <h1 className="text-3xl md:text-4xl font-bold text-[--text] leading-tight mb-4">
+          <h1 className="text-3xl md:text-4xl font-bold text-[--text] leading-tight mb-4 text-center">
             {question}
           </h1>
-          {gotAnswerCorrect ? (
-            <div className="text-center">
-              <p className="text-[--success] text-xl font-semibold mb-2">
-                🎯 You got the answer correct!
-              </p>
-              <p className="text-[--muted] text-lg">
-                You cannot vote since you already know the truth.
-              </p>
-            </div>
-          ) : (
-            <p className="text-[--muted] text-lg">
-              {hasVoted ? 'You have voted!' : 'Choose the correct answer:'}
-            </p>
-          )}
         </div>
-      </div>
 
-      {/* Choices */}
-      <div className="w-full max-w-2xl">
         {gotAnswerCorrect ? (
-          <div className="text-center">
+          <div className="text-center animate-fade-in-up" style={{ animationDelay: '400ms' }}>
             <div className="text-2xl font-semibold text-[--success] mb-2">
               🎯 You&apos;re Done!
             </div>
-            <div className="text-[--muted]">
+            <div className="text-[--muted] text-lg">
               You already know the answer, so you can just watch and see how
               many people you fooled!
             </div>
           </div>
         ) : !hasVoted ? (
-          <div className="grid gap-4">
-            {choices.map(choice => {
-              const isSelected = selectedChoice === choice.id;
-              const isTruth = choice.id.startsWith('TRUE::');
+          <div className="w-full max-w-2xl animate-fade-in-up" style={{ animationDelay: '500ms' }}>
+            <div className="text-center">
+              <div className="text-2xl font-semibold text-[--success] mb-2">
+                🗳️ Time to Vote!
+              </div>
+              <div className="text-[--muted] text-lg">
+                Choose which answer you think is the truth
+              </div>
+            </div>
 
-              return (
-                <button
-                  key={choice.id}
-                  onClick={() => handleChoiceSelect(choice.id)}
-                  disabled={timeLeft <= 0}
-                  className={`p-4 rounded-xl border-2 transition-all text-left w-full ${'cursor-pointer hover:border-[--accent] hover:bg-[--accent]/5'} ${
-                    isSelected
-                      ? 'border-[--accent] bg-[--accent]/10'
-                      : 'border-[--border] bg-[--panel]'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <span
-                      className={`text-sm px-2 py-1 rounded-full ${
-                        isTruth
-                          ? 'bg-[--success] text-black font-semibold'
-                          : 'border-[--border] bg-[--panel]'
-                      }`}
-                    >
-                      {isTruth ? 'TRUTH' : 'BLUFF'}
-                    </span>
-                    <span className="text-lg font-medium">{choice.text}</span>
+            <div className="grid gap-4 mt-8">
+              {choices.map((choice, index) => {
+                const isSelected = selectedChoice === choice.id;
+                const isTruth = choice.id.startsWith("TRUE::");
 
-                    {isSelected && (
-                      <span className="ml-auto text-[--accent] text-2xl">
-                        ✓
+                return (
+                  <button
+                    key={choice.id}
+                    onClick={() => handleChoiceSelect(choice.id)}
+                    disabled={timeLeft <= 0}
+                    className={`p-4 rounded-xl border-2 transition-all text-left w-full animate-fade-in-up`}
+                    style={{ animationDelay: `${600 + index * 100}ms` }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span
+                        className={`text-sm px-2 py-1 rounded-full ${
+                          isTruth
+                            ? "bg-[--success] text-black font-semibold"
+                            : "border-[--border] bg-[--panel]"
+                        }`}
+                      >
+                        {isTruth ? "TRUTH" : "BLUFF"}
                       </span>
-                    )}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="text-center">
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-[--muted] mb-2">
-                Your Vote
-              </label>
-              {getSelectedChoice() && (
-                <div className="p-4 rounded-xl border-2 border-[--accent] bg-[--accent]/10">
-                  <div className="flex items-center gap-3 justify-center">
-                    <span
-                      className={`text-sm px-2 py-1 rounded-full ${
-                        getSelectedChoice()?.id.startsWith('TRUE::')
-                          ? 'bg-[--success] text-black font-semibold'
-                          : 'bg-[--muted] text-[--text]'
-                      }`}
-                    >
-                      {getSelectedChoice()?.id.startsWith('TRUE::')
-                        ? 'TRUTH'
-                        : 'BLUFF'}
-                    </span>
-                    <span className="text-lg font-medium">
-                      {getSelectedChoice()?.text}
-                    </span>
+                      <span className="text-lg font-medium">{choice.text}</span>
+
+                      {isSelected && (
+                        <span className="ml-auto text-[--accent] text-2xl animate-bounce-in">
+                          ✓
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {selectedChoice && (
+              <div className="text-center mt-8 animate-fade-in-up" style={{ animationDelay: '1000ms' }}>
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-[--muted] mb-2">
+                    Your Selection:
+                  </label>
+                  <div className="p-4 rounded-xl border-2 border-[--accent] bg-[--accent]/10">
+                    <div className="flex items-center gap-3 justify-center">
+                      <span
+                        className={`text-sm px-2 py-1 rounded-full ${
+                          selectedChoice.startsWith("TRUE::")
+                            ? "bg-[--success] text-black font-semibold"
+                            : "bg-[--muted] text-[--text]"
+                        }`}
+                      >
+                        {selectedChoice.startsWith("TRUE::") ? "TRUTH" : "BLUFF"}
+                      </span>
+                      <span className="text-lg font-medium">
+                        {choices.find((c) => c.id === selectedChoice)?.text}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              )}
-            </div>
+
+                <div className="text-2xl font-semibold text-[--accent] mb-2">
+                  Ready to Submit?
+                </div>
+                <div className="text-[--muted]">Waiting for other players...</div>
+
+                <div className="mt-8">
+                  <button
+                    onClick={handleSubmitVote}
+                    disabled={timeLeft <= 0}
+                    className={buttonVariants({
+                      variant: "accent",
+                      size: "xl",
+                      fullWidth: true,
+                      animation: "glow"
+                    })}
+                  >
+                    Submit Vote
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="text-center animate-fade-in-up" style={{ animationDelay: '400ms' }}>
             <div className="text-2xl font-semibold text-[--accent] mb-2">
               ✅ Vote Submitted!
             </div>
@@ -174,22 +187,9 @@ export function PlayerVotingView({
         )}
       </div>
 
-      {/* Submit Button */}
-      {!gotAnswerCorrect && !hasVoted && (
-        <div className="mt-8">
-          <button
-            onClick={handleSubmitVote}
-            disabled={!selectedChoice || timeLeft <= 0}
-            className="h-12 px-8 rounded-xl bg-[--accent] text-black font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[--accent-hover] transition-colors"
-          >
-            Submit Vote
-          </button>
-        </div>
-      )}
-
-      {/* Time remaining info */}
-      <div className="mt-8 text-[--muted] text-sm">
-        Time remaining: {timeLeft} seconds
+      {/* Footer */}
+      <div className="mt-8 text-center text-[--muted] text-sm animate-fade-in-up" style={{ animationDelay: '1200ms' }}>
+        <p>Time remaining: {Math.ceil(timeLeft / 1000)}s</p>
       </div>
     </div>
   );

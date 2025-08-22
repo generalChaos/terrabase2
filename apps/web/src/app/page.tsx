@@ -1,13 +1,9 @@
-'use client';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Play, Users, Clock, Star } from 'lucide-react';
-import {
-  getAllGames,
-  getApiUrl,
-  AppConfig,
-  type GameInfo,
-} from '@party/config';
+"use client";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Play, Users, Clock, Star } from "lucide-react";
+import { getAllGames, getApiUrl, AppConfig, type GameInfo } from "@party/config";
+import { Card, CardContent, CardTitle, CardDescription } from "@party/ui";
 
 const games: GameInfo[] = getAllGames();
 
@@ -19,36 +15,28 @@ export default function Home() {
     setLoading(gameId);
     try {
       const base = getApiUrl('http');
-      console.log(
-        'Creating room for game:',
-        gameId,
-        'at URL:',
-        base + AppConfig.API.ROOMS_ENDPOINT
-      );
-
-      const res = await fetch(base + AppConfig.API.ROOMS_ENDPOINT, {
-        method: 'POST',
+      console.log('Creating room for game:', gameId, 'at URL:', base + AppConfig.API.ROOMS_ENDPOINT);
+      
+      const res = await fetch(base + AppConfig.API.ROOMS_ENDPOINT, { 
+        method: "POST",
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ gameType: gameId }),
+        body: JSON.stringify({ gameType: gameId })
       });
-
+      
       console.log('Response status:', res.status);
       console.log('Response headers:', res.headers);
-
+      
       if (!res.ok) {
         throw new Error(`HTTP error! status: ${res.status}`);
       }
-
+      
       const data = await res.json();
       console.log('Response data:', data);
-
+      
       if (data.code) {
-        console.log(
-          'Room created successfully, redirecting to:',
-          `/host/${data.code}`
-        );
+        console.log('Room created successfully, redirecting to:', `/host/${data.code}`);
         router.push(`/host/${data.code}`);
       } else {
         console.error('No room code in response:', data);
@@ -64,44 +52,47 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       {/* Header */}
-      <div className="text-center pt-16 pb-12">
-        <h1 className="text-7xl font-bold text-white tracking-wider mb-4">
+      <div className="text-center pt-16 pb-12 animate-fade-in">
+        <h1 className="text-7xl font-bold text-white tracking-wider mb-4 animate-fade-in-up">
           PARTY GAMES
         </h1>
-        <p className="text-xl text-slate-300 max-w-2xl mx-auto">
-          Choose your game and start the party! All games are designed to be
-          played on phones with friends in the same room.
+        <p className="text-xl text-slate-300 max-w-2xl mx-auto animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+          Choose your game and start the party! All games are designed to be played on phones 
+          with friends in the same room.
         </p>
       </div>
 
       {/* Game Selection Grid */}
       <div className="max-w-7xl mx-auto px-6 pb-16">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {games.map(game => (
-            <div
+          {games.map((game, index) => (
+            <Card
               key={game.id}
-              className={`relative group overflow-hidden rounded-3xl bg-slate-800/50 border border-slate-700 hover:border-slate-600 transition-all duration-300 hover:scale-105 hover:shadow-2xl`}
+              variant="elevated"
+              size="xl"
+              interactive
+              animation="scale"
+              className="group relative overflow-hidden animate-fade-in-up"
+              style={{ animationDelay: `${index * 100}ms` }}
             >
               {/* Background Gradient */}
-              <div
-                className={`absolute inset-0 bg-gradient-to-br ${game.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`}
-              />
-
+              <div className={`absolute inset-0 bg-gradient-to-br ${game.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none`} />
+              
               {/* Content */}
-              <div className="relative p-8 h-full flex flex-col">
+              <CardContent className="relative z-10 h-full flex flex-col">
                 {/* Game Icon */}
                 <div className="text-6xl mb-4 text-center">{game.icon}</div>
-
+                
                 {/* Game Title */}
-                <h2 className="text-3xl font-bold text-white mb-3 text-center">
+                <CardTitle className="text-3xl font-bold text-white mb-3 text-center">
                   {game.title}
-                </h2>
-
+                </CardTitle>
+                
                 {/* Description */}
-                <p className="text-slate-300 text-center mb-6 flex-1">
+                <CardDescription className="text-slate-300 text-center mb-6 flex-1 text-base">
                   {game.description}
-                </p>
-
+                </CardDescription>
+                
                 {/* Game Stats */}
                 <div className="grid grid-cols-3 gap-4 mb-6">
                   <div className="text-center">
@@ -110,23 +101,19 @@ export default function Home() {
                   </div>
                   <div className="text-center">
                     <Clock className="w-5 h-5 text-slate-400 mx-auto mb-1" />
-                    <div className="text-sm text-slate-300">
-                      {game.duration}
-                    </div>
+                    <div className="text-sm text-slate-300">{game.duration}</div>
                   </div>
                   <div className="text-center">
                     <Star className="w-5 h-5 text-slate-400 mx-auto mb-1" />
-                    <div className="text-sm text-slate-300">
-                      {game.difficulty}
-                    </div>
+                    <div className="text-sm text-slate-300">{game.difficulty}</div>
                   </div>
                 </div>
-
+                
                 {/* Play Button */}
                 <button
                   onClick={() => createRoom(game.id)}
                   disabled={loading === game.id}
-                  className={`w-full py-4 px-6 rounded-2xl bg-gradient-to-r ${game.color} hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-lg transition-all duration-200 transform hover:scale-105 shadow-lg`}
+                  className={`w-full py-4 px-6 rounded-2xl bg-gradient-to-r ${game.color} hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-lg transition-all duration-200 hover:-translate-y-1 hover:shadow-glow active:translate-y-0`}
                 >
                   {loading === game.id ? (
                     <div className="flex items-center justify-center">
@@ -140,44 +127,48 @@ export default function Home() {
                     </div>
                   )}
                 </button>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           ))}
         </div>
-
+        
         {/* How to Play Section */}
-        <div className="mt-20 text-center">
+        <div className="mt-20 text-center animate-fade-in-up" style={{ animationDelay: '600ms' }}>
           <h2 className="text-4xl font-bold text-white mb-8">How to Play</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-slate-800/30 rounded-2xl p-6 border border-slate-700">
-              <div className="text-4xl mb-4">1️⃣</div>
-              <h3 className="text-xl font-semibold text-white mb-2">
-                Create a Room
-              </h3>
-              <p className="text-slate-300">
-                Choose your game and create a room. You&apos;ll get a unique
-                room code to share.
-              </p>
-            </div>
-            <div className="bg-slate-800/30 rounded-2xl p-6 border border-slate-700">
-              <div className="text-4xl mb-4">2️⃣</div>
-              <h3 className="text-xl font-semibold text-white mb-2">
-                Share the Code
-              </h3>
-              <p className="text-slate-300">
-                Share the room code with friends. They can join using their
-                phones.
-              </p>
-            </div>
-            <div className="bg-slate-800/30 rounded-2xl p-6 border border-slate-700">
-              <div className="text-4xl mb-4">3️⃣</div>
-              <h3 className="text-xl font-semibold text-white mb-2">
-                Start Playing
-              </h3>
-              <p className="text-slate-300">
-                Once everyone joins, start the game and have fun together!
-              </p>
-            </div>
+            <Card variant="glass" size="lg" className="animate-fade-in-up" style={{ animationDelay: '700ms' }}>
+              <CardContent className="text-center">
+                <div className="text-4xl mb-4">1️⃣</div>
+                <CardTitle className="text-xl font-semibold text-white mb-2">
+                  Create a Room
+                </CardTitle>
+                <CardDescription className="text-slate-300">
+                  Choose your game and create a room. You&apos;ll get a unique room code to share.
+                </CardDescription>
+              </CardContent>
+            </Card>
+            <Card variant="glass" size="lg" className="animate-fade-in-up" style={{ animationDelay: '800ms' }}>
+              <CardContent className="text-center">
+                <div className="text-4xl mb-4">2️⃣</div>
+                <CardTitle className="text-xl font-semibold text-white mb-2">
+                  Share the Code
+                </CardTitle>
+                <CardDescription className="text-slate-300">
+                  Share the room code with friends. They can join using their phones.
+                </CardDescription>
+              </CardContent>
+            </Card>
+            <Card variant="glass" size="lg" className="animate-fade-in-up" style={{ animationDelay: '900ms' }}>
+              <CardContent className="text-center">
+                <div className="text-4xl mb-4">3️⃣</div>
+                <CardTitle className="text-xl font-semibold text-white mb-2">
+                  Start Playing
+                </CardTitle>
+                <CardDescription className="text-slate-300">
+                  Once everyone joins, start the game and have fun together!
+                </CardDescription>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>

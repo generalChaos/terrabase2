@@ -2,7 +2,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { connectToRoom } from '@/lib/socket';
 import { GamePhaseManager } from './game-phase-manager';
-import { RoomStateDebug } from './room-state-debug';
 import {
   PlayerCreationForm,
   type PlayerCreationData,
@@ -219,25 +218,6 @@ export function HostClient({ code }: { code: string }) {
 
   return (
     <>
-      {/* Debug info */}
-      {state && (
-        <div className="mb-4 p-4 bg-slate-800/50 border border-slate-600 rounded-lg">
-          <div className="text-sm text-slate-300">
-            <strong>Debug:</strong> Phase:{' '}
-            <span className="text-teal-400">{state.phase}</span> | Game:{' '}
-            <span className="text-teal-400">{state.gameType}</span> | Players:{' '}
-            <span className="text-teal-400">{state.players?.length || 0}</span>
-          </div>
-          <div className="mt-2 text-xs text-slate-400">
-            <button
-              onClick={() => console.log('Current state:', state)}
-              className="px-2 py-1 bg-slate-700 rounded text-xs"
-            >
-              Log State
-            </button>
-          </div>
-        </div>
-      )}
       {state ? (
         <>
           {console.log(
@@ -284,14 +264,17 @@ export function HostClient({ code }: { code: string }) {
           />
         </>
       ) : (
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4"></div>
-            <p className="text-slate-300">Connecting to room...</p>
+        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+          <div className="text-center animate-fade-in">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-teal-400 border-t-transparent mx-auto mb-6"></div>
+            <h2 className="text-2xl font-bold text-white mb-4">Connecting to Room</h2>
+            <p className="text-slate-300 mb-4">Establishing connection...</p>
+            <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-6 py-3 inline-block">
+              <span className="text-lg font-mono text-white font-bold">{roomCode}</span>
+            </div>
           </div>
         </div>
       )}
-      <RoomStateDebug roomState={state} />
     </>
   );
 }
