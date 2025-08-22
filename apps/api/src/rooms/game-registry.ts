@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { GameEngine, GameAction, GameEvent } from './game-engine.interface';
+import { GameEngine, GameAction, GameEvent } from '@party/types';
 import { BluffTriviaEngine } from './games/bluff-trivia.engine';
 import { FibbingItEngine } from './games/fibbing-it.engine';
 import { WordAssociationEngine } from './games/word-association.engine';

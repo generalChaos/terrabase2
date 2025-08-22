@@ -1,6 +1,6 @@
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
-import { GameConfig } from '../config/game.config';
-import { GameEvent } from './game-engine.interface';
+import { GameConfig } from '@party/types';
+import { GameEvent } from '@party/types';
 import { TimerServiceError, TimerNotFoundError } from './errors';
 
 export interface TimerCallbacks {

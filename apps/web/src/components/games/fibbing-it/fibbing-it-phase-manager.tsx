@@ -5,6 +5,7 @@ import { FibbingItScoringView } from "./phases/fibbing-it-scoring-view";
 import { LobbyView } from "../shared";
 import { BaseGamePhaseManager, BaseGamePhaseManagerProps } from "../shared";
 import type { Choice } from "@party/types";
+import { getGameInfo } from '@party/config';
 
 type FibbingItPhaseManagerProps = BaseGamePhaseManagerProps & {
   question?: string;
@@ -39,7 +40,6 @@ export class FibbingItPhaseManager extends BaseGamePhaseManager {
       players = [],
       scores = [],
       playerId,
-      current,
       onSubmitAnswer,
       onSubmitVote,
       hasSubmittedAnswer = false,
@@ -57,16 +57,10 @@ export class FibbingItPhaseManager extends BaseGamePhaseManager {
       case 'lobby':
         return (
           <LobbyView
-            gameTitle="FIBBING IT!"
-            gameIcon="🎭"
-            gameDescription="Players create answers and vote on the best ones. Can you spot the truth from the lies?"
             roomCode={roomCode}
             players={players}
-            timeLeft={timeLeft}
-            totalTime={totalTime}
-            round={round}
-            maxRounds={maxRounds}
             isHost={isHost}
+            selectedGame={getGameInfo('fibbing-it')}
           />
         );
 

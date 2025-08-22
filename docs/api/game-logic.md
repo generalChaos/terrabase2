@@ -1,15 +1,27 @@
-# Game Logic - Bluff Trivia
+# Game Logic - Party Games
 
 ## Game Overview
 
-Bluff Trivia is a social deduction game where players compete to find the correct answer while trying to fool others with convincing bluffs. The game combines trivia knowledge with deception skills.
+The Party Game platform supports multiple game types, each with unique mechanics and gameplay. All games share a common architecture with pluggable game engines, consistent phase management, and unified scoring systems.
+
+## Available Games
+
+### 🎭 **Bluff Trivia**
+A social deduction game where players compete to find the correct answer while trying to fool others with convincing bluffs. Combines trivia knowledge with deception skills.
+
+### 🤥 **Fibbing It**
+A storytelling game where players create believable lies and try to spot the truth among the fiction. Tests creativity and deception detection.
+
+### 🔗 **Word Association**
+A creative word game where players build on each other's word associations to create interesting connections. Encourages creative thinking and wordplay.
 
 ## Game Structure
 
-### Rounds
+### Common Elements
 - **Total Rounds**: 5 rounds per game
 - **Players per Round**: 2-8 players
 - **Scoring**: Cumulative across all rounds
+- **Phases**: Consistent phase structure across all games
 
 ### Game Phases
 
@@ -24,6 +36,7 @@ Bluff Trivia is a social deduction game where players compete to find the correc
 ```typescript
 {
   phase: 'lobby',
+  gameType: string,
   players: Player[],
   hostId: string,
   timeLeft: 0
@@ -31,31 +44,28 @@ Bluff Trivia is a social deduction game where players compete to find the correc
 ```
 
 #### 2. **Prompt Phase**
-**Duration**: 15 seconds
-**Purpose**: Players submit answers or bluffs
+**Duration**: Varies by game type
+**Purpose**: Players submit answers, stories, or associations
 **Actions Available**:
-- Submit truthful answer
-- Submit bluff text
+- Submit content based on game type
 - One submission per player
 
 **State**:
 ```typescript
 {
   phase: 'prompt',
-  timeLeft: 15,
+  timeLeft: number, // Varies by game
   currentRound: {
     promptId: string,
     prompt: string,
-    answer: string,
-    bluffs: Bluff[],
-    votes: Map<string, string>
+    submissions: Submission[]
   }
 }
 ```
 
-#### 3. **Choose Phase**
-**Duration**: 20 seconds
-**Purpose**: Players vote on which answer they think is correct
+#### 3. **Choose/Voting Phase**
+**Duration**: Varies by game type
+**Purpose**: Players vote on submissions
 **Actions Available**:
 - Vote on one choice
 - One vote per player
@@ -63,17 +73,18 @@ Bluff Trivia is a social deduction game where players compete to find the correc
 **State**:
 ```typescript
 {
-  phase: 'choose',
-  timeLeft: 20,
+  phase: 'choose' | 'voting',
+  timeLeft: number, // Varies by game
   choices: Array<{
     id: string,
-    text: string
+    text: string,
+    playerId?: string
   }>
 }
 ```
 
 #### 4. **Scoring Phase**
-**Duration**: 6 seconds
+**Duration**: Varies by game type
 **Purpose**: Reveal results and award points
 **Actions Available**: None (viewing only)
 
@@ -81,7 +92,7 @@ Bluff Trivia is a social deduction game where players compete to find the correc
 ```typescript
 {
   phase: 'scoring',
-  timeLeft: 6,
+  timeLeft: number, // Varies by game
   scores: PlayerScore[]
 }
 ```
@@ -91,41 +102,61 @@ Bluff Trivia is a social deduction game where players compete to find the correc
 **Purpose**: Show final results
 **Actions Available**: None (viewing only)
 
-## Scoring System
+## Game-Specific Details
 
-### Point Values
+### 🎭 Bluff Trivia
+
+#### Phase Durations
+- **Prompt**: 15 seconds
+- **Choose**: 20 seconds
+- **Scoring**: 6 seconds
+
+#### Gameplay
+1. **Prompt Phase**: Players see a trivia question and submit either the correct answer or a convincing bluff
+2. **Choose Phase**: All submissions are mixed together, players vote on which they think is correct
+3. **Scoring**: Points awarded for correct answers and successful bluffs
+
+#### Scoring System
 - **Correct Answer**: 1000 points
 - **Bluff Points**: 500 points per player fooled
 
-### Scoring Logic
+### 🤥 Fibbing It
 
-#### Finding the Truth
-```typescript
-// Player gets 1000 points for voting correctly
-if (vote === `TRUE::${promptId}`) {
-  player.score += 1000;
-}
-```
+#### Phase Durations
+- **Prompt**: 60 seconds
+- **Voting**: 30 seconds
+- **Scoring**: 15 seconds
 
-#### Successful Bluffs
-```typescript
-// Player gets 500 points for each player they fooled
-const fooledCount = playersWhoVotedForBluff.length;
-player.score += fooledCount * 500;
-```
+#### Gameplay
+1. **Prompt Phase**: Players see a story prompt and submit either a true story or a convincing lie
+2. **Voting Phase**: All stories are presented, players vote on which they think is true
+3. **Scoring**: Points awarded for truth detection and successful deception
 
-### Example Scoring
-**Scenario**: 4 players, 1 correct answer, 3 bluffs
-- **Player A** (correct answer): 1000 points
-- **Player B** (bluff, fooled 2 players): 1000 points
-- **Player C** (bluff, fooled 0 players): 0 points
-- **Player D** (bluff, fooled 1 player): 500 points
+#### Scoring System
+- **Correct Truth Detection**: 1000 points
+- **Deception Points**: 500 points per player fooled
+
+### 🔗 Word Association
+
+#### Phase Durations
+- **Prompt**: 45 seconds
+- **Voting**: 25 seconds
+- **Scoring**: 15 seconds
+
+#### Gameplay
+1. **Prompt Phase**: Players see a starting word and submit creative associations
+2. **Voting Phase**: All associations are presented, players vote on the most creative/interesting
+3. **Scoring**: Points awarded for creative associations and popular votes
+
+#### Scoring System
+- **Creative Association**: 1000 points
+- **Popular Vote Points**: 500 points per vote received
 
 ## Game Flow
 
 ### Round Progression
 ```
-Lobby → Prompt (15s) → Choose (20s) → Scoring (6s) → Next Round
+Lobby → Prompt (varies) → Choose/Voting (varies) → Scoring (varies) → Next Round
 ```
 
 ### Phase Transitions
@@ -134,25 +165,25 @@ Lobby → Prompt (15s) → Choose (20s) → Scoring (6s) → Next Round
 **Trigger**: Host starts game
 **Requirements**: 2+ players
 **Actions**:
-1. Generate random trivia question
+1. Generate game-specific content (question, prompt, or word)
 2. Initialize round state
-3. Start 15-second timer
+3. Start timer based on game type
 4. Broadcast `prompt` event
 
-#### Prompt → Choose
+#### Prompt → Choose/Voting
 **Trigger**: Timer expires OR all players submitted
 **Actions**:
-1. Collect all answers/bluffs
+1. Collect all submissions
 2. Generate voting choices
-3. Start 20-second timer
+3. Start timer based on game type
 4. Broadcast `choices` event
 
-#### Choose → Scoring
+#### Choose/Voting → Scoring
 **Trigger**: Timer expires OR all players voted
 **Actions**:
-1. Calculate scores
+1. Calculate scores based on game type
 2. Update player totals
-3. Start 6-second timer
+3. Start timer based on game type
 4. Broadcast `scores` event
 
 #### Scoring → Next Round
@@ -166,7 +197,7 @@ Lobby → Prompt (15s) → Choose (20s) → Scoring (6s) → Next Round
 
 ### Player Actions
 
-#### Submitting Answers/Bluffs
+#### Submitting Content
 - **One submission per player per round**
 - **Cannot change submission once made**
 - **Must submit within time limit**
@@ -176,12 +207,13 @@ Lobby → Prompt (15s) → Choose (20s) → Scoring (6s) → Next Round
 - **One vote per player per round**
 - **Cannot change vote once made**
 - **Must vote within time limit**
-- **Cannot vote for your own bluff**
+- **Cannot vote for your own submission**
 
 ### Host Privileges
 - **Start the game** (requires 2+ players)
 - **Cannot be transferred** (first player to join)
 - **Can start new game** after current game ends
+- **Manual phase advancement** (optional)
 
 ### Room Management
 - **Auto-cleanup**: Empty rooms are deleted immediately
@@ -205,45 +237,74 @@ interface Player {
 ```typescript
 interface RoundState {
   roundNumber: number;  // Current round (1-5)
-  promptId: string;     // Question identifier
-  prompt: string;       // Trivia question
-  answer: string;       // Correct answer
-  bluffs: Bluff[];      // Player bluff submissions
+  promptId: string;     // Question/prompt identifier
+  prompt: string;       // Game content
+  submissions: Submission[]; // Player submissions
   votes: Map<string, string>; // Player votes
   timeLeft: number;     // Seconds remaining
-  phase: 'prompt' | 'choose' | 'scoring';
+  phase: string;        // Current phase
 }
 ```
 
-### Bluff
+### Submission
 ```typescript
-interface Bluff {
-  id: string;           // Unique bluff identifier
-  text: string;         // Bluff text
+interface Submission {
+  id: string;           // Unique submission identifier
+  text: string;         // Submission content
   playerId: string;     // Player who submitted
+  type: 'answer' | 'story' | 'association'; // Game-specific type
 }
 ```
 
 ## Configuration
 
-### Game Settings
+### Centralized Game Settings
+All game settings are centralized in the `GameConfig` object:
 ```typescript
-const GAME_CONFIG = {
-  MAX_ROUNDS: 5,
-  PHASE_DURATIONS: {
-    PROMPT: 15,     // seconds
-    CHOOSE: 20,     // seconds
-    SCORING: 6      // seconds
+const GameConfig = {
+  TIMING: {
+    PHASES: {
+      PROMPT: 15,     // Base prompt time (varies by game)
+      CHOOSE: 20,     // Base choose time (varies by game)
+      SCORING: 6      // Base scoring time (varies by game)
+    }
   },
-  SCORING: {
-    CORRECT_ANSWER: 1000,
-    BLUFF_POINTS: 500
+  RULES: {
+    ROUNDS: {
+      MAX_ROUNDS: 5,           // Maximum rounds per game
+      MIN_PLAYERS_TO_START: 2, // Minimum players required
+    },
+    SCORING: {
+      CORRECT_ANSWER: 1000,    // Points for correct answer
+      BLUFF_POINTS: 500,       // Points per player fooled
+    },
+    PLAYERS: {
+      MAX_PLAYERS_PER_ROOM: 8, // Maximum players in room
+      MIN_NICKNAME_LENGTH: 2,  // Minimum nickname length
+      MAX_NICKNAME_LENGTH: 20, // Maximum nickname length
+    }
   },
-  PLAYERS: {
-    MIN_PLAYERS: 2,
-    MAX_PLAYERS: 8
+  GAME_TYPES: {
+    BLUFF_TRIVIA: 'bluff-trivia',
+    FIBBING_IT: 'fibbing-it',
+    WORD_ASSOCIATION: 'word-association',
   }
 };
+```
+
+### Game-Specific Timing
+Each game engine can override default timing:
+```typescript
+getPhaseDuration(phase: string): number {
+  const durations: Record<string, number> = {
+    lobby: 0,
+    prompt: 60,    // 60 seconds for Fibbing It
+    voting: 30,    // 30 seconds for Fibbing It
+    scoring: 15,   // 15 seconds for Fibbing It
+    over: 0,
+  };
+  return durations[phase] || 0;
+}
 ```
 
 ### Timer Behavior
@@ -258,12 +319,39 @@ const GAME_CONFIG = {
 - **Already Submitted**: Player already submitted answer/vote
 - **Time Expired**: Action submitted after phase ended
 - **Invalid Choice**: Vote for non-existent choice
+- **Insufficient Players**: Not enough players to start game
+- **Player Not Host**: Non-host trying to perform host action
 
 ### Error Recovery
 - **Graceful degradation** when possible
 - **State consistency** maintained
 - **Player feedback** for all errors
 - **Automatic cleanup** of invalid states
+
+## Game Engine Architecture
+
+### Pluggable Design
+Games use a common interface for consistency:
+```typescript
+interface GameEngine<TState extends BaseGameState, TAction extends GameAction, TEvent extends GameEvent> {
+  initialize(players: Player[]): TState;
+  processAction(state: TState, action: TAction): GameResult<TState, TEvent>;
+  getValidActions(state: TState, playerId: string): TAction[];
+  isGameOver(state: TState): boolean;
+  getWinners(state: TState): Player[];
+  getCurrentPhase(state: TState): GamePhase;
+  advancePhase(state: TState): TState;
+  getTimeLeft(state: TState): number;
+  updateTimer(state: TState, delta: number): TState;
+  generatePhaseEvents(state: TState): TEvent[];
+}
+```
+
+### State Management
+- **Immutable state** with Result pattern
+- **Type-safe operations** across all game types
+- **Consistent error handling** using standardized error types
+- **Automatic cleanup** and resource management
 
 ## Next Steps
 

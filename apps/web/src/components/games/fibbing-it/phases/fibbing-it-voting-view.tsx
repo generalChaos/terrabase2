@@ -24,16 +24,13 @@ export function FibbingItVotingView({
   choices,
   timeLeft,
   totalTime,
-  round,
-  maxRounds,
   votes = [],
   players = [],
   onSubmitVote,
   hasVoted,
   selectedChoiceId,
   gotAnswerCorrect,
-  isPlayer = false,
-  isHost = false
+  isPlayer = false
 }: FibbingItVotingViewProps) {
   const handleVote = (choiceId: string) => {
     if (onSubmitVote && !hasVoted && !gotAnswerCorrect) {

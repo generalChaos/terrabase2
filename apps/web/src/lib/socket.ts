@@ -1,8 +1,9 @@
 import { io, Socket } from 'socket.io-client';
 import type { SocketEvent } from '@party/types';
+import { getApiUrl, AppConfig } from '@party/config';
 
 export function connectToRoom(code: string): Socket {
-  const url = `${process.env.NEXT_PUBLIC_API_WS ?? 'http://localhost:3001'}/rooms`;
+  const url = `${getApiUrl('ws')}${AppConfig.API.ROOMS_ENDPOINT}`;
   console.log('connecting to', url, 'with room code:', code);
   
   const socket = io(url, { 

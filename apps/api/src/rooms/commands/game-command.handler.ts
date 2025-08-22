@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { RoomManager } from '../room-manager';
 import { TimerService } from '../timer.service';
-import { GameAction, GameEvent, Player } from '../game-engine.interface';
+import { GameAction, GameEvent, Player } from '@party/types';
 import { GAME_PHASE_DURATIONS } from '../constants';
 import { 
   InsufficientPlayersError, 

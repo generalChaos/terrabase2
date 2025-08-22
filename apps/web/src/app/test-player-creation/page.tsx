@@ -1,3 +1,5 @@
+"use client";
+
 import { PlayerCreationForm } from '@/components/player-creation-form';
 
 export default function TestPlayerCreation() {

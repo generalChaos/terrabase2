@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { GameConfig } from '../../config/game.config';
+import { GameConfig } from '@party/types';
 import { GameRegistry } from '../game-registry';
 import { ImmutableRoomState, RoomState } from './room.state';
-import { Player, GameAction, GameEvent } from '../game-engine.interface';
+import { Player, GameAction, GameEvent } from '@party/types';
 import { 
   RoomNotFoundError, 
   PlayerNotFoundError, 
@@ -17,6 +17,30 @@ export class StateManagerService {
   private stateLocks = new Map<string, Promise<any>>();
 
   constructor(private readonly gameRegistry: GameRegistry) {}
+
+  /**
+   * Helper method to update room state consistently
+   * This ensures all state updates follow the same pattern with proper error handling
+   */
+  private updateRoom(roomCode: string, updater: (room: ImmutableRoomState) => ImmutableRoomState): void {
+    try {
+      const room = this.getRoom(roomCode);
+      const newState = updater(room);
+      
+      // Validate the new state before updating
+      if (!newState) {
+        throw new Error(`Invalid state update for room ${roomCode}`);
+      }
+      
+      // Update the room
+      this.rooms.set(roomCode, newState);
+      
+      console.log(`🔄 Updated room ${roomCode} (version: ${newState.version})`);
+    } catch (error) {
+      console.error(`❌ Failed to update room ${roomCode}:`, error);
+      throw error;
+    }
+  }
 
   /**
    * Create a new room with immutable state
@@ -119,8 +143,8 @@ export class StateManagerService {
         newState = newState.withGameStateUpdated(updatedGameState);
       }
       
-      // Update the room
-      this.rooms.set(roomCode, newState);
+      // Update the room using consistent pattern
+      this.updateRoom(roomCode, () => newState);
     });
   }
 
@@ -154,8 +178,8 @@ export class StateManagerService {
         newState = newState.withGameStateUpdated(updatedGameState);
       }
       
-      // Update the room
-      this.rooms.set(roomCode, newState);
+      // Update the room using consistent pattern
+      this.updateRoom(roomCode, () => newState);
       return newState;
     });
   }
@@ -185,8 +209,8 @@ export class StateManagerService {
           .withPhaseUpdated(result.newState.phase)
           .withActivityUpdated();
         
-        // Update the room
-        this.rooms.set(roomCode, newState);
+        // Update the room using consistent pattern
+        this.updateRoom(roomCode, () => newState);
         return result.events;
       } else {
         return [{ 
@@ -243,8 +267,8 @@ export class StateManagerService {
         .withGameStateUpdated(updatedGameState)
         .withActivityUpdated();
       
-      // Update the room
-      this.rooms.set(roomCode, newState);
+      // Update the room using consistent pattern
+      this.updateRoom(roomCode, () => newState);
       
       if (updatedGameState.timeLeft === 0) {
         return this.advanceGamePhase(roomCode);
@@ -339,7 +363,8 @@ export class StateManagerService {
     return this.withStateLock(roomCode, async () => {
       const room = this.getRoom(roomCode);
       const newState = room.withPlayerUpdated(playerId, { connected });
-      this.rooms.set(roomCode, newState);
+      // Update the room using consistent pattern
+      this.updateRoom(roomCode, () => newState);
     });
   }
 
@@ -350,7 +375,8 @@ export class StateManagerService {
     return this.withStateLock(roomCode, async () => {
       const room = this.getRoom(roomCode);
       const newState = room.withPlayerUpdated(playerId, { id: newSocketId });
-      this.rooms.set(roomCode, newState);
+      // Update the room using consistent pattern
+      this.updateRoom(roomCode, () => newState);
     });
   }
 
@@ -397,8 +423,8 @@ export class StateManagerService {
           newState = newState.withPlayerRemoved(duplicateId);
         }
         
-        // Update the room
-        this.rooms.set(roomCode, newState);
+        // Update the room using consistent pattern
+        this.updateRoom(roomCode, () => newState);
         console.log(`✅ Cleaned up duplicate players in room ${roomCode}`);
       }
     });

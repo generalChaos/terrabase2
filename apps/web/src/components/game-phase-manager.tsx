@@ -68,11 +68,10 @@ type GamePhaseManagerProps = {
 export function GamePhaseManager(props: GamePhaseManagerProps) {
   const { gameType = 'bluff-trivia', phase, ...gameProps } = props;
 
-  console.log('🎮 GamePhaseManager render:', { phase, gameType, gameProps });
+
 
   // For lobby phase, show the shared lobby view regardless of game type
   if (phase === 'lobby') {
-    console.log('🏠 Showing lobby view');
     if (!gameProps.roomCode) {
       console.error('roomCode is required for lobby phase');
       return <div>Error: Room code required</div>;
@@ -86,20 +85,17 @@ export function GamePhaseManager(props: GamePhaseManagerProps) {
     />;
   }
 
-  console.log('🎯 Phase is not lobby, routing to game:', gameType);
+  
 
   // Route to the appropriate game-specific phase manager for other phases
   switch (gameType) {
     case 'bluff-trivia':
-      console.log('🧠 Routing to BluffTriviaPhaseManager');
       return <BluffTriviaPhaseManagerFC phase={phase} {...gameProps} />;
     
     case 'word-association':
-      console.log('🔗 Routing to WordAssociationPhaseManager');
       return <WordAssociationPhaseManagerFC phase={phase} {...gameProps} />;
     
     case 'fibbing-it':
-      console.log('🎭 Routing to FibbingItPhaseManager');
       return <FibbingItPhaseManagerFC phase={phase} {...gameProps} />;
     
     // Add new games here:

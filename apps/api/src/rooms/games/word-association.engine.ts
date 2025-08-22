@@ -1,4 +1,4 @@
-import { GameEngine, BaseGameState, GameAction, GameEvent, GameResult, Player, GamePhase } from '../game-engine.interface';
+import { GameEngine, BaseGameState, GameAction, GameEvent, GameResult, Player, GamePhase } from '@party/types';
 
 export interface WordAssociationGameState extends BaseGameState {
   phase: 'lobby' | 'prompt' | 'voting' | 'scoring' | 'over';

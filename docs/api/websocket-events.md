@@ -58,25 +58,6 @@ socket.emit('submitAnswer', {
 });
 ```
 
-#### `submitBluff` - Submit Bluff Text
-**Emitted by**: Player during prompt phase
-**Payload**:
-```typescript
-{
-  text: string;        // Bluff text to fool other players
-}
-```
-**Requirements**: 
-- Game must be in 'prompt' phase
-- Player must not have already submitted
-
-**Example**:
-```typescript
-socket.emit('submitBluff', { 
-  text: 'This is definitely the right answer!' 
-});
-```
-
 #### `submitVote` - Vote on Answer
 **Emitted by**: Player during choose phase
 **Payload**:
@@ -96,6 +77,18 @@ socket.emit('submitVote', {
 });
 ```
 
+#### `advancePhase` - Advance Game Phase (Host Only)
+**Emitted by**: Host to manually advance game phase
+**Payload**: None (empty object)
+**Requirements**: 
+- Must be the host
+- Current phase must allow advancement
+
+**Example**:
+```typescript
+socket.emit('advancePhase', {});
+```
+
 ## Server to Client Messages
 
 ### Room State Updates
@@ -106,7 +99,8 @@ socket.emit('submitVote', {
 ```typescript
 {
   code: string;                    // Room code
-  phase: 'lobby' | 'prompt' | 'choose' | 'scoring' | 'over';
+  gameType: string;                // Game type (bluff-trivia, fibbing-it, word-association)
+  phase: 'lobby' | 'prompt' | 'choose' | 'voting' | 'scoring' | 'over';
   round: number;                   // Current round number
   maxRounds: number;               // Total rounds in game
   timeLeft: number;                // Seconds remaining in current phase
@@ -144,20 +138,27 @@ socket.on('joined', (response) => {
 
 ### Game Events
 
-#### `prompt` - New Question
+#### `prompt` - New Question/Prompt
 **Emitted to**: All clients
 **Payload**:
 ```typescript
 {
-  question: string;    // The trivia question
+  question?: string;   // The trivia question (Bluff Trivia)
+  prompt?: string;     // The story prompt (Fibbing It)
+  word?: string;       // The starting word (Word Association)
 }
 ```
 
 **Example**:
 ```typescript
 socket.on('prompt', (data) => {
-  console.log('New question:', data.question);
-  showQuestion(data.question);
+  if (data.question) {
+    showQuestion(data.question);
+  } else if (data.prompt) {
+    showStoryPrompt(data.prompt);
+  } else if (data.word) {
+    showWord(data.word);
+  }
 });
 ```
 
@@ -169,6 +170,7 @@ socket.on('prompt', (data) => {
   choices: Array<{
     id: string;        // Choice identifier
     text: string;      // Choice text
+    playerId?: string; // Player who submitted (if applicable)
   }>
 }
 ```
@@ -263,6 +265,44 @@ socket.on('error', (error) => {
 });
 ```
 
+## Game-Specific Events
+
+### Bluff Trivia Events
+
+#### `submitted` - Answer Submission Confirmation
+**Emitted to**: All clients when a player submits
+**Payload**:
+```typescript
+{
+  playerId: string;    // Player who submitted
+  hasSubmitted: boolean; // Whether they've submitted
+}
+```
+
+### Fibbing It Events
+
+#### `storySubmitted` - Story Submission Confirmation
+**Emitted to**: All clients when a player submits a story
+**Payload**:
+```typescript
+{
+  playerId: string;    // Player who submitted
+  hasSubmitted: boolean; // Whether they've submitted
+}
+```
+
+### Word Association Events
+
+#### `associationSubmitted` - Association Submission Confirmation
+**Emitted to**: All clients when a player submits an association
+**Payload**:
+```typescript
+{
+  playerId: string;    // Player who submitted
+  hasSubmitted: boolean; // Whether they've submitted
+}
+```
+
 ## Event Flow
 
 ### Typical Game Flow:
@@ -281,6 +321,43 @@ socket.on('error', (error) => {
 3. **Room state** → `room` event with current state
 4. **Disconnect** → Automatic cleanup
 
+## Error Handling with Result Pattern
+
+The API uses a Result pattern for consistent error handling:
+
+### Client-Side Error Handling
+```typescript
+// Listen for errors
+socket.on('error', (error) => {
+  switch (error.code) {
+    case 'INSUFFICIENT_PLAYERS':
+      showMessage('Need at least 2 players to start');
+      break;
+    case 'INVALID_PHASE':
+      showMessage('Action not allowed in current phase');
+      break;
+    case 'PLAYER_NOT_HOST':
+      showMessage('Only the host can perform this action');
+      break;
+    default:
+      showMessage(error.error);
+  }
+});
+```
+
+### Server-Side Error Handling
+```typescript
+// All game actions return Result<T, E>
+const result = await this.gameService.startGame(client, roomCode);
+if (result.isSuccess()) {
+  // Handle success
+  this.broadcastRoomUpdate(roomCode);
+} else {
+  // Handle error
+  client.emit('error', this.formatError(result.error));
+}
+```
+
 ## Best Practices
 
 ### Client Side:
@@ -288,12 +365,14 @@ socket.on('error', (error) => {
 - **Validate input** - Check data before sending
 - **Handle disconnections** - Implement reconnection logic
 - **Use TypeScript** - Leverage type safety for payloads
+- **Check game phase** - Ensure actions are valid for current phase
 
 ### Server Side:
 - **Validate all inputs** - Check message format and content
 - **Handle errors gracefully** - Return consistent error responses
 - **Broadcast state changes** - Keep all clients synchronized
 - **Clean up resources** - Remove disconnected players
+- **Use Result pattern** - Consistent error handling across services
 
 ## Next Steps
 

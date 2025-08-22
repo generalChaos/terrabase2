@@ -1,11 +1,12 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { IoAdapter } from '@nestjs/platform-socket.io';
+import { AppConfig } from '@party/config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.enableCors({
-    origin: ['http://localhost:3000', 'http://localhost:3001'],
+    origin: AppConfig.API.CORS_ORIGINS,
     credentials: true,
   });
 
@@ -14,7 +15,7 @@ async function bootstrap() {
   app.useWebSocketAdapter(wsAdapter);
 
   // Start the app
-  await app.listen(process.env.PORT ?? 3001);
+  await app.listen(process.env.PORT ?? AppConfig.BACKEND.NEST.PORT);
 
   console.log('✅ App started successfully');
 }

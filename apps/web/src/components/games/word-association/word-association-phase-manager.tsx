@@ -24,7 +24,6 @@ export class WordAssociationPhaseManager extends BaseGamePhaseManager {
       word,
       associations = [],
       timeLeft = 0,
-      totalTime,
       round = 1,
       maxRounds = 5,
       players = [],
@@ -43,10 +42,6 @@ export class WordAssociationPhaseManager extends BaseGamePhaseManager {
           <LobbyView
             roomCode={roomCode || "XXXX"}
             players={players}
-            timeLeft={timeLeft}
-            totalTime={timeLeft}
-            round={round}
-            maxRounds={maxRounds}
             isHost={isHost}
           />
         );

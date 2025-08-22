@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { GameEngine, GameAction, GameEvent, GameResult, GamePhase, BaseGameState, Player } from '../game-engine.interface';
-import { GameConfig } from '../../config/game.config';
+import { GameEngine, GameAction, GameEvent, GameResult, GamePhase, BaseGameState, Player } from '@party/types';
+import { GameConfig } from '@party/types';
 import { prompts } from '../prompts.seed';
 import { TRUE, uid, shuffle } from '../utils';
 import { GAME_PHASE_DURATIONS, GAME_CONFIG, PHASE_NAMES } from '../constants';
@@ -397,10 +397,14 @@ export class BluffTriviaEngine implements GameEngine<BluffTriviaState, BluffTriv
           isCorrect: true // Mark this as a correct answer
         };
         
+        // Create new immutable Set instead of mutating
+        const newCorrectAnswerPlayers = new Set(state.currentRound.correctAnswerPlayers);
+        newCorrectAnswerPlayers.add(action.playerId);
+        
         const newCurrentRound = {
           ...state.currentRound,
           bluffs: [...state.currentRound.bluffs, correctAnswerEntry],
-          correctAnswerPlayers: new Set([...state.currentRound.correctAnswerPlayers, action.playerId])
+          correctAnswerPlayers: newCorrectAnswerPlayers
         };
         
         const newState: BluffTriviaState = {
@@ -504,7 +508,8 @@ export class BluffTriviaEngine implements GameEngine<BluffTriviaState, BluffTriv
       };
     }
     
-    const newVote: Map<string, string> = new Map(state.currentRound.votes);
+    // Create new immutable Map instead of mutating
+    const newVote = new Map(state.currentRound.votes);
     newVote.set(action.playerId, choiceId);
     
     const newCurrentRound = {
@@ -563,8 +568,8 @@ export class BluffTriviaEngine implements GameEngine<BluffTriviaState, BluffTriv
     const pool = prompts.filter(p => !state.usedPromptIds.has(p.id));
     const prompt = pool[Math.floor(Math.random() * pool.length)];
     
-    const newState = { ...state };
-    newState.usedPromptIds.add(prompt.id);
+    // Note: We're not mutating the original state here, just generating a round
+    // The usedPromptIds will be updated by the caller
     
     return {
       roundNumber: state.round,

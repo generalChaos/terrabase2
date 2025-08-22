@@ -3,12 +3,12 @@ import { useEffect, useRef, useState } from "react";
 import { connectToRoom } from "@/lib/socket";
 import { AppShell } from "@/components/app-shell";
 import { RoomCodeChip } from "@/components/games/shared/ui";
-import { PlayerAvatar } from "@/components/games/shared/ui";
 import { GamePhaseManager } from "./game-phase-manager";
 import { RoomStateDebug } from "./room-state-debug";
 import { PlayerCreationForm, type PlayerCreationData } from "./player-creation-form";
 import type { RoomState, Choice } from "@party/types";
 import { DUR } from "@party/types";
+import { getAllGames, getApiUrl, AppConfig, type GameInfo } from "@party/config";
 
 export function HostClient({ code }: { code: string }) {
   const [state, setState] = useState<RoomState | null>(null);
@@ -17,62 +17,12 @@ export function HostClient({ code }: { code: string }) {
   const [timer, setTimer] = useState<number>(0);
   const [selectedGame, setSelectedGame] = useState<string | null>(null);
   const [showAllGames, setShowAllGames] = useState(false);
-  const [playerData, setPlayerData] = useState<PlayerCreationData | null>(null);
   const [showPlayerCreation, setShowPlayerCreation] = useState(true);
   const [roomCode, setRoomCode] = useState<string>(code);
   const socketRef = useRef<ReturnType<typeof connectToRoom> | null>(null);
 
   // Available games data with themes
-  const availableGames = [
-    {
-      id: "fibbing-it",
-      title: "Fibbing It!",
-      description: "Players create answers and vote on the best ones. Can you spot the truth from the lies?",
-      players: "3-8 players",
-      duration: "15-30 min",
-      difficulty: "Easy",
-      icon: "🎭",
-      theme: {
-        primary: "bg-purple-600",
-        accent: "bg-purple-400",
-        background: "bg-purple-800",
-        icon: "🎭",
-        name: "Fibbing It!"
-      }
-    },
-    {
-      id: "bluff-trivia",
-      title: "Bluff Trivia",
-      description: "Classic trivia with bluffing mechanics. Make up answers and see if others believe you!",
-      players: "3-8 players",
-      duration: "20-40 min",
-      difficulty: "Medium",
-      icon: "🧠",
-      theme: {
-        primary: "bg-blue-600",
-        accent: "bg-blue-400",
-        background: "bg-blue-800",
-        icon: "🧠",
-        name: "Bluff Trivia"
-      }
-    },
-    {
-      id: "word-association",
-      title: "Word Association",
-      description: "Create word associations and vote on the most creative ones. Simple but endlessly fun!",
-      players: "3-8 players",
-      duration: "15-25 min",
-      difficulty: "Easy",
-      icon: "🔗",
-      theme: {
-        primary: "bg-teal-600",
-        accent: "bg-teal-400",
-        background: "bg-teal-800",
-        icon: "🔗",
-        name: "Word Association"
-      }
-    }
-  ];
+  const availableGames = getAllGames();
 
   // Pre-select game based on URL or room state
   useEffect(() => {
@@ -82,13 +32,11 @@ export function HostClient({ code }: { code: string }) {
   }, [state?.gameType, selectedGame]);
 
   const handlePlayerCreation = async (data: PlayerCreationData) => {
-    setPlayerData(data);
     setShowPlayerCreation(false);
     
     try {
       // First, create the room via API
-      console.log("🏗️ Creating room via API...");
-      const response = await fetch('http://localhost:3001/rooms', {
+      const response = await fetch(getApiUrl('http') + AppConfig.API.ROOMS_ENDPOINT, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -101,7 +49,6 @@ export function HostClient({ code }: { code: string }) {
       }
       
       const roomData = await response.json();
-      console.log("✅ Room created:", roomData);
       
       // Update the room code to the created one
       setRoomCode(roomData.code);
@@ -141,10 +88,7 @@ export function HostClient({ code }: { code: string }) {
         setTimer(st.timeLeft || 0);
       });
 
-      // Debug: Listen for all events
-      s.onAny((eventName, ...args) => {
-        console.log("🔍 Socket event received:", eventName, args);
-      });
+
       
       // Listen for timer updates
       s.on("timer", (data: { timeLeft: number }) => {
@@ -174,23 +118,19 @@ export function HostClient({ code }: { code: string }) {
     } catch (error) {
       console.error("❌ Failed to create room:", error);
       setShowPlayerCreation(true); // Show form again on error
-      setPlayerData(null);
     }
   };
 
   const start = () => {
     if (!selectedGame) {
-      console.log("❌ No game selected");
       return;
     }
-    console.log("🎮 Starting game:", selectedGame);
     socketRef.current?.emit("startGame", { gameType: selectedGame });
   };
 
   const handleGameSelect = (gameId: string) => {
     setSelectedGame(gameId);
     setShowAllGames(false); // Close the expanded list
-    console.log("🎯 Game selected:", gameId);
   };
 
   const toggleGameSelection = () => {

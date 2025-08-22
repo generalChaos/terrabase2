@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { GameRegistry } from './game-registry';
-import { Player, GameAction, GameEvent } from './game-engine.interface';
+import { Player, GameAction, GameEvent } from '@party/types';
 import { GAME_CONFIG, GAME_TYPES } from './constants';
 import { RoomNotFoundError, PlayerNotFoundError, InsufficientPlayersError } from './errors';
 import { TimerService } from './timer.service';

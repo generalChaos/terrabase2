@@ -1,4 +1,4 @@
-import { GameConfig } from '../config/game.config';
+import { GameConfig } from '@party/types';
 
 // Re-export game configuration for backward compatibility
 export const GAME_PHASE_DURATIONS = GameConfig.TIMING.PHASES;

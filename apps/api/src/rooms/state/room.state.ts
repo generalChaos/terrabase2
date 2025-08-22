@@ -1,4 +1,4 @@
-import { Player, GameAction, GameEvent } from '../game-engine.interface';
+import { Player, GameAction, GameEvent } from '@party/types';
 
 export interface RoomState {
   readonly code: string;

@@ -4,13 +4,8 @@ import { PlayerAvatar } from '../ui/player-avatar';
 type LobbyViewProps = {
   roomCode: string;
   players: Array<{ id: string; name: string; avatar?: string; score: number; connected?: boolean }>;
-  timeLeft?: number;
-  totalTime?: number;
-  round?: number;
-  maxRounds?: number;
   isHost: boolean;
   onStartGame?: () => void;
-  maxPlayers?: number;
   selectedGame?: {
     id: string;
     title: string;
@@ -50,13 +45,8 @@ type LobbyViewProps = {
 export function LobbyView({
   roomCode,
   players,
-  timeLeft,
-  totalTime,
-  round,
-  maxRounds,
   isHost,
   onStartGame,
-  maxPlayers = 8,
   selectedGame,
   onGameSelect,
   availableGames,
@@ -162,7 +152,7 @@ export function LobbyView({
           <h2 className="text-2xl font-bold text-white mb-6 text-center">Players</h2>
           <div className="flex justify-center gap-8">
             {players.length > 0 ? (
-              players.map((player, index) => (
+              players.map((player) => (
                 <div key={player.id} className="text-center">
                   <PlayerAvatar 
                     {...player} 

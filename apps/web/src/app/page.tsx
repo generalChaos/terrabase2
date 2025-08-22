@@ -2,54 +2,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Play, Users, Clock, Star } from "lucide-react";
+import { getAllGames, getApiUrl, AppConfig, type GameInfo } from "@party/config";
 
-type GameInfo = {
-  id: string;
-  title: string;
-  description: string;
-  players: string;
-  duration: string;
-  difficulty: string;
-  color: string;
-  gradient: string;
-  icon: string;
-};
-
-const games: GameInfo[] = [
-  {
-    id: "fibbing-it",
-    title: "Fibbing It!",
-    description: "Players create answers and vote on the best ones. Can you spot the truth from the lies?",
-    players: "3-8 players",
-    duration: "15-30 min",
-    difficulty: "Easy",
-    color: "from-purple-600 to-blue-600",
-    gradient: "from-purple-500/20 to-blue-500/20",
-    icon: "🎭"
-  },
-  {
-    id: "bluff-trivia",
-    title: "Bluff Trivia",
-    description: "Classic trivia with bluffing mechanics. Make up answers and see if others believe you!",
-    players: "3-10 players",
-    duration: "20-40 min",
-    difficulty: "Medium",
-    color: "from-emerald-600 to-teal-600",
-    gradient: "from-emerald-500/20 to-teal-500/20",
-    icon: "🧠"
-  },
-  {
-    id: "word-association",
-    title: "Word Association",
-    description: "Create word associations and vote on the most creative ones. Simple but endlessly fun!",
-    players: "3-6 players",
-    duration: "10-20 min",
-    difficulty: "Easy",
-    color: "from-orange-600 to-red-600",
-    gradient: "from-orange-500/20 to-red-500/20",
-    icon: "🔗"
-  }
-];
+const games: GameInfo[] = getAllGames();
 
 export default function Home() {
   const [loading, setLoading] = useState<string | null>(null);
@@ -58,10 +13,10 @@ export default function Home() {
   async function createRoom(gameId: string) {
     setLoading(gameId);
     try {
-      const base = process.env.NEXT_PUBLIC_API_HTTP ?? "http://localhost:3001";
-      console.log('Creating room for game:', gameId, 'at URL:', base + "/rooms");
+      const base = getApiUrl('http');
+      console.log('Creating room for game:', gameId, 'at URL:', base + AppConfig.API.ROOMS_ENDPOINT);
       
-      const res = await fetch(base + "/rooms", { 
+      const res = await fetch(base + AppConfig.API.ROOMS_ENDPOINT, { 
         method: "POST",
         headers: {
           'Content-Type': 'application/json',

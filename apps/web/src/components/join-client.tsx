@@ -1,9 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { connectToRoom } from '@/lib/socket';
-import { notify } from '@/lib/notify';
 import { GamePhaseManager } from './game-phase-manager';
-import { RoomStateDebug } from './room-state-debug';
 import { PlayerCreationForm, type PlayerCreationData } from './player-creation-form';
 import type { RoomState, JoinRoomData, SubmitAnswerData, SubmitVoteData, Choice } from '@party/types';
 import { DUR } from '@party/types';
@@ -47,8 +45,6 @@ export function JoinClient({ code }: { code: string }) {
       const s = connectToRoom(code);
       socketRef.current = s;
     
-    console.log('🔌 Setting up socket listeners for room:', code);
-    
     s.on('connect', () => {
       console.log('✅ Connected to socket server');
       console.log('✅ Socket ID:', s.id);
@@ -66,13 +62,7 @@ export function JoinClient({ code }: { code: string }) {
     });
     
     s.on('room', (roomState: RoomState) => {
-      console.log('🏠 Room state updated:', roomState);
-      console.log('🏠 Players:', roomState.players);
-      console.log('🏠 Current round:', roomState.current);
-      console.log('🏠 Correct answer players:', roomState.current?.correctAnswerPlayers);
-      console.log('🏠 Bluffs:', roomState.current?.bluffs);
-      console.log('🏠 Current player ID:', playerIdRef.current);
-      console.log('🏠 Has submitted answer before update:', hasSubmittedAnswerRef.current);
+      // Update room state
       
       // Handle phase changes
       if (previousPhase && previousPhase !== roomState.phase) {

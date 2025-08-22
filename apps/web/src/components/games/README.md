@@ -165,7 +165,7 @@ Implement the `GameEngine` interface:
 
 ```typescript
 // In apps/api/src/rooms/games/your-game.engine.ts
-import { GameEngine, GameAction, GameEvent, GameResult, GamePhase, BaseGameState, Player } from '../game-engine.interface';
+import { GameEngine, GameAction, GameEvent, GameResult, GamePhase, BaseGameState, Player } from '@party/types';
 
 export class YourGameEngine implements GameEngine<YourGameState, YourGameAction, YourGameEvent> {
   // Implement all required methods

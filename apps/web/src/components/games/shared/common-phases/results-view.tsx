@@ -16,7 +16,6 @@ export function ResultsView({
   scores,
   players,
   round,
-  maxRounds,
   onPlayAgain,
   onBackToLobby
 }: ResultsViewProps) {
@@ -70,7 +69,7 @@ export function ResultsView({
             <div className="bg-slate-800/50 rounded-2xl p-6 border border-slate-600">
               <h3 className="text-2xl font-bold text-white mb-6">Final Scores</h3>
               <div className="space-y-4">
-                {sortedPlayers.map((player, index) => {
+                {sortedPlayers.map((player) => {
                   const score = scores.find(s => s.playerId === player.id)?.score || 0;
                   const isWinner = player.id === winner.playerId;
                   

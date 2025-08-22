@@ -24,14 +24,11 @@ export function FibbingItScoringView({
   choices,
   timeLeft,
   totalTime,
-  round,
-  maxRounds,
   votes = [],
   players = [],
   scores = [],
   playerId,
-  isPlayer = false,
-  isHost = false
+  isPlayer = false
 }: FibbingItScoringViewProps) {
   const getPlayerScore = (playerId: string) => {
     return scores.find(s => s.playerId === playerId)?.score || 0;

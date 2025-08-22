@@ -23,6 +23,7 @@ export interface GamePhaseManagerInterface {
 export interface BaseGamePhaseManagerProps {
   phase: Phase;
   isHost: boolean;
+  roomCode?: string;
   timeLeft?: number;
   totalTime?: number;
   round?: number;

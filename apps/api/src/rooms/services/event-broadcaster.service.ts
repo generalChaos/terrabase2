@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Namespace } from 'socket.io';
-import { GameEvent } from '../game-engine.interface';
+import { GameEvent } from '@party/types';
 import { EventTarget } from '../constants';
 import { ImmutableRoomState } from '../state/room.state';
 

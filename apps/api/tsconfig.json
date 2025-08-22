@@ -4,6 +4,11 @@
     "outDir": "./dist",
     "noEmit": false,
     "module": "CommonJS",
-    "moduleResolution": "node"
-  } 
+    "moduleResolution": "node",
+    "paths": {
+      "@party/*": ["../../packages/*/dist", "../../packages/*/src"]
+    }
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
 }

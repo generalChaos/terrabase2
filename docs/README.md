@@ -2,7 +2,7 @@
 
 ## 🎮 Welcome to Party Game!
 
-A real-time multiplayer bluff trivia game built with **NestJS**, **Socket.io**, and **React**. This documentation will help you understand how to use the API, implement clients, and contribute to the project.
+A real-time multiplayer party game platform built with **NestJS**, **Socket.io**, and **React**. This documentation will help you understand how to use the API, implement clients, and contribute to the project.
 
 ## 📚 Documentation Structure
 
@@ -14,12 +14,12 @@ A real-time multiplayer bluff trivia game built with **NestJS**, **Socket.io**, 
 ### **🔌 API Reference**
 - **[API Overview](./api/README.md)** - Complete API documentation
 - **[WebSocket Events](./api/websocket-events.md)** - All available endpoints and events
-- **[Game Logic](./api/game-logic.md)** - How the bluff trivia game works
+- **[Game Logic](./api/game-logic.md)** - How the games work
 - **[Error Codes](./api/error-codes.md)** - Complete error reference
 - **[Code Examples](./api/examples.md)** - Working code examples
 
 ### **🏗️ Architecture & Development**
-- **[Service Architecture](./architecture/services.md)** - How the new service layer works
+- **[Service Architecture](./architecture/services.md)** - How the service layer works
 - **[State Management](./architecture/state-management.md)** - Immutable state patterns
 - **[Testing Guide](./development/testing.md)** - How to test the application
 - **[Contributing Guide](./development/contributing.md)** - How to contribute code
@@ -142,25 +142,41 @@ pnpm test:coverage
 
 ### **✅ Completed**
 - ✅ WebSocket API with Socket.io
-- ✅ Bluff Trivia game engine
+- ✅ Multiple game engines (Bluff Trivia, Fibbing It, Word Association)
 - ✅ Real-time multiplayer support
-- ✅ Immutable state management
-- ✅ Service layer architecture
-- ✅ Comprehensive error handling
+- ✅ Immutable state management with Result pattern
+- ✅ Service layer architecture with dependency injection
+- ✅ Comprehensive error handling and validation
 - ✅ Timer management system
 - ✅ Player reconnection logic
+- ✅ Game phase transitions
+- ✅ Score calculation and round progression
+- ✅ Input validation and sanitization
+- ✅ Type-safe game configuration
 
 ### **🚧 In Progress**
-- 🚧 Game phase transitions
-- 🚧 Score calculation
-- 🚧 Round progression
+- 🚧 Advanced game features and mechanics
+- 🚧 Enhanced UI components and game interfaces
+- 🚧 Performance optimization
 
 ### **📋 Planned**
+- 📋 User authentication and profiles
+- 📋 Game history and statistics
+- 📋 Leaderboards and achievements
+- 📋 Mobile app development
 - 📋 Additional game types
-- 📋 User authentication
-- 📋 Game history
-- 📋 Leaderboards
-- 📋 Mobile app
+- 📋 Tournament mode
+
+## 🎮 Available Games
+
+### **Bluff Trivia** 🎭
+The classic bluff trivia game where players compete to find correct answers while trying to fool others with convincing bluffs.
+
+### **Fibbing It** 🤥
+A storytelling game where players create believable lies and try to spot the truth among the fiction.
+
+### **Word Association** 🔗
+A creative word game where players build on each other's word associations to create interesting connections.
 
 ## 🤝 Contributing
 
@@ -207,4 +223,4 @@ This project is licensed under the MIT License - see the [LICENSE](../LICENSE) f
 
 **Happy gaming! 🎮✨**
 
-*Last updated: January 2024*
+*Last updated: January 2025*
