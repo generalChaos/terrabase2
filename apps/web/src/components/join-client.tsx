@@ -14,6 +14,7 @@ import type {
   Choice,
 } from '@party/types';
 import { DUR } from '@party/types';
+import { ErrorBoundary, useErrorBoundary } from '@/components/error-boundary';
 
 export function JoinClient({ code }: { code: string }) {
   const [nickname, setNickname] = useState('');
@@ -35,6 +36,9 @@ export function JoinClient({ code }: { code: string }) {
   const [playerId, setPlayerId] = useState<string>('');
   const [showPlayerCreation, setShowPlayerCreation] = useState(true);
   const socketRef = useRef<ReturnType<typeof connectToRoom> | null>(null);
+
+  // Use Error Boundary hook for manual error throwing
+  const { throwError } = useErrorBoundary();
 
   // Use refs to avoid dependency issues in useEffect
   const hasSubmittedAnswerRef = useRef(hasSubmittedAnswer);
@@ -129,28 +133,15 @@ export function JoinClient({ code }: { code: string }) {
         }
       );
 
+      // Listen for errors and throw them to be caught by Error Boundary
+      s.on('error', (error: unknown) => {
+        console.error('❌ Socket error:', error);
+        throwError(`WebSocket error: ${JSON.stringify(error)}`);
+      });
+
       s.on('connect_error', (error: Error) => {
-        console.error('❌ WebSocket connection error:', error);
-        setErr(`Connection failed: ${error.message || 'Unknown error'}`);
-      });
-
-      s.on('disconnect', (reason: string) => {
-        console.log('🔌 Disconnected from room:', reason);
-        if (reason === 'io server disconnect') {
-          // Server disconnected us, don't try to reconnect
-          setErr('Disconnected by server');
-        }
-      });
-
-      s.on('error', (e: { msg?: string; message?: string; error?: string }) => {
-        console.log('❌ Socket error:', e);
-        const errorMessage =
-          e?.msg ||
-          e?.message ||
-          e?.error ||
-          JSON.stringify(e) ||
-          'Unknown error';
-        setErr(`Join failed: ${errorMessage}`);
+        console.error('❌ Connection error:', error);
+        throwError(`Connection failed: ${error.message}`);
       });
 
       s.on('room', (roomState: RoomState) => {
@@ -281,14 +272,15 @@ export function JoinClient({ code }: { code: string }) {
   };
 
   // Show player creation form first
-  if (showPlayerCreation) {
+    if (showPlayerCreation) {
     return (
-      <PlayerCreationForm
-        onSubmit={handlePlayerCreation}
-        onCancel={() => window.history.back()}
-        isHost={false}
-        roomCode={code}
-      />
+      <ErrorBoundary>
+        <PlayerCreationForm
+          onSubmit={handlePlayerCreation}
+          onCancel={() => window.history.back()}
+          isHost={false}
+        />
+      </ErrorBoundary>
     );
   }
 
@@ -336,29 +328,31 @@ export function JoinClient({ code }: { code: string }) {
     };
 
     return (
-      <GamePhaseManager
-        gameType={roomState.gameType || 'fibbing-it'}
-        phase={roomState.phase || 'lobby'}
-        isHost={false}
-        roomCode={code}
-        question={roomState.current?.prompt || ''}
-        correctAnswer={roomState.current?.answer || ''}
-        choices={choices}
-        timeLeft={timer}
-        totalTime={getTotalTimeForPhase(roomState.phase)}
-        round={roomState.round || 0}
-        maxRounds={roomState.maxRounds || 5}
-        players={roomState.players || []}
-        votes={roomState.current?.votes || []}
-        scores={scores}
-        playerId={playerId}
-        current={roomState.current}
-        onSubmitAnswer={handleSubmitAnswer}
-        onSubmitVote={handleSubmitVote}
-        hasSubmittedAnswer={hasSubmittedAnswer}
-        hasVoted={hasVoted}
-        selectedChoiceId={selectedChoiceId}
-      />
+      <ErrorBoundary>
+        <GamePhaseManager
+          gameType={roomState.gameType || 'fibbing-it'}
+          phase={roomState.phase || 'lobby'}
+          isHost={false}
+          roomCode={code}
+          question={roomState.current?.prompt || ''}
+          correctAnswer={roomState.current?.answer || ''}
+          choices={choices}
+          timeLeft={timer}
+          totalTime={getTotalTimeForPhase(roomState.phase)}
+          round={roomState.round || 0}
+          maxRounds={roomState.maxRounds || 5}
+          players={roomState.players || []}
+          votes={roomState.current?.votes || []}
+          scores={scores}
+          playerId={playerId}
+          current={roomState.current}
+          onSubmitAnswer={handleSubmitAnswer}
+          onSubmitVote={handleSubmitVote}
+          hasSubmittedAnswer={hasSubmittedAnswer}
+          hasVoted={hasVoted}
+          selectedChoiceId={selectedChoiceId}
+        />
+      </ErrorBoundary>
     );
   }
 

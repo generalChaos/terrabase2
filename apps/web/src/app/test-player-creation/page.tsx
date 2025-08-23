@@ -14,7 +14,6 @@ export default function TestPlayerCreation() {
         onSubmit={handleSubmit}
         onCancel={() => window.history.back()}
         isHost={true}
-        roomCode="TEST123"
       />
     </div>
   );

@@ -1,0 +1,26 @@
+/* Party background layers: base, hero glow, and repeating tile */
+.party-bg {
+  background:
+    radial-gradient(80% 60% at 50% -10%, rgba(56,189,248,.15), transparent 50%),
+    radial-gradient(60% 50% at 80% 0, rgba(217,70,239,.12), transparent 60%),
+    url('confetti-sprinkles.svg');
+  background-repeat: no-repeat, no-repeat, repeat;
+  background-size: 1200px 700px, 900px 600px, 280px 280px;
+  background-position: center top, right top, 0 0;
+  background-color: #0b0f1a;
+}
+.party-bg.animate { animation: tile-drift 40s linear infinite; will-change: background-position; }
+@keyframes tile-drift {
+  from { background-position: center top, right top, 0 0; }
+  to   { background-position: center top, right top, -280px -280px; }
+}
+@media (prefers-reduced-motion: reduce){ .party-bg.animate { animation: none; } }
+/* Optional neon glow for room code container */
+.room-code { position: relative; isolation: isolate; }
+.room-code::before {
+  content: ""; position: absolute; inset: -16px; border-radius: 18px;
+  background: radial-gradient(60% 60% at 50% 50%, rgba(99,102,241,.35), transparent 70%);
+  filter: blur(8px); z-index: -1; opacity: .75; animation: glow 3.6s ease-in-out infinite;
+}
+@keyframes glow { 0%,100% { opacity: .5; } 50% { opacity: .9; } }
+@media (prefers-reduced-motion: reduce){ .room-code::before { animation: none; } }

@@ -1,16 +1,12 @@
 "use client";
 import { useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ALL_AVATARS, getRandomAvatarAndName, type Avatar } from "@/lib/avatar-utils";
+import Image from "next/image";
 
 export type PlayerCreationData = {
   nickname: string;
   avatar: string;
 };
-
-const DEFAULT_AVATARS = [
-  "😀", "😎", "🤖", "🦄", "🐱", "🐶", "🦁", "🐸", "🐙", "🦋",
-  "🌟", "💎", "🔥", "⚡", "🌈", "🍕", "🍦", "🎮", "🎸", "🎨"
-];
 
 interface PlayerCreationFormProps {
   onSubmit: (data: PlayerCreationData) => void;
@@ -27,8 +23,9 @@ export function PlayerCreationForm({
   isHost = false,
   className = "",
 }: PlayerCreationFormProps) {
+  
   const [nickname, setNickname] = useState(defaultValues.nickname || "");
-  const [selectedAvatar, setSelectedAvatar] = useState(defaultValues.avatar || DEFAULT_AVATARS[0]);
+  const [selectedAvatar, setSelectedAvatar] = useState<Avatar>(defaultValues.avatar as Avatar || ALL_AVATARS[0]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -58,72 +55,59 @@ export function PlayerCreationForm({
     }
   };
 
+  const handleRandomize = () => {
+    const { avatar, name } = getRandomAvatarAndName();
+    setSelectedAvatar(avatar);
+    setNickname(name);
+  };
+
   return (
     <div className={`w-full max-w-2xl mx-auto ${className}`}>
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Avatar Selection and Name Input Combined */}
+      <form onSubmit={handleSubmit} className="space-y-3">
+        {/* Combined Avatar Selection and Name Input */}
         <div className="animate-fade-in-up" style={{ animationDelay: '300ms' }}>
-          <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-3xl p-8">
-            <div className="flex items-center justify-center gap-3 mb-6">
-              <h2 className="text-2xl font-bold text-white">Choose Your Avatar</h2>
-            </div>
-
-            {/* Single Large Avatar with Sideways Sliding */}
-            <div className="relative mb-8">
-              {/* Navigation Arrows */}
-              <button
-                type="button"
-                onClick={() => {
-                  const currentIndex = DEFAULT_AVATARS.indexOf(selectedAvatar);
-                  const prevIndex =
-                    currentIndex <= 0
-                      ? DEFAULT_AVATARS.length - 1
-                      : currentIndex - 1;
-                  setSelectedAvatar(DEFAULT_AVATARS[prevIndex]);
-                }}
-                className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-12 h-12 bg-slate-800/90 hover:bg-slate-700/90 border border-slate-600 rounded-full flex items-center justify-center text-white hover:text-teal-400 transition-all duration-200 shadow-lg hover:-translate-y-1"
-              >
-                <ChevronLeft className="w-6 h-6" />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  const currentIndex = DEFAULT_AVATARS.indexOf(selectedAvatar);
-                  const nextIndex =
-                    currentIndex >= DEFAULT_AVATARS.length - 1
-                      ? 0
-                      : currentIndex + 1;
-                  setSelectedAvatar(DEFAULT_AVATARS[nextIndex]);
-                }}
-                className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-12 h-12 bg-slate-800/90 hover:bg-slate-700/90 border border-slate-600 rounded-full flex items-center justify-center text-white hover:text-teal-400 transition-all duration-200 shadow-lg hover:-translate-y-1"
-              >
-                <ChevronRight className="w-6 h-6" />
-              </button>
-
-                              {/* Single Large Avatar Display */}
-                <div className="flex justify-center mb-6">
-                  <div className="w-32 h-32 rounded-3xl border-4 border-teal-400 bg-teal-400/20 shadow-2xl flex items-center justify-center animate-scale-in">
-                    <div style={{ fontSize: 'var(--avatar-font-2xl)' }} className="transition-all duration-300 ease-in-out transform hover:scale-110">
-                      {selectedAvatar}
+          <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-3xl p-2 px-2">
+            {/* Avatar Selection */}
+            <div className="text-center mb-4">
+              {/* 3x3 Avatar Grid with Responsive Spacing */}
+              <div className="grid grid-cols-3 gap-1 md:gap-2 lg:gap-3 mb-4 max-w-lg mx-auto bg-slate-900/80 rounded-2xl p-4">
+                {ALL_AVATARS.map((avatar) => (
+                  <button
+                    key={avatar}
+                    type="button"
+                    onClick={() => setSelectedAvatar(avatar)}
+                    className="group p-1 md:p-2 rounded-2xl transition-all duration-200 hover:scale-105"
+                  >
+                    <div className="flex flex-col items-center space-y-0.5">
+                      {/* Circular Avatar Container - Responsive Sizing */}
+                      <div className={`w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 lg:w-32 lg:h-32 rounded-full overflow-hidden border-2 transition-all duration-200 ${
+                        selectedAvatar === avatar
+                          ? 'bg-slate-800/80 border-teal-400'
+                          : 'bg-slate-900/80 border-slate-700 group-hover:bg-slate-800/80 group-hover:border-slate-600'
+                      }`}>
+                        <Image
+                          src={`/avatars/${avatar}`}
+                          alt={`Avatar ${avatar}`}
+                          width={128}
+                          height={128}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-200"
+                        />
+                      </div>
                     </div>
-                  </div>
-                </div>
-
-              {/* Avatar Counter */}
-              <div className="text-center text-sm text-slate-400 mb-4">
-                {DEFAULT_AVATARS.indexOf(selectedAvatar) + 1} of{" "}
-                {DEFAULT_AVATARS.length}
+                  </button>
+                ))}
               </div>
             </div>
 
             {/* Name Input */}
-            <div className="space-y-3">
-              <h3 className="text-xl font-bold text-white text-center">Your Name</h3>
-              
+            <div className="space-y-2 px-2">
+              <label htmlFor="nickname" className="block text-lg font-medium text-white">
+                Name
+              </label>
               <input
-                id="nickname"
                 type="text"
+                id="nickname"
+                name="nickname"
                 value={nickname}
                 onChange={(e) => {
                   setNickname(e.target.value);
@@ -131,21 +115,17 @@ export function PlayerCreationForm({
                     setErrors({});
                   }
                 }}
+                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-2xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent transition-all duration-200"
                 placeholder="Enter your nickname"
-                className={`
-                  w-full px-4 py-3 border rounded-xl bg-slate-800 text-white placeholder-slate-400 
-                  focus:outline-none focus:ring-2 focus:ring-[--accent] focus:border-transparent transition-all
-                  ${errors.nickname ? "border-red-500" : "border-slate-600"}
-                `}
                 maxLength={20}
+                required
                 autoComplete="off"
                 autoFocus
               />
-              
               {errors.nickname && (
-                <p className="text-sm text-red-400 animate-fade-in text-center">{errors.nickname}</p>
+                <p className="text-red-400 text-sm">{errors.nickname}</p>
               )}
-              
+
               <div className="flex justify-between items-center text-sm">
                 <span className="text-slate-400">Nickname</span>
                 <span className="text-slate-400">
@@ -157,30 +137,20 @@ export function PlayerCreationForm({
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-4 pt-4 animate-fade-in-up" style={{ animationDelay: '500ms' }}>
-          {onCancel && (
-            <button
-              type="button"
-              onClick={handleCancel}
-              className="flex-1 py-4 px-6 rounded-2xl bg-slate-700/50 hover:bg-slate-600/50 border border-slate-600/50 hover:border-slate-500/50 text-white font-bold text-lg transition-all duration-200 hover:-translate-y-1 hover:shadow-lg active:translate-y-0"
-            >
-              Cancel
-            </button>
-          )}
+        <div className="flex flex-col sm:flex-row-reverse gap-3 sm:gap-4 animate-fade-in-up" style={{ animationDelay: '700ms' }}>
           <button
             type="submit"
             disabled={isSubmitting || !nickname.trim()}
-            className={`flex-1 py-4 px-6 rounded-2xl font-bold text-lg transition-all duration-200 hover:-translate-y-1 hover:shadow-glow active:translate-y-0 ${
-              isSubmitting || !nickname.trim()
-                ? "bg-slate-600/50 text-slate-400 cursor-not-allowed"
-                : "bg-gradient-to-r from-teal-500 to-blue-600 hover:from-teal-600 hover:to-blue-700 text-white shadow-lg"
-            }`}
+            className="w-full sm:flex-1 px-6 py-3 bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 rounded-2xl text-white font-medium transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
           >
-            {isSubmitting
-              ? "Creating..."
-              : isHost
-                ? "Create Room"
-                : "Join Game"}
+            {isSubmitting ? "Creating..." : isHost ? "Create Room" : "Join Room"}
+          </button>
+          <button
+            type="button"
+            onClick={handleRandomize}
+            className="w-full sm:flex-1 px-6 py-3 bg-slate-700/50 hover:bg-slate-600/50 border border-slate-600 rounded-2xl text-white font-medium transition-all duration-200 hover:scale-105"
+          >
+            Randomize
           </button>
         </div>
       </form>

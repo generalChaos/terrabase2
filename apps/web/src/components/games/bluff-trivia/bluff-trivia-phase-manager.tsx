@@ -52,6 +52,7 @@ export class BluffTriviaPhaseManager extends BaseGamePhaseManager {
       hasSubmittedAnswer = false,
       hasVoted = false,
       selectedChoiceId,
+      onStartGame,
     } = props;
 
     if (!this.isValidPhase(phase)) {

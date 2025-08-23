@@ -10,6 +10,7 @@ import type { RoomState, Choice } from '@party/types';
 import { DUR } from '@party/types';
 import { getAllGames, getApiUrl, AppConfig } from '@party/config';
 import { useRoomCode } from '@/components/host/room-code-provider';
+import { ErrorBoundary, useErrorBoundary } from '@/components/error-boundary';
 
 export function HostClient({ code }: { code: string }) {
   const [state, setState] = useState<RoomState | null>(null);
@@ -23,6 +24,9 @@ export function HostClient({ code }: { code: string }) {
   const [showPlayerCreation, setShowPlayerCreation] = useState(true);
   const [isCreatingRoom, setIsCreatingRoom] = useState(false);
   const socketRef = useRef<ReturnType<typeof connectToRoom> | null>(null);
+
+  // Use Error Boundary hook for manual error throwing
+  const { throwError } = useErrorBoundary();
 
   // Use the context to get and update room code
   const { roomCode, setRoomCode } = useRoomCode();
@@ -110,23 +114,20 @@ export function HostClient({ code }: { code: string }) {
         }, 100);
       });
 
-      // Listen for connection errors
-      s.on('connect_error', (error) => {
-        console.error('❌ Host connection error:', error);
-        setShowPlayerCreation(true);
-        setIsCreatingRoom(false);
-      });
-
       // Listen for join confirmation
       s.on('joined', (data: { ok: boolean }) => {
         console.log('✅ Host successfully joined room:', data);
       });
 
-      // Listen for join errors
-      s.on('error', (error: Error) => {
-        console.error('❌ Host join error:', error);
-        setShowPlayerCreation(true);
-        setIsCreatingRoom(false);
+      // Listen for errors
+      s.on('error', (error: unknown) => {
+        console.error('❌ Socket error:', error);
+        throwError(`WebSocket error: ${JSON.stringify(error)}`);
+      });
+
+      s.on('connect_error', (error: Error) => {
+        console.error('❌ Connection error:', error);
+        throwError(`Connection failed: ${error.message}`);
       });
 
       // Listen for room state updates
@@ -219,85 +220,88 @@ export function HostClient({ code }: { code: string }) {
     availableGames.find(game => game.id === selectedGame) || availableGames[0];
 
   // Show player creation form first
-  if (showPlayerCreation) {
+    if (showPlayerCreation) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
-        <PlayerCreationForm
-          onSubmit={handlePlayerCreation}
-          onCancel={() => window.history.back()}
-          isHost={true}
-          roomCode={roomCode}
-        />
+      <ErrorBoundary>
+        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
+          <PlayerCreationForm
+            onSubmit={handlePlayerCreation}
+            onCancel={() => window.history.back()}
+            isHost={true}
+          />
 
-        {isCreatingRoom && (
-          <div className="text-center text-slate-300 mt-4">
-            <div className="animate-spin inline-block w-6 h-6 border-2 border-teal-400 border-t-transparent rounded-full mr-2"></div>
-            Creating room...
-          </div>
-        )}
-      </div>
+          {isCreatingRoom && (
+            <div className="text-center text-slate-300 mt-4">
+              <div className="animate-spin inline-block w-6 h-6 border-2 border-teal-400 border-t-transparent rounded-full mr-2"></div>
+              Creating room...
+            </div>
+          )}
+        </div>
+      </ErrorBoundary>
     );
   }
 
   return (
-    <>
-      {state ? (
-        <>
-          {console.log(
-            '🏠 HostClient rendering GamePhaseManager with state:',
-            state
-          )}
-          <GamePhaseManager
-            gameType={state.gameType || selectedGame || 'fibbing-it'}
-            phase={state.phase || 'lobby'}
-            isHost={true}
-            roomCode={roomCode}
-            question={state.current?.prompt}
-            correctAnswer={state.current?.answer}
-            timeLeft={timer}
-            totalTime={(() => {
-              switch (state.phase) {
-                case 'prompt':
-                  return DUR.PROMPT;
-                case 'choose':
-                  return DUR.CHOOSE;
-                case 'scoring':
-                  return DUR.SCORING;
-                default:
-                  return 30;
-              }
-            })()}
-            round={state.round || 1}
-            maxRounds={state.maxRounds || 5}
-            choices={choices}
-            votes={state.current?.votes || []}
-            players={state.players || []}
-            scores={scores}
-            onStartGame={start}
-            selectedGame={selectedGameInfo}
-            onGameSelect={gameId => {
-              if (gameId === 'toggle') {
-                toggleGameSelection();
-              } else {
-                handleGameSelect(gameId);
-              }
-            }}
-            availableGames={availableGames}
-            showAllGames={showAllGames}
-          />
-        </>
-      ) : (
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
-          <div className="text-center animate-fade-in">
-            <div className="animate-spin rounded-full h-12 w-12 border-4 border-teal-400 border-t-transparent mx-auto mb-6"></div>
-            <h2 className="text-2xl font-bold text-white mb-4">Connecting to Room</h2>
-            <p className="text-slate-300 mb-4">Establishing connection...</p>
-            <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-6 py-3 inline-block">
-              <span className="text-lg font-mono text-white font-bold">{roomCode}</span>
+    <ErrorBoundary>
+      <>
+        {state ? (
+          <>
+            {console.log(
+              '🏠 HostClient rendering GamePhaseManager with state:',
+              state
+            )}
+            <GamePhaseManager
+              gameType={state.gameType || selectedGame || 'fibbing-it'}
+              phase={state.phase || 'lobby'}
+              isHost={true}
+              roomCode={roomCode}
+              question={state.current?.prompt}
+              correctAnswer={state.current?.answer}
+              timeLeft={timer}
+              totalTime={(() => {
+                switch (state.phase) {
+                  case 'prompt':
+                    return DUR.PROMPT;
+                  case 'choose':
+                    return DUR.CHOOSE;
+                  case 'scoring':
+                    return DUR.SCORING;
+                  default:
+                    return 30;
+                }
+              })()}
+              round={state.round || 1}
+              maxRounds={state.maxRounds || 5}
+              choices={choices}
+              votes={state.current?.votes || []}
+              players={state.players || []}
+              scores={scores}
+              onStartGame={start}
+              selectedGame={selectedGameInfo}
+              onGameSelect={gameId => {
+                if (gameId === 'toggle') {
+                  toggleGameSelection();
+                } else {
+                  handleGameSelect(gameId);
+                }
+              }}
+              availableGames={availableGames}
+              showAllGames={showAllGames}
+            />
+          </>
+        ) : (
+          <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+            <div className="text-center animate-fade-in">
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-teal-400 border-t-transparent mx-auto mb-6"></div>
+              <h2 className="text-2xl font-bold text-white mb-4">Connecting to Room</h2>
+              <p className="text-slate-300 mb-4">Establishing connection...</p>
+              <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-6 py-3 inline-block">
+                <span className="text-lg font-mono text-white font-bold">{roomCode}</span>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-    </>
+        )}
+      </>
+    </ErrorBoundary>
   );
 }

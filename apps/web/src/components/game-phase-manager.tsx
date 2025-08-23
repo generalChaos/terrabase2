@@ -81,13 +81,12 @@ export function GamePhaseManager(props: GamePhaseManagerProps) {
       return <div>Error: Room code required</div>;
     }
     return (
-      <LobbyView
-        {...gameProps}
-        roomCode={gameProps.roomCode}
-        players={gameProps.players || []}
-        isHost={gameProps.isHost}
-        showAllGames={gameProps.showAllGames}
-      />
+              <LobbyView
+          {...gameProps}
+          roomCode={gameProps.roomCode}
+          players={gameProps.players || []}
+          isHost={gameProps.isHost}
+        />
     );
   }
 

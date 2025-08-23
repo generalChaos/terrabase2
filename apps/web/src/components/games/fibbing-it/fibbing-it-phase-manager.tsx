@@ -46,6 +46,7 @@ export class FibbingItPhaseManager extends BaseGamePhaseManager {
       hasVoted = false,
       selectedChoiceId,
       roomCode = 'GR7A',
+      onStartGame,
     } = props;
 
     if (!this.isValidPhase(phase)) {
