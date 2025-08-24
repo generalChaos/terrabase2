@@ -53,7 +53,7 @@ export function LobbyView({
   // Loading state while components mount
   if (!mounted) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+      <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
         <div className="text-center animate-fade-in">
           <div className="animate-spin rounded-full h-12 w-12 border-4 border-teal-400 border-t-transparent mx-auto mb-6"></div>
           <h2 className="text-2xl font-bold text-white mb-4">Loading Lobby</h2>
@@ -64,7 +64,7 @@ export function LobbyView({
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
+    <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
       {/* Main Content */}
       <div className={`max-w-6xl mx-auto space-y-8 pt-8 transition-opacity duration-300 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
         {/* Player Status */}

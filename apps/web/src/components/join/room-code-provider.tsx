@@ -7,7 +7,7 @@ import {
   useEffect,
 } from 'react';
 import { useParams } from 'next/navigation';
-import { RoomCodeChip } from '@/components/games/shared/ui';
+import { AppShell } from '@/components/app-shell';
 
 type RoomCodeContextType = {
   roomCode: string;
@@ -42,24 +42,16 @@ export function RoomCodeProvider({ children }: RoomCodeProviderProps) {
 
   return (
     <RoomCodeContext.Provider value={{ roomCode, setRoomCode }}>
-      <div className="max-w-[1100px] mx-auto px-6 py-6 text-white">
-        <header className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-4">
-            <div className="text-3xl font-bold">🎮 Party Games</div>
-            <div className="hidden sm:block opacity-70 text-xl">Join Game</div>
-          </div>
-          <div className="flex items-center gap-4">
-            {roomCode && <RoomCodeChip code={roomCode} />}
-          </div>
-        </header>
-
-        {roomCode && (
-          <div className="mt-3 text-sm opacity-80">
-            Joining room: <span className="font-mono">{roomCode}</span>
-          </div>
-        )}
-
-        <main className="mt-6">{children}</main>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+        <div className="max-w-[1100px] mx-auto px-6 py-4 text-white">
+          {/* AppShell Header */}
+          <AppShell roomCode={roomCode} />
+          
+          {/* Main Content */}
+          <main className="mt-6">
+            {children}
+          </main>
+        </div>
       </div>
     </RoomCodeContext.Provider>
   );

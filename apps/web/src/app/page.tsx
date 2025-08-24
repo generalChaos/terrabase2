@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { Play, Users, Clock, Star } from "lucide-react";
 import { getAllGames, getApiUrl, AppConfig, type GameInfo } from "@party/config";
 import { Card, CardContent, CardTitle, CardDescription } from "@party/ui";
+import { Button } from "@/components/ui/button";
 
 const games: GameInfo[] = getAllGames();
 
@@ -145,10 +146,12 @@ export default function Home() {
                 </div>
                 
                 {/* Play Button */}
-                <button
+                <Button
+                  variant="game"
+                  size="lg"
                   onClick={() => createRoom(game.id)}
                   disabled={loading === game.id}
-                  className={`w-full py-4 px-6 rounded-2xl bg-gradient-to-r ${game.color} hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-lg transition-all duration-200 hover:-translate-y-1 hover:shadow-glow active:translate-y-0`}
+                  className={`w-full bg-gradient-to-r ${game.color}`}
                 >
                   {loading === game.id ? (
                     <div className="flex items-center justify-center">
@@ -161,7 +164,7 @@ export default function Home() {
                       Play Now
                     </div>
                   )}
-                </button>
+                </Button>
               </CardContent>
             </Card>
           ))}

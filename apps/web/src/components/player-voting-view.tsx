@@ -50,7 +50,7 @@ export function PlayerVotingView({
   const progressPercentage = Math.max(0, Math.min(100, (timeLeft / totalTime) * 100));
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col animate-fade-in">
+    <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col animate-fade-in">
       {/* Progress Bar */}
       <div className="w-full bg-slate-800/50 p-4 animate-slide-down">
         <div className="max-w-md mx-auto">

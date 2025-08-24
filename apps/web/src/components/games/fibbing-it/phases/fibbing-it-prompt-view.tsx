@@ -35,7 +35,7 @@ export function FibbingItPromptView({
   if (isPlayer) {
     // Mobile-style player view
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col animate-fade-in">
+      <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col animate-fade-in">
         {/* Mobile Header */}
         <div className="flex items-center justify-between p-4 bg-slate-800/50 backdrop-blur-sm animate-slide-down">
           <button className="text-white text-2xl hover:scale-110 transition-transform duration-200">←</button>
@@ -82,7 +82,7 @@ export function FibbingItPromptView({
 
   // Host view (desktop)
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col animate-fade-in">
+    <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col animate-fade-in">
       {/* Header */}
       <div className="flex justify-between items-center p-6 animate-slide-down">
         <h1 className="text-4xl font-bold text-white tracking-wider animate-fade-in-up">

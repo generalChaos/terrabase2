@@ -220,10 +220,10 @@ export function HostClient({ code }: { code: string }) {
     availableGames.find(game => game.id === selectedGame) || availableGames[0];
 
   // Show player creation form first
-    if (showPlayerCreation) {
+  if (showPlayerCreation) {
     return (
       <ErrorBoundary>
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
+        <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
           <PlayerCreationForm
             onSubmit={handlePlayerCreation}
             onCancel={() => window.history.back()}

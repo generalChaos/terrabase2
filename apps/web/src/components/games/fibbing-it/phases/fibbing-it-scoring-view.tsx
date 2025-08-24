@@ -35,6 +35,8 @@ export function FibbingItScoringView({
   scores = [],
   playerId,
   isPlayer = false,
+  round,
+  maxRounds,
 }: FibbingItScoringViewProps) {
   const getPlayerScore = (playerId: string) => {
     return scores.find(s => s.playerId === playerId)?.score || 0;
@@ -43,32 +45,42 @@ export function FibbingItScoringView({
   if (isPlayer) {
     // Mobile-style player view
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col">
+      <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col animate-fade-in">
         {/* Mobile Header */}
-        <div className="flex items-center justify-between p-4 bg-slate-800/50">
-          <button className="text-white text-2xl">←</button>
-          <div className="text-white font-mono text-lg">GR7A</div>
+        <div className="flex items-center justify-between p-4 bg-slate-800/50 backdrop-blur-sm animate-slide-down">
+          <button className="text-white text-2xl hover:scale-110 transition-transform duration-200">←</button>
+          <div className="text-white font-mono text-lg">GRMT</div>
+          <div className="text-white font-bold text-xl animate-pulse-slow">
+            {Math.ceil(timeLeft / 1000)}
+          </div>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
-          <h2 className="text-3xl font-bold text-white mb-8">{question}</h2>
+        {/* Scoring Interface */}
+        <div className="flex-1 flex flex-col items-center justify-center px-6 text-center animate-fade-in-up" style={{ animationDelay: '300ms' }}>
+          <h2 className="text-2xl font-bold text-white mb-6 leading-relaxed">
+            {question}
+          </h2>
 
-          <div className="text-xl text-teal-400 mb-8">
-            Correct Answer: {correctAnswer}
-          </div>
+          {/* Answer Display */}
+          <div className="w-full max-w-md space-y-4 animate-fade-in-up" style={{ animationDelay: '500ms' }}>
+            <div className="bg-slate-800 border border-slate-600 rounded-xl p-4">
+              <div className="text-sm text-slate-400 mb-2">Correct Answer:</div>
+              <div className="text-white font-medium">{correctAnswer}</div>
+            </div>
 
-          <div className="text-lg text-white">
-            Your Score: {getPlayerScore(playerId || '')}
+            {/* Score */}
+            <div className="text-2xl font-bold text-teal-400">
+              Round {round} of {maxRounds}
+            </div>
           </div>
         </div>
       </div>
     );
   }
 
-  // Desktop view (host or player)
+  // Host view (desktop)
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col">
+    <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col animate-fade-in">
       {/* Header */}
       <div className="flex justify-between items-center p-6">
         <h1 className="text-4xl font-bold text-white tracking-wider">

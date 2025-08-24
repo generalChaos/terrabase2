@@ -47,43 +47,50 @@ export function FibbingItVotingView({
   if (isPlayer) {
     // Mobile-style player view
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col">
+      <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col animate-fade-in">
         {/* Mobile Header */}
-        <div className="flex items-center justify-between p-4 bg-slate-800/50">
-          <button className="text-white text-2xl">←</button>
-          <div className="text-white font-mono text-lg">GR7A</div>
-          <div className="text-white font-bold text-xl">
+        <div className="flex items-center justify-between p-4 bg-slate-800/50 backdrop-blur-sm animate-slide-down">
+          <button className="text-white text-2xl hover:scale-110 transition-transform duration-200">←</button>
+          <div className="text-white font-mono text-lg">GRMT</div>
+          <div className="text-white font-bold text-xl animate-pulse-slow">
             {Math.ceil(timeLeft / 1000)}
           </div>
         </div>
 
-        {/* Question */}
-        <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
-          <h2 className="text-3xl font-bold text-white mb-8 leading-relaxed">
+        {/* Voting Interface */}
+        <div className="flex-1 flex flex-col items-center justify-center px-6 text-center animate-fade-in-up" style={{ animationDelay: '300ms' }}>
+          <h2 className="text-2xl font-bold text-white mb-6 leading-relaxed">
             {question}
           </h2>
 
           {/* Choices */}
-          <div className="w-full max-w-md space-y-4">
-            {choices.map(choice => (
+          <div className="w-full max-w-md space-y-3 animate-fade-in-up" style={{ animationDelay: '500ms' }}>
+            {choices.map((choice) => (
               <button
                 key={choice.id}
                 onClick={() => handleVote(choice.id)}
-                disabled={hasVoted || gotAnswerCorrect}
-                className={`w-full p-4 text-lg rounded-xl transition-all duration-200 ${
-                  selectedChoiceId === choice.id
-                    ? 'bg-teal-600 text-white'
-                    : 'bg-slate-800 text-white hover:bg-slate-700 border border-slate-600'
-                } ${hasVoted || gotAnswerCorrect ? 'opacity-50 cursor-not-allowed' : ''}`}
+                disabled={hasVoted}
+                className={`w-full p-4 text-left rounded-xl border-2 transition-all duration-200 ${
+                  hasVoted
+                    ? 'bg-slate-800 border-slate-600 text-slate-400'
+                    : 'bg-slate-800 border-slate-600 text-white hover:border-teal-400 hover:bg-slate-700'
+                }`}
               >
-                {choice.text}
+                <div className="flex items-center justify-between">
+                  <span className="font-medium">{choice.text}</span>
+                  {hasVoted && (
+                    <span className="text-teal-400 font-bold">
+                      {votes.filter(v => v.choiceId === choice.id).length} votes
+                    </span>
+                  )}
+                </div>
               </button>
             ))}
           </div>
 
           {hasVoted && (
-            <div className="mt-4 text-teal-400 font-medium">
-              Vote submitted!
+            <div className="mt-6 text-teal-400 font-medium animate-fade-in-up" style={{ animationDelay: '700ms' }}>
+              ✓ Vote submitted!
             </div>
           )}
         </div>
@@ -91,9 +98,9 @@ export function FibbingItVotingView({
     );
   }
 
-  // Desktop view (host or player)
+  // Host view (desktop)
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col">
+    <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col animate-fade-in">
       {/* Header */}
       <div className="flex justify-between items-center p-6">
         <h1 className="text-4xl font-bold text-white tracking-wider">
