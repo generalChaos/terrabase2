@@ -18,6 +18,7 @@ interface PlayerCreationFormProps {
 
 export function PlayerCreationForm({
   onSubmit,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   onCancel,
   defaultValues = {},
   isHost = false,
@@ -49,11 +50,7 @@ export function PlayerCreationForm({
     });
   };
 
-  const handleCancel = () => {
-    if (onCancel) {
-      onCancel();
-    }
-  };
+
 
   const handleRandomize = () => {
     const { avatar, name } = getRandomAvatarAndName();

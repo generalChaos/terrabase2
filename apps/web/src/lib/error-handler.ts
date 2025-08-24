@@ -9,7 +9,6 @@ import {
   Result,
   success,
   failure,
-  StandardError,
   ErrorCategory,
 } from '@party/types';
 

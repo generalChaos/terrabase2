@@ -1,0 +1,524 @@
+/* Performance optimizations and mobile considerations */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Mobile performance optimizations */
+@media (max-width: 768px) {
+  .confetti-bg,
+  .parallax-layer {
+    /* Reduce background size on mobile for better performance */
+    background-size: calc(var(--tile-size) * 0.8) calc(var(--tile-size) * 0.8);
+  }
+  
+  /* Reduce animation complexity on mobile */
+  .animate-tile-bounce,
+  .animate-tile-pulse,
+  .animate-tile-spiral {
+    animation-duration: calc(var(--animation-duration) * 1.5);
+  }
+}
+
+/* Gradient mask utilities */
+.confetti-bg-with-mask {
+  mask-image: linear-gradient(to bottom, 
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 1) 60%,
+    rgba(0, 0, 0, 0.8) 75%,
+    rgba(0, 0, 0, 0.4) 85%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  -webkit-mask-image: linear-gradient(to bottom, 
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 1) 60%,
+    rgba(0, 0, 0, 0.8) 75%,
+    rgba(0, 0, 0, 0.4) 85%,
+    rgba(0, 0, 0, 0) 100%
+  );
+}
+
+.confetti-bg-with-mask-strong {
+  mask-image: linear-gradient(to bottom, 
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 1) 20%,
+    rgba(0, 0, 0, 0.8) 30%,
+    rgba(0, 0, 0, 0.4) 40%,
+    rgba(0, 0, 0, 0) 65%
+  );
+  -webkit-mask-image: linear-gradient(to bottom, 
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 1) 20%,
+    rgba(0, 0, 0, 0.8) 30%,
+    rgba(0, 0, 0, 0.4) 40%,
+    rgba(0, 0, 0, 0) 65%
+  );
+}
+
+.confetti-bg-with-mask-subtle {
+  mask-image: linear-gradient(to bottom, 
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 1) 80%,
+    rgba(0, 0, 0, 0.9) 85%,
+    rgba(0, 0, 0, 0.7) 90%,
+    rgba(0, 0, 0, 0.3) 95%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  -webkit-mask-image: linear-gradient(to bottom, 
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 1) 80%,
+    rgba(0, 0, 0, 0.9) 85%,
+    rgba(0, 0, 0, 0.7) 90%,
+    rgba(0, 0, 0, 0.3) 95%,
+    rgba(0, 0, 0, 0) 100%
+  );
+}
+
+/* Aggressive mask - content invisible by 50% down the page */
+.confetti-bg-with-mask-aggressive {
+  mask-image: linear-gradient(to bottom, 
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 1) 40%,
+    rgba(0, 0, 0, 0.8) 45%,
+    rgba(0, 0, 0, 0.4) 50%,
+    rgba(0, 0, 0, 0) 55%
+  );
+  -webkit-mask-image: linear-gradient(to bottom, 
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 1) 40%,
+    rgba(0, 0, 0, 0.8) 45%,
+    rgba(0, 0, 0, 0.4) 50%,
+    rgba(0, 0, 0, 0) 55%
+  );
+}
+
+/* High-performance animations using transform and opacity */
+@keyframes tile-drift {
+  from { 
+    transform: translate3d(0, 0, 0);
+  }
+  to { 
+    transform: translate3d(var(--tile-size-negative), var(--tile-size-negative), 0);
+  }
+}
+
+@keyframes tile-fall {
+  0% { 
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+  }
+  70% { 
+    transform: translate3d(var(--tile-size-half-negative), var(--tile-size-half-negative), 0);
+    opacity: 0.8;
+  }
+  100% { 
+    transform: translate3d(var(--tile-size-negative), var(--tile-size-negative), 0);
+    opacity: 0;
+  }
+}
+
+@keyframes tile-fall-down {
+  0% { 
+    transform: translate3d(0, -100vh, 0);
+    opacity: 1;
+  }
+  25% { 
+    transform: translate3d(0, -75vh, 0);
+    opacity: 0.8;
+  }
+  50% { 
+    transform: translate3d(0, -50vh, 0);
+    opacity: 0.6;
+  }
+  75% { 
+    transform: translate3d(0, -25vh, 0);
+    opacity: 0.3;
+  }
+  100% { 
+    transform: translate3d(0, 100vh, 0);
+    opacity: 0;
+  }
+}
+
+@keyframes tile-bounce {
+  0%, 100% { 
+    transform: translate3d(0, 0, 0);
+  }
+  25% { 
+    transform: translate3d(var(--tile-size-half-negative), var(--tile-size-half-negative), 0) translate3d(0, -20px, 0);
+  }
+  50% { 
+    transform: translate3d(var(--tile-size-negative), var(--tile-size-negative), 0);
+  }
+  75% { 
+    transform: translate3d(var(--tile-size-150-negative), var(--tile-size-150-negative), 0);
+  }
+}
+
+@keyframes tile-pulse {
+  0%, 100% { 
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% { 
+    transform: translate3d(var(--tile-size-half-negative), var(--tile-size-half-negative), 0) scale(1.05);
+  }
+}
+
+@keyframes tile-wave {
+  0%, 100% { 
+    transform: translate3d(0, 0, 0);
+  }
+  25% { 
+    transform: translate3d(var(--tile-size-half-negative), 0, 0);
+  }
+  50% { 
+    transform: translate3d(var(--tile-size-negative), 0, 0);
+  }
+  75% { 
+    transform: translate3d(var(--tile-size-150-negative), 0, 0);
+  }
+}
+
+@keyframes tile-spiral {
+  0% { 
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  100% { 
+    transform: translate3d(var(--tile-size-negative), var(--tile-size-negative), 0) rotate(360deg);
+  }
+}
+
+@keyframes tile-float {
+  0%, 100% { 
+    transform: translate3d(0, 0, 0);
+  }
+  50% { 
+    transform: translate3d(var(--tile-size-half-negative), var(--tile-size-half-negative), 0) translate3d(0, -15px, 0);
+  }
+}
+
+/* Optimized parallax layer animations */
+@keyframes layer-fall-down {
+  0% {
+    transform: translate3d(var(--offset-x), var(--offset-y), 0);
+    opacity: var(--layer-opacity);
+  }
+  70% {
+    transform: translate3d(var(--offset-x), var(--offset-y), 0);
+    opacity: var(--layer-opacity);
+  }
+  100% {
+    transform: translate3d(calc(var(--offset-x) + var(--wind-x)), calc(var(--offset-y) + 100vh + var(--tile-size)), 0);
+    opacity: 0;
+  }
+}
+
+@keyframes layer-fall-up {
+  0% {
+    transform: translate3d(var(--offset-x), var(--offset-y), 0);
+    opacity: var(--layer-opacity);
+  }
+  70% {
+    transform: translate3d(var(--offset-x), var(--offset-y), 0);
+    opacity: var(--layer-opacity);
+  }
+  100% {
+    transform: translate3d(calc(var(--offset-x) + var(--wind-x)), calc(var(--offset-y) - 100vh - var(--tile-size)), 0);
+    opacity: 0;
+  }
+}
+
+@keyframes layer-fall-left {
+  0% {
+    transform: translate3d(var(--offset-x), var(--offset-y), 0);
+    opacity: var(--layer-opacity);
+  }
+  70% {
+    transform: translate3d(var(--offset-x), var(--offset-y), 0);
+    opacity: var(--layer-opacity);
+  }
+  100% {
+    transform: translate3d(calc(var(--offset-x) - 100vw - var(--tile-size)), calc(var(--offset-y) + var(--wind-y)), 0);
+    opacity: 0;
+  }
+}
+
+@keyframes layer-fall-right {
+  0% {
+    transform: translate3d(var(--offset-x), var(--offset-y), 0);
+    opacity: var(--layer-opacity);
+  }
+  70% {
+    transform: translate3d(var(--offset-x), var(--offset-y), 0);
+    opacity: var(--layer-opacity);
+  }
+  100% {
+    transform: translate3d(calc(var(--offset-x) + 100vw + var(--tile-size)), calc(var(--offset-y) + var(--wind-y)), 0);
+    opacity: 0;
+  }
+}
+
+/* Room code glow effect with performance optimizations */
+@keyframes glow {
+  0%, 100% { opacity: .5; }
+  50% { opacity: .9; }
+}
+
+/* Utility classes with performance optimizations */
+.confetti-bg {
+  background-repeat: repeat;
+  background-size: var(--tile-size) var(--tile-size);
+  background-position: 0 0;
+  /* Performance optimizations */
+  will-change: transform;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}
+
+.confetti-bg-with-gradients {
+  background-repeat: repeat;
+  background-size: var(--tile-size) var(--tile-size);
+  background-position: 0 0;
+  /* Performance optimizations */
+  will-change: transform;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}
+
+/* Hero glow layer - static, doesn't move with confetti */
+.confetti-bg-hero-glow {
+  position: relative;
+}
+
+.confetti-bg-hero-glow::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  background-image: 
+    radial-gradient(80% 60% at 50% -10%, rgba(56,189,248,.15), transparent 50%),
+    radial-gradient(60% 50% at 80% 0, rgba(217,70,239,.12), transparent 60%);
+  background-repeat: no-repeat;
+  background-size: 1200px 700px, 900px 600px;
+  background-position: center top, right top;
+  pointer-events: none;
+  z-index: 1;
+  /* Ensure hero glow stays static */
+  will-change: auto;
+  transform: none;
+}
+
+.confetti-bg-hero-glow-only {
+  position: relative;
+}
+
+.confetti-bg-hero-glow-only::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  background-image: radial-gradient(80% 60% at 50% -10%, rgba(56,189,248,.15), transparent 50%);
+  background-repeat: no-repeat;
+  background-size: 1200px 700px;
+  background-position: center top;
+  pointer-events: none;
+  z-index: 1;
+  /* Ensure hero glow stays static */
+  will-change: auto;
+  transform: none;
+}
+
+/* Animation classes with performance optimizations */
+.animate-tile-drift {
+  animation: tile-drift var(--animation-duration) linear infinite;
+  will-change: transform;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}
+
+.animate-tile-fall {
+  animation: tile-fall var(--animation-duration) linear infinite;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}
+
+.animate-tile-fall-down {
+  animation: tile-fall-down var(--animation-duration) ease-in-out infinite;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}
+
+.animate-tile-bounce {
+  animation: tile-bounce var(--animation-duration) ease-in-out infinite;
+  will-change: transform;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}
+
+.animate-tile-pulse {
+  animation: tile-pulse var(--animation-duration) ease-in-out infinite;
+  will-change: transform;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}
+
+.animate-tile-wave {
+  animation: tile-wave var(--animation-duration) ease-in-out infinite;
+  will-change: transform;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}
+
+.animate-tile-spiral {
+  animation: tile-spiral var(--animation-duration) linear infinite;
+  will-change: transform;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}
+
+.animate-tile-float {
+  animation: tile-float var(--animation-duration) ease-in-out infinite;
+  will-change: transform;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}
+
+/* Parallax layer utilities with performance optimizations */
+.parallax-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-repeat: repeat;
+  z-index: var(--layer-z-index);
+  /* Performance optimizations */
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+  /* Mobile optimizations */
+  -webkit-transform: translateZ(0);
+  -moz-transform: translateZ(0);
+  -ms-transform: translateZ(0);
+}
+
+.parallax-container {
+  position: relative;
+  overflow: hidden;
+  /* Performance optimizations */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  -moz-transform: translateZ(0);
+  -ms-transform: translateZ(0);
+}
+
+/* Room code glow utility with performance optimizations */
+.room-code-glow {
+  position: relative;
+  isolation: isolate;
+  /* Ensure text content is not affected by background animations */
+  transform: translateZ(0);
+  will-change: auto;
+}
+
+.room-code-glow::before {
+  content: "";
+  position: absolute;
+  inset: -16px;
+  border-radius: 18px;
+  background: radial-gradient(60% 60% at 50% 50%, rgba(99,102,241,.35), transparent 70%);
+  filter: blur(8px);
+  z-index: -1;
+  opacity: .75;
+  animation: glow 3.6s ease-in-out infinite;
+  /* Performance optimizations */
+  will-change: opacity;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}
+
+/* Mobile-specific optimizations */
+@media (max-width: 768px) {
+  /* Reduce animation complexity on mobile */
+  .parallax-layer {
+    /* Limit to 3 layers on mobile for performance */
+    &:nth-child(n+4) {
+      display: none;
+    }
+  }
+  
+  /* Simplify animations on mobile */
+  .animate-tile-spiral,
+  .animate-tile-bounce {
+    animation: tile-drift var(--animation-duration) linear infinite;
+  }
+  
+  /* Reduce glow effect on mobile */
+  .room-code-glow::before {
+    filter: blur(4px);
+    animation-duration: 2.4s;
+  }
+}
+
+/* High-DPI display optimizations */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .confetti-bg,
+  .parallax-layer {
+    /* Ensure crisp rendering on high-DPI displays */
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+}
+
+/* Battery saver mode optimizations */
+@media (prefers-reduced-motion: reduce) {
+  .confetti-bg,
+  .parallax-layer {
+    /* Disable animations when user prefers reduced motion */
+    animation: none !important;
+  }
+  
+  .room-code-glow::before {
+    animation: none !important;
+  }
+}
+
+/* Text overlay isolation - ensures text doesn't move with background */
+.confetti-bg .absolute,
+.parallax-layer .absolute {
+  /* Isolate text content from background animations */
+  transform: translateZ(0);
+  will-change: auto;
+  backface-visibility: visible;
+}
+
+/* Information container isolation - ensures animation details stay static */
+.confetti-bg .bg-gray-800\/80,
+.parallax-layer .bg-gray-800\/80 {
+  /* Isolate information containers from background animations */
+  transform: translateZ(0);
+  will-change: auto;
+  backface-visibility: visible;
+  /* Ensure proper layering */
+  position: relative;
+  z-index: 2;
+}
+
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+  .confetti-bg,
+  .parallax-layer {
+    /* Optimize for touch devices */
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+}

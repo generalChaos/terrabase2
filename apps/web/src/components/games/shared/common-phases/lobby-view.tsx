@@ -2,7 +2,6 @@
 import { useState, useEffect } from "react";
 import { PlayerAvatar } from '../ui/player-avatar';
 import { Users, Wifi, WifiOff, Play } from 'lucide-react';
-import { buttonVariants } from '@party/ui';
 
 type LobbyViewProps = {
   roomCode: string;

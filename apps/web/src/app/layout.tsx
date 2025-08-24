@@ -11,7 +11,7 @@ const bangers = Bangers({
   variable: '--font-bangers',
 });
 
-export const metadata = { title: 'Fibbing It!', description: 'Party game' };
+export const metadata = { title: 'Party Game', description: 'Multi-game party platform with Bluff Trivia, Fibbing It, Word Association, and more!' };
 
 export default function RootLayout({
   children,

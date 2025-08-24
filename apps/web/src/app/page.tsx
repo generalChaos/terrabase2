@@ -50,20 +50,55 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      {/* Header */}
-      <div className="text-center pt-16 pb-12 animate-fade-in">
-        <h1 className="text-7xl font-bold text-white tracking-wider mb-4 animate-fade-in-up">
-          PARTY GAMES
-        </h1>
-        <p className="text-xl text-slate-300 max-w-2xl mx-auto animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-          Choose your game and start the party! All games are designed to be played on phones 
-          with friends in the same room.
-        </p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative">
+      {/* Confetti Background with Opacity Mask */}
+      <div className="absolute inset-0 pointer-events-none">
+        {/* Small confetti layer - BASE LAYER */}
+        <div 
+          className="absolute inset-0 w-full h-full bg-[url('/confetti-pack/confetti-tile-1.svg')] bg-repeat opacity-50 confetti-mask-custom"
+          style={{ 
+            backgroundSize: '120px 120px',
+            backgroundPosition: '0 0',
+            zIndex: 0
+          }}
+        />
+        {/* Large confetti layer - ON TOP OF SMALL */}
+        <div 
+          className="absolute inset-0 w-full h-full bg-[url('/confetti-pack/confetti-sprinkles.svg')] bg-repeat opacity-60 confetti-mask-custom"
+          style={{ 
+            backgroundPosition: '0 0',
+            zIndex: 1
+          }}
+        />
       </div>
 
-      {/* Game Selection Grid */}
-      <div className="max-w-7xl mx-auto px-6 pb-16">
+      {/* Hero Glow Effect - Above confetti, below game grid */}
+      <div className="absolute inset-0 pointer-events-none z-5">
+        <div 
+          className="w-full h-full opacity-30"
+          style={{
+            backgroundImage: 'radial-gradient(80% 60% at 50% 20%, rgba(56,189,248,0.4) 0%, rgba(217,70,239,0.3) 50%, transparent 70%)',
+            backgroundSize: '1200px 800px',
+            backgroundPosition: 'center top',
+            backgroundRepeat: 'no-repeat'
+          }}
+        />
+      </div>
+
+      {/* Hero Banner */}
+      <div className="relative z-20 w-full">
+        <div className="text-center pt-20 pb-16 px-6">
+          <h1 className="text-6xl font-bold mb-6 bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-clip-text text-transparent drop-shadow-lg font-bangers">
+            Party Game
+          </h1>
+          <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
+            The ultimate collection of party games for friends and family
+          </p>
+        </div>
+      </div>
+
+      {/* Game Grid */}
+      <div className="relative z-30 px-6 pb-20">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {games.map((game, index) => (
             <Card

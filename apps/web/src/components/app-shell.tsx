@@ -19,7 +19,7 @@ export function AppShell({
     <div className="max-w-[1100px] mx-auto px-6 py-6 text-white text-6xl font-bold">
       <header className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-4">
-          <div className="text-3xl h1">Fibbing It!</div>
+          <div className="text-3xl h1 font-bangers">Party Game</div>
           <div className="hidden sm:block opacity-70">{title}</div>
         </div>
         <div className="flex items-center gap-4">

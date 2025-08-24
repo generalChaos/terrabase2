@@ -17,7 +17,6 @@ import { DUR } from '@party/types';
 import { ErrorBoundary, useErrorBoundary } from '@/components/error-boundary';
 
 export function JoinClient({ code }: { code: string }) {
-  const [nickname, setNickname] = useState('');
   const [joined, setJoined] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [roomState, setRoomState] = useState<RoomState | null>(null);
@@ -54,7 +53,6 @@ export function JoinClient({ code }: { code: string }) {
   }, [playerId]);
 
   const handlePlayerCreation = async (data: PlayerCreationData) => {
-    setNickname(data.nickname);
     setShowPlayerCreation(false);
 
     try {

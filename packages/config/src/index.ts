@@ -290,3 +290,36 @@ export const getLogLevel = (
 
 // Export everything for convenience
 export * from '@party/types';
+
+export const gameConfig = {
+  bluffTrivia: {
+    title: 'Bluff Trivia!',
+    name: 'Bluff Trivia!',
+    description: 'Test your knowledge and bluff your way to victory!',
+    minPlayers: 2,
+    maxPlayers: 8,
+    rounds: 5,
+    timePerRound: 60,
+    categories: ['General Knowledge', 'Science', 'History', 'Pop Culture', 'Sports', 'Geography']
+  },
+  fibbingIt: {
+    title: 'Fibbing It!',
+    name: 'Fibbing It!',
+    description: 'Create outrageous stories and vote for the best ones!',
+    minPlayers: 3,
+    maxPlayers: 8,
+    rounds: 3,
+    timePerRound: 90,
+    categories: ['Adventure', 'Mystery', 'Comedy', 'Fantasy', 'Sci-Fi', 'Romance']
+  },
+  wordAssociation: {
+    title: 'Word Association!',
+    name: 'Word Association!',
+    description: 'Connect words through creative associations!',
+    minPlayers: 2,
+    maxPlayers: 6,
+    rounds: 4,
+    timePerRound: 45,
+    categories: ['Nature', 'Technology', 'Food', 'Travel', 'Music', 'Art']
+  }
+};
