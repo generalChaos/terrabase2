@@ -9,6 +9,7 @@ type FibbingItPromptViewProps = {
   totalTime: number;
   round: number;
   maxRounds: number;
+  roomCode?: string;
   onSubmitAnswer?: (answer: string) => void;
   hasSubmitted?: boolean;
   isPlayer?: boolean;
@@ -20,6 +21,7 @@ export function FibbingItPromptView({
   totalTime,
   round,
   maxRounds,
+  roomCode = 'GR7A',
   onSubmitAnswer,
   hasSubmitted,
   isPlayer = false,
@@ -39,7 +41,7 @@ export function FibbingItPromptView({
         {/* Mobile Header */}
         <div className="flex items-center justify-between p-4 bg-slate-800/50 backdrop-blur-sm animate-slide-down">
           <button className="text-white text-2xl hover:scale-110 transition-transform duration-200">←</button>
-          <div className="text-white font-mono text-lg">GRMT</div>
+          <div className="text-white font-mono text-lg">{roomCode}</div>
           <div className="text-white font-bold text-xl animate-pulse-slow">
             {Math.ceil(timeLeft / 1000)}
           </div>
@@ -89,7 +91,7 @@ export function FibbingItPromptView({
           FIBBING IT!
         </h1>
         <div className="text-2xl font-mono text-teal-400 bg-slate-800 px-4 py-2 rounded-lg animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-          GR7A
+          {roomCode}
         </div>
       </div>
 

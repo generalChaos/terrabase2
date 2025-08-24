@@ -166,6 +166,14 @@ export function HostClient({ code }: { code: string }) {
         setChoices(data.choices);
       });
 
+      s.on('phaseChanged', (data: { phase: string; round: number; timeLeft: number; prompt?: string }) => {
+        console.log('🔄 Phase changed:', data);
+      });
+
+      s.on('answerSubmitted', (data: { answerId: string; playerId: string }) => {
+        console.log('✍️ Answer submitted:', data);
+      });
+
       s.on(
         'scores',
         (data: { totals: Array<{ playerId: string; score: number }> }) => {
@@ -190,10 +198,17 @@ export function HostClient({ code }: { code: string }) {
   };
 
   const start = () => {
-    if (!selectedGame) {
+    const gameType = state?.gameType || selectedGame;
+    if (!gameType) {
+      console.warn('No game type selected, cannot start game');
       return;
     }
-    socketRef.current?.emit('startGame', { gameType: selectedGame });
+    if (!socketRef.current) {
+      console.error('No socket connection, cannot start game');
+      return;
+    }
+    console.log('🚀 Starting game:', gameType, 'with socket:', socketRef.current.id);
+    socketRef.current.emit('startGame', { gameType });
   };
 
   const handleGameSelect = (gameId: string) => {
@@ -217,7 +232,7 @@ export function HostClient({ code }: { code: string }) {
 
   // Get the selected game info for display
   const selectedGameInfo =
-    availableGames.find(game => game.id === selectedGame) || availableGames[0];
+    availableGames.find(game => game.id === (state?.gameType || selectedGame)) || availableGames[0];
 
   // Show player creation form first
   if (showPlayerCreation) {

@@ -42,14 +42,21 @@ export function LobbyView({
   const [mounted, setMounted] = useState(false);
   const [displayMode, setDisplayMode] = useState<'connection' | 'points'>('connection');
   
-  const canStartGame = isHost && players.length >= 2 && selectedGame;
   const connectedPlayers = players.filter(p => p.connected !== false);
   const disconnectedPlayers = players.filter(p => p.connected === false);
+  const canStartGame = isHost && connectedPlayers.length >= 2 && selectedGame;
 
   useEffect(() => {
     setMounted(true);
-    console.log('🎮 LobbyView mounted with props:', { roomCode, players: players.length, isHost });
-  }, [roomCode, players.length, isHost]);
+    console.log('🎮 LobbyView mounted with props:', { 
+      roomCode, 
+      players: players.length, 
+      isHost, 
+      canStartGame,
+      connectedPlayers: connectedPlayers.length,
+      selectedGame: selectedGame?.id 
+    });
+  }, [roomCode, players.length, isHost, canStartGame, connectedPlayers.length, selectedGame?.id]);
 
   // Loading state while components mount
   if (!mounted) {
@@ -158,9 +165,9 @@ export function LobbyView({
           )}
         </div>
 
-        {/* Player Count - Small */}
+        {/* Player Count and Display Toggle */}
         <div className="text-center animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-          <div className="inline-flex items-center gap-2 text-sm text-slate-400">
+          <div className="inline-flex items-center gap-2 text-sm text-slate-400 mb-3">
             <Users className="w-4 h-4" />
             <span>
               {connectedPlayers.length} / {selectedGame?.players?.split('-')[1] || '8'} players
@@ -171,31 +178,92 @@ export function LobbyView({
           </div>
           
           {disconnectedPlayers.length > 0 && (
-            <div className="mt-2 text-xs text-orange-400">
+            <div className="text-xs text-orange-400 mb-3">
               {disconnectedPlayers.length} player{disconnectedPlayers.length === 1 ? '' : 's'} disconnected
             </div>
           )}
+
+          {/* Display Mode Toggle */}
+          <div className="flex justify-center">
+            <div className="inline-flex bg-slate-800/50 rounded-lg p-1 border border-slate-600/50">
+              <button
+                onClick={() => setDisplayMode('connection')}
+                className={`px-3 py-1 text-xs rounded-md transition-all duration-200 ${
+                  displayMode === 'connection'
+                    ? 'bg-teal-500 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
+                }`}
+              >
+                Connection
+              </button>
+              <button
+                onClick={() => setDisplayMode('points')}
+                className={`px-3 py-1 text-xs rounded-md transition-all duration-200 ${
+                  displayMode === 'points'
+                    ? 'bg-teal-500 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
+                }`}
+              >
+                Points
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Action Buttons */}
         <div className="text-center animate-fade-in-up" style={{ animationDelay: '800ms' }}>
           {/* Start Game Button - Host Only */}
           {isHost && (
-            <button
-              onClick={onStartGame}
-              disabled={!canStartGame}
-              className={`
-                px-8 py-3 rounded-2xl font-bold text-lg transition-all duration-200
-                ${canStartGame 
-                  ? 'bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white shadow-lg hover:shadow-xl'
-                  : 'bg-slate-700/50 text-slate-400 cursor-not-allowed border border-slate-600/50'
-                }
-              `}
-            >
-              {canStartGame ? 'Start' : 'Need 2+ players'}
-            </button>
+            <div className="space-y-4">
+              <button
+                onClick={() => {
+                  console.log('🚀 Start game button clicked!', { 
+                    canStartGame, 
+                    connectedPlayers: connectedPlayers.length,
+                    selectedGame: selectedGame?.id,
+                    onStartGame: !!onStartGame 
+                  });
+                  onStartGame?.();
+                }}
+                disabled={!canStartGame}
+                className={`
+                  px-12 py-4 rounded-3xl font-bold text-xl transition-all duration-300
+                  ${canStartGame 
+                    ? 'bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 text-white shadow-lg hover:shadow-xl transform hover:scale-105 hover:-translate-y-1'
+                    : 'bg-slate-700/50 text-slate-400 cursor-not-allowed border border-slate-600/50'
+                  }
+                `}
+              >
+                {canStartGame ? 'Start Game' : 'Need 2+ players'}
+              </button>
+              
+              {canStartGame && (
+                <div className="text-sm text-slate-400 animate-pulse">
+                  Ready to start {selectedGame?.title || 'the game'}!
+                </div>
+              )}
+            </div>
           )}
         </div>
+
+        {/* Debug Info - Development Only */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="text-center animate-fade-in-up" style={{ animationDelay: '1000ms' }}>
+            <details className="inline-block text-left">
+              <summary className="text-xs text-slate-500 cursor-pointer hover:text-slate-400">
+                Debug Info
+              </summary>
+              <div className="mt-2 p-3 bg-slate-800/50 rounded-lg text-xs text-slate-400 space-y-1">
+                <div>isHost: {isHost.toString()}</div>
+                <div>connectedPlayers: {connectedPlayers.length}</div>
+                <div>totalPlayers: {players.length}</div>
+                <div>selectedGame: {selectedGame?.id || 'none'}</div>
+                <div>canStartGame: {canStartGame?.toString() || 'false'}</div>
+                <div>onStartGame: {onStartGame ? 'function' : 'undefined'}</div>
+              </div>
+            </details>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -23,6 +23,9 @@ export enum EventType {
   SCORES = 'scores',
   ROOM_UPDATE = 'roomUpdate',
   GAME_OVER = 'gameOver',
+  PHASE_CHANGED = 'phaseChanged',
+  ANSWER_SUBMITTED = 'answerSubmitted',
+  VOTE_SUBMITTED = 'voteSubmitted',
 }
 
 export enum EventTarget {

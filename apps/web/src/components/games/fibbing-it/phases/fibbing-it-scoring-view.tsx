@@ -10,6 +10,7 @@ type FibbingItScoringViewProps = {
   totalTime: number;
   round: number;
   maxRounds: number;
+  roomCode?: string;
   votes?: Array<{ voter: string; choiceId: string }>;
   players?: Array<{
     id: string;
@@ -30,6 +31,7 @@ export function FibbingItScoringView({
   choices,
   timeLeft,
   totalTime,
+  roomCode = 'GR7A',
   votes = [],
   players = [],
   scores = [],
@@ -49,7 +51,7 @@ export function FibbingItScoringView({
         {/* Mobile Header */}
         <div className="flex items-center justify-between p-4 bg-slate-800/50 backdrop-blur-sm animate-slide-down">
           <button className="text-white text-2xl hover:scale-110 transition-transform duration-200">←</button>
-          <div className="text-white font-mono text-lg">GRMT</div>
+          <div className="text-white font-mono text-lg">{roomCode}</div>
           <div className="text-white font-bold text-xl animate-pulse-slow">
             {Math.ceil(timeLeft / 1000)}
           </div>
@@ -87,7 +89,7 @@ export function FibbingItScoringView({
           FIBBING IT!
         </h1>
         <div className="text-2xl font-mono text-teal-400 bg-slate-800 px-4 py-2 rounded-lg">
-          GR7A
+          {roomCode}
         </div>
       </div>
 

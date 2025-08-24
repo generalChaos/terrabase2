@@ -97,6 +97,23 @@ export class RoomsGateway
       if (result.isSuccess()) {
         // Game started successfully
         console.log(`✅ Game started in room ${roomCode}`);
+        
+        // Handle the events returned from the game gateway
+        const { events } = result.value;
+        if (events && events.length > 0) {
+          console.log(`📡 Emitting ${events.length} events for room ${roomCode}`);
+          
+          // Get the updated room state
+          const room = this.roomManager.getRoom(roomCode);
+          if (room) {
+            // Use the event broadcaster to handle all event emission
+            this.eventBroadcaster.broadcastEvents({
+              roomCode,
+              events,
+              roomState: room,
+            });
+          }
+        }
       } else {
         // Handle error
         const errorResponse = this.errorHandler.createWebSocketErrorResponse(

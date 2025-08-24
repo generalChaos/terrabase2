@@ -9,7 +9,7 @@ import {
   RoomNotFoundError,
   InvalidGamePhaseError,
 } from '../errors';
-import { Result, success, failure } from '@party/types';
+import { Result, success, failure, GameEvent } from '@party/types';
 
 @Injectable()
 export class GameGatewayService {
@@ -26,7 +26,7 @@ export class GameGatewayService {
   async startGame(
     client: Socket,
     roomCode: string,
-  ): Promise<Result<void, any>> {
+  ): Promise<Result<{ events: GameEvent[] }, any>> {
     try {
       if (!roomCode) {
         throw new Error('Room code required');
@@ -67,10 +67,12 @@ export class GameGatewayService {
 
       // Start the game by processing a start action
       const action = { type: 'start', playerId: client.id, data: {} };
-      await this.stateManager.processGameAction(code, client.id, action);
+      const events = await this.stateManager.processGameAction(code, client.id, action);
 
-      this.logger.log(`Game started in room ${code} by host ${client.id}`);
-      return success(undefined);
+      this.logger.log(`Game started in room ${code} by host ${client.id}, generated ${events.length} events`);
+      
+      // Return the events so the gateway can handle them
+      return success({ events });
     } catch (error) {
       this.logger.error(`Error in startGame:`, error);
       throw error;

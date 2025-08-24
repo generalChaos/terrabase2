@@ -75,6 +75,7 @@ export class FibbingItPhaseManager extends BaseGamePhaseManager {
               totalTime={totalTime}
               round={round}
               maxRounds={maxRounds}
+              roomCode={roomCode}
             />
           );
         } else {
@@ -85,6 +86,7 @@ export class FibbingItPhaseManager extends BaseGamePhaseManager {
               totalTime={totalTime}
               round={round}
               maxRounds={maxRounds}
+              roomCode={roomCode}
               onSubmitAnswer={onSubmitAnswer || (() => {})}
               hasSubmitted={hasSubmittedAnswer}
               isPlayer={true}
@@ -102,6 +104,7 @@ export class FibbingItPhaseManager extends BaseGamePhaseManager {
               totalTime={totalTime}
               round={round}
               maxRounds={maxRounds}
+              roomCode={roomCode}
               votes={votes}
               players={players}
             />
@@ -115,6 +118,7 @@ export class FibbingItPhaseManager extends BaseGamePhaseManager {
               totalTime={totalTime}
               round={round}
               maxRounds={maxRounds}
+              roomCode={roomCode}
               onSubmitVote={onSubmitVote || (() => {})}
               hasVoted={hasVoted}
               selectedChoiceId={selectedChoiceId}
@@ -134,6 +138,7 @@ export class FibbingItPhaseManager extends BaseGamePhaseManager {
               totalTime={totalTime}
               round={round}
               maxRounds={maxRounds}
+              roomCode={roomCode}
               votes={votes}
               players={players.map(p => ({
                 ...p,
@@ -152,6 +157,7 @@ export class FibbingItPhaseManager extends BaseGamePhaseManager {
               totalTime={totalTime}
               round={round}
               maxRounds={maxRounds}
+              roomCode={roomCode}
               votes={votes}
               scores={scores}
               playerId={playerId || ''}

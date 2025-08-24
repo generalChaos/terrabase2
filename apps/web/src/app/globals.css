@@ -15,6 +15,10 @@
   --danger: #ef4444;
   --warning: #f59e0b;
   
+  /* Interactive states */
+  --interactive-hover: #1f2937;
+  --interactive-active: #111827;
+  
   /* Avatar sizing system */
   --avatar-sm: 3rem;      /* 48px - Small avatars */
   --avatar-md: 4rem;      /* 64px - Medium avatars */
