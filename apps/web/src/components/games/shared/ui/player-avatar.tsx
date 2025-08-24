@@ -20,7 +20,7 @@ export function PlayerAvatar({ avatar, size = 'lg' }: PlayerAvatarProps) {
 
   return (
     <div 
-      className={`rounded-full bg-white/20 border-2 border-white/30 overflow-hidden transition-all duration-200 ${sizeMap[size]}`}
+      className={`rounded-full bg-slate-900/80 border-2 border-slate-400 overflow-hidden transition-all duration-200 ${sizeMap[size]}`}
     >
       <Image
         src={getAvatarImagePath(displayAvatar)}

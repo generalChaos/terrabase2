@@ -40,6 +40,7 @@ export function LobbyView({
   selectedGame,
 }: LobbyViewProps) {
   const [mounted, setMounted] = useState(false);
+  const [displayMode, setDisplayMode] = useState<'connection' | 'points'>('connection');
   
   const canStartGame = isHost && players.length >= 2 && selectedGame;
   const connectedPlayers = players.filter(p => p.connected !== false);
@@ -64,155 +65,137 @@ export function LobbyView({
   }
 
   return (
-    <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
-      {/* Main Content */}
-      <div className={`max-w-6xl mx-auto space-y-8 pt-8 transition-opacity duration-300 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
-        {/* Player Status */}
-        <div className="text-center animate-fade-in-up" style={{ animationDelay: '100ms' }}>
-          <div className="inline-flex items-center gap-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-6 py-3">
-            <Users className="w-5 h-5 text-white" />
-            <span className="text-lg text-white font-medium">
-              {connectedPlayers.length} / {selectedGame?.players?.split('-')[1] || '8'} players
-            </span>
-            {connectedPlayers.length >= 2 && (
-              <span className="text-green-400 ml-2 animate-pulse">✓ Ready!</span>
-            )}
-          </div>
-          
-          {disconnectedPlayers.length > 0 && (
-            <div className="mt-3 text-sm text-orange-400">
-              {disconnectedPlayers.length} player{disconnectedPlayers.length === 1 ? '' : 's'} disconnected
-            </div>
-          )}
-        </div>
-
-        {/* Players Grid */}
+    <div className="flex flex-col justify-center py-8">
+      <div className={`max-w-4xl mx-auto space-y-6 transition-opacity duration-300 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
+        
+        {/* Players List */}
         <div className="animate-fade-in-up" style={{ animationDelay: '150ms' }}>
-          <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-3xl p-8">
-            
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
-              {players.length > 0
-                ? players.map((player, index) => (
-                    <div
-                      key={player.id}
-                      className="text-center animate-fade-in-up"
-                      style={{ animationDelay: `${200 + index * 50}ms` }}
-                    >
-                      <div className="relative mb-3">
-                        <div className="relative inline-block">
-                          <PlayerAvatar avatar={player.avatar} size="xl" />
-                          <div className={`absolute -top-2 -right-2 w-5 h-5 rounded-full border-2 border-white flex items-center justify-center ${
-                            player.connected !== false 
-                              ? 'bg-green-500' 
-                              : 'bg-red-500'
-                          }`}>
-                            {player.connected !== false ? (
-                              <Wifi className="w-2.5 h-2.5 text-white" />
-                            ) : (
-                              <WifiOff className="w-2.5 h-2.5 text-white" />
-                            )}
-                          </div>
-                        </div>
+          
+          {/* Players */}
+          {players.length > 0 ? (
+            <div className="space-y-4">
+              {players.map((player, index) => {
+                return (
+                  <div
+                    key={player.id}
+                    className={`flex items-center gap-6 p-6 rounded-2xl transition-all duration-200 animate-fade-in-up w-full ${
+                      player.connected !== false
+                        ? 'bg-slate-800/80'
+                        : 'bg-slate-800/40'
+                    }`}
+                    style={{ animationDelay: `${200 + index * 50}ms` }}
+                  >
+                    {/* Avatar */}
+                    <div className="relative">
+                      <PlayerAvatar avatar={player.avatar} size="2xl" />
+                      <div className={`absolute -top-2 -right-2 w-5 h-5 rounded-full border-2 border-white flex items-center justify-center ${
+                        player.connected !== false 
+                          ? 'bg-green-500' 
+                          : 'bg-red-500'
+                      }`}>
+                        {player.connected !== false ? (
+                          <Wifi className="w-2.5 h-2.5 text-white" />
+                        ) : (
+                          <WifiOff className="w-2.5 h-2.5 text-white" />
+                        )}
                       </div>
-                      <div className={`font-medium text-sm ${
+                    </div>
+
+                    {/* Player Info & Score */}
+                    <div className="flex-1">
+                      <div className={`font-medium text-xl mb-2 ${
                         player.connected !== false 
                           ? 'text-white' 
                           : 'text-white/60'
                       }`}>
                         {player.name}
                       </div>
+                      
+                      {/* Connection Status or Points */}
+                      {displayMode === 'connection' ? (
+                        <div className="flex items-center gap-2">
+                          <div className={`w-3 h-3 rounded-full ${
+                            player.connected !== false ? 'bg-green-500' : 'bg-red-500'
+                          }`}></div>
+                          <span className="text-sm text-slate-400">
+                            {player.connected !== false ? 'Connected' : 'Disconnected'}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          {/* Score tier indicator */}
+                          <div className={`w-3 h-3 rounded-full ${
+                            player.score >= 1000 ? 'bg-green-500' : 
+                            player.score >= 500 ? 'bg-orange-500' : 
+                            'bg-red-500'
+                          }`}></div>
+                          <div className="text-2xl font-bold text-white">
+                            {player.score}
+                          </div>
+                          <span className="text-sm text-slate-400">pts</span>
+                        </div>
+                      )}
+                      
                       {player.connected === false && (
-                        <div className="text-xs text-white/40">Disconnected</div>
+                        <div className="text-sm text-orange-400 mt-2">Disconnected</div>
                       )}
                     </div>
-                  ))
-                : Array.from({ length: 6 }).map((_, i) => (
-                    <div key={i} className="text-center animate-pulse">
-                      <div className="w-24 h-24 rounded-full bg-white/20 border-2 border-dashed border-white/30 flex items-center justify-center mx-auto mb-3">
-                        <div style={{ fontSize: 'var(--avatar-font-lg)' }} className="opacity-50">👤</div>
-                      </div>
-                      <div className="text-white/50 text-sm">Waiting...</div>
-                    </div>
-                  ))}
+                  </div>
+                );
+              })}
             </div>
-
-            {/* Empty State */}
-            {players.length === 0 && (
-              <div className="mt-8 text-center text-white/60">
-                <div className="mb-4">
-                  <div className="text-4xl mb-2">🎉</div>
-                  <p className="text-lg font-medium text-white/80">
-                    Ready to play?
-                  </p>
-                </div>
-                <p className="mb-3">
-                  Share the room code with friends to get started!
-                </p>
-              </div>
-            )}
-          </div>
+          ) : (
+            /* Empty State */
+            <div className="text-center py-12">
+              <div className="text-6xl mb-4">🎉</div>
+              <h3 className="text-xl font-medium text-white mb-2">
+                Ready to play?
+              </h3>
+              <p className="text-slate-300">
+                Share the room code with friends to get started!
+              </p>
+            </div>
+          )}
         </div>
 
-        {/* Start Game Button - Host Only */}
-        {isHost && (
-          <div className="text-center animate-fade-in-up" style={{ animationDelay: '800ms' }}>
+        {/* Player Count - Small */}
+        <div className="text-center animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+          <div className="inline-flex items-center gap-2 text-sm text-slate-400">
+            <Users className="w-4 h-4" />
+            <span>
+              {connectedPlayers.length} / {selectedGame?.players?.split('-')[1] || '8'} players
+            </span>
+            {connectedPlayers.length >= 2 && (
+              <span className="text-green-400 ml-2">✓ Ready!</span>
+            )}
+          </div>
+          
+          {disconnectedPlayers.length > 0 && (
+            <div className="mt-2 text-xs text-orange-400">
+              {disconnectedPlayers.length} player{disconnectedPlayers.length === 1 ? '' : 's'} disconnected
+            </div>
+          )}
+        </div>
+
+        {/* Action Buttons */}
+        <div className="text-center animate-fade-in-up" style={{ animationDelay: '800ms' }}>
+          {/* Start Game Button - Host Only */}
+          {isHost && (
             <button
               onClick={onStartGame}
               disabled={!canStartGame}
               className={`
-                relative w-full max-w-md mx-auto py-6 px-8 rounded-3xl font-bold text-xl
-                transition-all duration-300 transform
+                px-8 py-3 rounded-2xl font-bold text-lg transition-all duration-200
                 ${canStartGame 
-                  ? 'bg-gradient-to-r from-teal-500 via-blue-600 to-purple-600 hover:from-teal-400 hover:via-blue-500 hover:to-purple-500 text-white shadow-2xl hover:shadow-glow hover:-translate-y-2 hover:scale-105 active:translate-y-0 active:scale-100'
+                  ? 'bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white shadow-lg hover:shadow-xl'
                   : 'bg-slate-700/50 text-slate-400 cursor-not-allowed border border-slate-600/50'
                 }
               `}
             >
-              {canStartGame ? (
-                <div className="flex items-center justify-center gap-4">
-                  <div className="relative">
-                    <Play className="w-7 h-7 relative z-10" />
-                    <div className="absolute inset-0 bg-white/30 rounded-full blur-sm animate-pulse"></div>
-                  </div>
-                  <span className="text-2xl font-bold tracking-wide">Start Game!</span>
-                  <div className="flex gap-1">
-                    <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                    <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                    <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                  </div>
-                </div>
-              ) : (
-                <span className="text-lg">Need at least 2 players to start</span>
-              )}
-              
-              {/* Animated background gradient for enabled state */}
-              {canStartGame && (
-                <div className="absolute inset-0 rounded-3xl bg-gradient-to-r from-teal-600/20 via-blue-700/20 to-purple-700/20 blur-xl animate-pulse"></div>
-              )}
+              {canStartGame ? 'Start' : 'Need 2+ players'}
             </button>
-            
-            {!canStartGame && (
-              <div className="mt-3 text-sm text-white/60">
-                {players.length < 2 && `Players: ${players.length}/2`}
-                {!selectedGame && ' • Select a game to begin'}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Ready Indicator for Non-Host Players */}
-        {!isHost && connectedPlayers.length >= 2 && (
-          <div className="text-center animate-fade-in-up" style={{ animationDelay: '800ms' }}>
-            <div className="bg-green-500/20 border border-green-500/30 rounded-2xl p-6">
-              <h3 className="text-xl font-semibold text-green-400 mb-2">
-                Ready to Play!
-              </h3>
-              <p className="text-green-300">
-                Waiting for the host to start the game...
-              </p>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
