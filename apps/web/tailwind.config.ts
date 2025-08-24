@@ -38,6 +38,8 @@ const config: Config = {
         'scale-in': 'scaleIn 0.2s ease-out',
         'bounce-in': 'bounceIn 0.6s ease-out',
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'shimmer': 'shimmer 2s infinite',
+        'slide-in': 'slideIn 0.6s ease-out',
       },
       keyframes: {
         fadeIn: {
@@ -64,6 +66,14 @@ const config: Config = {
           '0%': { transform: 'scale(0.3)', opacity: '0' },
           '50%': { transform: 'scale(1.05)' },
           '70%': { transform: 'scale(0.9)' },
+          '100%': { transform: 'scale(1)', opacity: '1' },
+        },
+        shimmer: {
+          '0%': { transform: 'translateX(-100%)' },
+          '100%': { transform: 'translateX(100%)' },
+        },
+        slideIn: {
+          '0%': { transform: 'scale(0.95)', opacity: '0' },
           '100%': { transform: 'scale(1)', opacity: '1' },
         },
       },

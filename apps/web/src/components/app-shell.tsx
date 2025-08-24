@@ -5,14 +5,12 @@ import { Button } from './ui/button';
 import { Copy, QrCode, X, Check } from 'lucide-react';
 
 export function AppShell({
-  title,
   right,
   timer,
   children,
   sub,
   roomCode,
 }: {
-  title?: string;
   right?: ReactNode;
   timer?: { seconds: number; total: number } | null;
   children?: ReactNode;

@@ -35,7 +35,6 @@ export function FibbingItScoringView({
   votes = [],
   players = [],
   scores = [],
-  playerId,
   isPlayer = false,
   round,
   maxRounds,

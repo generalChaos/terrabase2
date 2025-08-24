@@ -1,7 +1,5 @@
 'use client';
-import { FibbingItPromptView } from './phases/fibbing-it-prompt-view';
-import { FibbingItVotingView } from './phases/fibbing-it-voting-view';
-import { FibbingItScoringView } from './phases/fibbing-it-scoring-view';
+import { SharedPromptView } from './components';
 import { LobbyView } from '../shared';
 import { BaseGamePhaseManager, BaseGamePhaseManagerProps } from '../shared';
 import type { Choice } from '@party/types';
@@ -17,37 +15,30 @@ type FibbingItPhaseManagerProps = BaseGamePhaseManagerProps & {
   onSubmitAnswer?: (answer: string) => void;
   onSubmitVote?: (choiceId: string) => void;
   hasSubmittedAnswer?: boolean;
-  hasVoted?: boolean;
   selectedChoiceId?: string;
-  roomCode?: string;
 };
 
 export class FibbingItPhaseManager extends BaseGamePhaseManager {
   readonly gameType = 'fibbing-it';
 
   renderPhase(props: FibbingItPhaseManagerProps): React.ReactNode {
-    const {
-      phase,
-      isHost,
-      question,
-      correctAnswer,
-      timeLeft = 0,
-      totalTime = this.getDefaultTimeForPhase(phase),
-      round = 1,
-      maxRounds = 5,
-      choices = [],
-      votes = [],
-      players = [],
-      scores = [],
-      playerId,
-      onSubmitAnswer,
-      onSubmitVote,
-      hasSubmittedAnswer = false,
-      hasVoted = false,
-      selectedChoiceId,
-      roomCode = 'GR7A',
-      onStartGame,
-    } = props;
+      const {
+    phase,
+    isHost,
+    question,
+    correctAnswer,
+    timeLeft = 0,
+    totalTime = this.getDefaultTimeForPhase(phase),
+    round = 1,
+    maxRounds = 5,
+    choices = [],
+    players = [],
+    onSubmitAnswer,
+    onSubmitVote,
+    hasSubmittedAnswer = false,
+    selectedChoiceId,
+    onStartGame,
+  } = props;
 
     if (!this.isValidPhase(phase)) {
       console.warn(`Invalid phase for fibbing-it: ${phase}`);
@@ -58,7 +49,7 @@ export class FibbingItPhaseManager extends BaseGamePhaseManager {
       case 'lobby':
         return (
           <LobbyView
-            roomCode={roomCode}
+            roomCode="TEST123"
             players={players}
             isHost={isHost}
             onStartGame={onStartGame}
@@ -67,104 +58,73 @@ export class FibbingItPhaseManager extends BaseGamePhaseManager {
         );
 
       case 'prompt':
-        if (isHost) {
-          return (
-            <FibbingItPromptView
-              question={question || 'Loading question...'}
-              timeLeft={timeLeft}
-              totalTime={totalTime}
-              round={round}
-              maxRounds={maxRounds}
-              roomCode={roomCode}
-            />
-          );
-        } else {
-          return (
-            <FibbingItPromptView
-              question={question || 'Loading question...'}
-              timeLeft={timeLeft}
-              totalTime={totalTime}
-              round={round}
-              maxRounds={maxRounds}
-              roomCode={roomCode}
-              onSubmitAnswer={onSubmitAnswer || (() => {})}
-              hasSubmitted={hasSubmittedAnswer}
-              isPlayer={true}
-            />
-          );
-        }
+        return (
+          <SharedPromptView
+            question={question || 'Loading question...'}
+            timeLeft={timeLeft}
+            totalTime={totalTime}
+            round={round}
+            maxRounds={maxRounds}
+            state={isHost ? 'waiting' : 'input'}
+            onSubmitAnswer={onSubmitAnswer}
+            hasSubmitted={hasSubmittedAnswer}
+          />
+        );
 
       case 'choose':
-        if (isHost) {
-          return (
-            <FibbingItVotingView
-              question={question || 'Loading question...'}
-              choices={choices}
-              timeLeft={timeLeft}
-              totalTime={totalTime}
-              round={round}
-              maxRounds={maxRounds}
-              roomCode={roomCode}
-              votes={votes}
-              players={players}
-            />
-          );
-        } else {
-          return (
-            <FibbingItVotingView
-              question={question || 'Loading question...'}
-              choices={choices}
-              timeLeft={timeLeft}
-              totalTime={totalTime}
-              round={round}
-              maxRounds={maxRounds}
-              roomCode={roomCode}
-              onSubmitVote={onSubmitVote || (() => {})}
-              hasVoted={hasVoted}
-              selectedChoiceId={selectedChoiceId}
-              isPlayer={true}
-            />
-          );
-        }
+        return (
+          <SharedPromptView
+            question={question || 'Loading question...'}
+            timeLeft={timeLeft}
+            totalTime={totalTime}
+            round={round}
+            maxRounds={maxRounds}
+            state="options"
+            options={choices.map((choice, index) => ({
+              id: choice.id,
+              text: choice.text,
+              color: [
+                'from-orange-500 to-orange-600',     // Orange
+                'from-pink-500 to-pink-600',         // Magenta/Deep Pink
+                'from-teal-500 to-teal-600',         // Teal/Blue-Green
+                'from-green-600 to-green-700',       // Dark Green
+              ][index % 4],
+              playerId: choice.by,
+              playerAvatar: `avatar_${(index + 1) % 9 + 1}`
+            }))}
+            onSubmitVote={onSubmitVote}
+            selectedChoiceId={selectedChoiceId}
+          />
+        );
+
+
 
       case 'scoring':
-        if (isHost) {
-          return (
-            <FibbingItScoringView
-              question={question || 'Loading question...'}
-              correctAnswer={correctAnswer || 'Loading answer...'}
-              choices={choices}
-              timeLeft={timeLeft}
-              totalTime={totalTime}
-              round={round}
-              maxRounds={maxRounds}
-              roomCode={roomCode}
-              votes={votes}
-              players={players.map(p => ({
-                ...p,
-                connected: p.connected ?? true,
-              }))}
-              scores={scores}
-            />
-          );
-        } else {
-          return (
-            <FibbingItScoringView
-              question={question || 'Loading question...'}
-              correctAnswer={correctAnswer || 'Loading answer...'}
-              choices={choices}
-              timeLeft={timeLeft}
-              totalTime={totalTime}
-              round={round}
-              maxRounds={maxRounds}
-              roomCode={roomCode}
-              votes={votes}
-              scores={scores}
-              playerId={playerId || ''}
-              isPlayer={true}
-            />
-          );
-        }
+        return (
+          <SharedPromptView
+            question={question || 'Loading question...'}
+            timeLeft={timeLeft}
+            totalTime={totalTime}
+            round={round}
+            maxRounds={maxRounds}
+            state="reveal"
+            options={choices.map((choice, index) => ({
+              id: choice.id,
+              text: choice.text,
+              color: [
+                'from-orange-500 to-orange-600',     // Orange
+                'from-pink-500 to-pink-600',         // Magenta/Deep Pink
+                'from-teal-500 to-teal-600',         // Teal/Blue-Green
+                'from-green-600 to-green-700',       // Dark Green
+              ][index % 4],
+              playerId: choice.by,
+              playerAvatar: `avatar_${(index + 1) % 9 + 1}`
+            }))}
+            correctAnswer={correctAnswer}
+            onSubmitVote={onSubmitVote}
+            selectedChoiceId={selectedChoiceId}
+          />
+        );
 
       case 'over':
         return (

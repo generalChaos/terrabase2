@@ -247,7 +247,6 @@ export function JoinClient({ code }: { code: string }) {
     } catch (error) {
       console.error('❌ Failed to join room:', error);
       setShowPlayerCreation(true); // Show form again on error
-      setNickname('');
     }
   };
 

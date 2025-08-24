@@ -36,7 +36,6 @@ export function FibbingItVotingView({
   players = [],
   onSubmitVote,
   hasVoted,
-  selectedChoiceId,
   gotAnswerCorrect,
   isPlayer = false,
 }: FibbingItVotingViewProps) {

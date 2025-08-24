@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useConfettiStyles } from './hooks/useConfettiStyles';
 // Performance components removed during simplification
 import './styles/confetti-animations.css';

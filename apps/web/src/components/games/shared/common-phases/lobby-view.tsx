@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from "react";
 import { PlayerAvatar } from '../ui/player-avatar';
-import { Users, Wifi, WifiOff, Play } from 'lucide-react';
+import { Users, Wifi, WifiOff } from 'lucide-react';
 
 type LobbyViewProps = {
   roomCode: string;

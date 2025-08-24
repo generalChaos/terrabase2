@@ -209,6 +209,34 @@ export default function Home() {
             </Card>
           </div>
         </div>
+
+        {/* Development/Testing Section */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="mt-20 text-center animate-fade-in-up" style={{ animationDelay: '1000ms' }}>
+            <h2 className="text-4xl font-bold text-white mb-8">Development & Testing</h2>
+            <div className="max-w-2xl mx-auto">
+              <Card variant="glass" size="lg">
+                <CardContent className="text-center">
+                  <div className="text-4xl mb-4">🧪</div>
+                  <CardTitle className="text-xl font-semibold text-white mb-2">
+                    Fibbing It Test Environment
+                  </CardTitle>
+                  <CardDescription className="text-slate-300 mb-4">
+                    Test all game phases and components without creating rooms or connecting to WebSockets.
+                  </CardDescription>
+                  <Button
+                    variant="game"
+                    size="lg"
+                    onClick={() => router.push('/fibbing-it-test')}
+                    className="bg-gradient-to-r from-purple-500 to-pink-600"
+                  >
+                    🎮 Test Fibbing It Game
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

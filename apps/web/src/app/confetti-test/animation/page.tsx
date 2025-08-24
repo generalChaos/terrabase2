@@ -102,7 +102,7 @@ export default function AnimationTestPage() {
   const [showHeroGlow, setShowHeroGlow] = useState(true);
   const [showGradients, setShowGradients] = useState(true);
   const [gradientMask, setGradientMask] = useState<'none' | 'subtle' | 'normal' | 'strong'>('normal');
-  const [backgroundColor, setBackgroundColor] = useState('#0b0f1a');
+  const [backgroundColor] = useState('#0b0f1a');
   const [animationDirection, setAnimationDirection] = useState<'normal' | 'reverse' | 'alternate' | 'alternate-reverse'>('normal');
   const [animationIterationCount] = useState('infinite');
   const [showControls, setShowControls] = useState(false);
@@ -243,19 +243,7 @@ export default function AnimationTestPage() {
     return `tile-${preset.keyframes}`;
   };
 
-  const getAnimationCSS = () => {
-    const preset = animationPresets[selectedPreset];
-    const animationName = getAnimationName(preset);
-    const duration = customDuration;
-    const easing = customEasing;
-    
-    return `
-      .party-bg.animate {
-        animation: ${animationName} ${duration}s ${easing} ${animationIterationCount} ${animationDirection};
-        will-change: background-position, transform;
-      }
-    `;
-  };
+
 
   // Generate CSS code based on current settings
   const generateCSSCode = () => {
