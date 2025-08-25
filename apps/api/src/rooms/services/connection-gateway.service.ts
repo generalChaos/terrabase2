@@ -127,8 +127,15 @@ export class ConnectionGatewayService {
         body.nickname,
         'player-join',
       );
+      
       if (nicknameValidation.isFailure()) {
-        return failure(nicknameValidation.error);
+        const errorResponse = this.errorHandler.createWebSocketErrorResponse(
+          nicknameValidation.error,
+          'player-join',
+          client.id,
+        );
+        client.emit('error', errorResponse);
+        return failure(errorResponse);
       }
 
       const code = roomCode.toUpperCase();

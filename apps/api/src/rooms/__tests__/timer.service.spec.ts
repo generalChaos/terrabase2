@@ -16,6 +16,17 @@ describe('TimerService', () => {
     // Clean up any running timers
     jest.clearAllTimers();
     jest.useRealTimers();
+    
+    // Stop all timers in the service to prevent leaks
+    const activeTimers = service.getActiveTimers();
+    activeTimers.forEach(roomCode => {
+      service.stopTimer(roomCode);
+    });
+  });
+
+  afterAll(() => {
+    // Ensure complete cleanup
+    service.onModuleDestroy();
   });
 
   describe('startTimer', () => {

@@ -23,6 +23,7 @@ describe('ConnectionGatewayService', () => {
     leave: jest.fn(),
     emit: jest.fn(),
     disconnect: jest.fn(),
+    to: jest.fn().mockReturnThis(),
     handshake: {
       query: { roomCode: 'TEST123' },
     },
@@ -105,16 +106,27 @@ describe('ConnectionGatewayService', () => {
     }).compile();
 
     service = module.get<ConnectionGatewayService>(ConnectionGatewayService);
-    connectionManager = module.get(ConnectionManagerService);
-    roomManager = module.get(RoomManager);
-    errorHandler = module.get(ErrorHandlerService);
-    eventGateway = module.get(EventGatewayService);
+    
+    // Assign the mocks for test assertions
+    connectionManager = mockConnectionManager as any;
+    roomManager = mockRoomManager as any;
+    errorHandler = mockErrorHandler as any;
+    eventGateway = mockEventGateway as any;
 
     // Reset socket mocks between tests for proper isolation
     mockSocket.emit.mockClear();
     mockSocket.join.mockClear();
     mockSocket.leave.mockClear();
     mockSocket.disconnect.mockClear();
+    mockSocket.to.mockClear();
+  });
+
+  afterEach(() => {
+    // Ensure complete cleanup after each test
+    jest.clearAllTimers();
+    
+    // Don't clear mocks - this was causing the isolation issue!
+    // jest.clearAllMocks(); // REMOVED THIS LINE
   });
 
   describe('handleConnection', () => {
@@ -389,6 +401,18 @@ describe('ConnectionGatewayService', () => {
         retryable: false,
         userActionRequired: true,
       }));
+      errorHandler.createWebSocketErrorResponse.mockReturnValue({
+        error: 'Nickname is required',
+        code: 'VALIDATION_ERROR',
+        statusCode: 400,
+        details: undefined,
+        context: 'player-join',
+        timestamp: new Date().toISOString(),
+        requestId: undefined,
+        category: 'VALIDATION' as any,
+        retryable: false,
+        userActionRequired: true,
+      });
 
       const result = await service.handlePlayerJoin(mockSocket, invalidJoinData);
 
@@ -416,6 +440,18 @@ describe('ConnectionGatewayService', () => {
         retryable: false,
         userActionRequired: true,
       }));
+      errorHandler.createWebSocketErrorResponse.mockReturnValue({
+        error: 'Nickname cannot be empty',
+        code: 'VALIDATION_ERROR',
+        statusCode: 400,
+        details: undefined,
+        context: 'player-join',
+        timestamp: new Date().toISOString(),
+        requestId: undefined,
+        category: 'VALIDATION' as any,
+        retryable: false,
+        userActionRequired: true,
+      });
 
       const result = await service.handlePlayerJoin(mockSocket, invalidJoinData);
 

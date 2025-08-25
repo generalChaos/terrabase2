@@ -11,13 +11,16 @@ export interface TimerCallbacks {
 @Injectable()
 export class TimerService implements OnModuleDestroy {
   private timers = new Map<string, NodeJS.Timeout>();
-  private cleanupInterval: NodeJS.Timeout;
+  private cleanupInterval?: NodeJS.Timeout;
 
   constructor() {
     // Set up periodic cleanup of orphaned timers
-    this.cleanupInterval = setInterval(() => {
-      this.cleanupOrphanedTimers();
-    }, GameConfig.TIMING.TIMER.CLEANUP_INTERVAL_MS);
+    // Only set up cleanup interval in production to avoid test interference
+    if (process.env.NODE_ENV !== 'test') {
+      this.cleanupInterval = setInterval(() => {
+        this.cleanupOrphanedTimers();
+      }, GameConfig.TIMING.TIMER.CLEANUP_INTERVAL_MS);
+    }
   }
 
   /**
@@ -29,17 +32,11 @@ export class TimerService implements OnModuleDestroy {
     callbacks: TimerCallbacks,
   ): void {
     if (this.timers.has(roomCode)) {
-      console.log(
-        `⏰ Timer already running for room ${roomCode}, stopping existing timer`,
-      );
       this.stopTimer(roomCode);
     }
 
-    console.log(`⏰ Starting ${duration}s timer for room ${roomCode}`);
-
     // Handle edge cases: zero or negative duration timers should complete immediately
     if (duration <= 0) {
-      console.log(`⏰ Duration ${duration}s <= 0, calling onExpire immediately for room ${roomCode}`);
       if (callbacks.onExpire) {
         callbacks.onExpire();
       }
@@ -74,7 +71,6 @@ export class TimerService implements OnModuleDestroy {
     }, GameConfig.TIMING.CONVERSIONS.SECONDS_TO_MS); // Tick every second
 
     this.timers.set(roomCode, timer);
-    console.log(`✅ Timer started for room ${roomCode}`);
   }
 
   /**
@@ -85,7 +81,6 @@ export class TimerService implements OnModuleDestroy {
     if (timer) {
       clearInterval(timer);
       this.timers.delete(roomCode);
-      console.log(`⏰ Timer stopped for room ${roomCode}`);
       return true;
     }
     return false;
@@ -123,18 +118,16 @@ export class TimerService implements OnModuleDestroy {
   private cleanupOrphanedTimers(): void {
     const orphanedCount = this.timers.size;
     if (orphanedCount > 0) {
-      console.log(`🧹 Found ${orphanedCount} orphaned timers, cleaning up...`);
       this.stopAllTimers();
     }
   }
 
   // IMPROVED: Implement OnModuleDestroy for proper cleanup
   onModuleDestroy() {
-    console.log('🧹 TimerService shutting down, cleaning up all timers...');
-
     // Clear the cleanup interval
     if (this.cleanupInterval) {
       clearInterval(this.cleanupInterval);
+      this.cleanupInterval = undefined;
     }
 
     // Stop all active timers
@@ -147,7 +140,6 @@ export class TimerService implements OnModuleDestroy {
   private stopAllTimers(): void {
     for (const [roomCode, timer] of this.timers.entries()) {
       clearInterval(timer);
-      console.log(`⏰ Stopped timer for room ${roomCode}`);
     }
     this.timers.clear();
   }

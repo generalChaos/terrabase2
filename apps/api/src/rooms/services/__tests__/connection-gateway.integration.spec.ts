@@ -25,6 +25,7 @@ describe('ConnectionGatewayService - Integration Tests', () => {
     leave: jest.fn(),
     emit: jest.fn(),
     disconnect: jest.fn(),
+    to: jest.fn().mockReturnThis(),
     nsp: { name: '/rooms' } as any,
     client: {} as any,
     recovered: false,
@@ -228,6 +229,7 @@ describe('ConnectionGatewayService - Integration Tests', () => {
         room: mockRoom,
         isReconnection: false,
       });
+      eventGateway.broadcastRoomUpdate.mockResolvedValue(success(undefined));
 
       // Test the service
       const result = await service.handlePlayerJoin(mockSocket, joinData);
