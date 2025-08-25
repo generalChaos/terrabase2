@@ -214,7 +214,7 @@ export default function Home() {
         {process.env.NODE_ENV === 'development' && (
           <div className="mt-20 text-center animate-fade-in-up" style={{ animationDelay: '1000ms' }}>
             <h2 className="text-4xl font-bold text-white mb-8">Development & Testing</h2>
-            <div className="max-w-2xl mx-auto">
+            <div className="max-w-4xl mx-auto space-y-6">
               <Card variant="glass" size="lg">
                 <CardContent className="text-center">
                   <div className="text-4xl mb-4">🧪</div>
@@ -231,6 +231,26 @@ export default function Home() {
                     className="bg-gradient-to-r from-purple-500 to-pink-600"
                   >
                     🎮 Test Fibbing It Game
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card variant="glass" size="lg">
+                <CardContent className="text-center">
+                  <div className="text-4xl mb-4">❓</div>
+                  <CardTitle className="text-xl font-semibold text-white mb-2">
+                    Question Mark Avatar Demo
+                  </CardTitle>
+                  <CardDescription className="text-slate-300 mb-4">
+                    Explore the new QuestionMarkAvatar component with different sizes and use cases.
+                  </CardDescription>
+                  <Button
+                    variant="game"
+                    size="lg"
+                    onClick={() => router.push('/question-mark-avatar-demo')}
+                    className="bg-gradient-to-r from-blue-500 to-teal-600"
+                  >
+                    👤 View Avatar Demo
                   </Button>
                 </CardContent>
               </Card>

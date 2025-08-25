@@ -80,7 +80,7 @@ export function FibbingItVotingView({
                 <div className="flex items-center justify-between">
                   <span className="font-medium">{choice.text}</span>
                   {hasVoted && (
-                    <span className="text-teal-400 font-bold">
+                    <span className="text-teal-400 font-bold font-baloo2">
                       {votes.filter(v => v.choiceId === choice.id).length} votes
                     </span>
                   )}

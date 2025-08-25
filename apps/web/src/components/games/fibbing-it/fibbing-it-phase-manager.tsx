@@ -16,29 +16,32 @@ type FibbingItPhaseManagerProps = BaseGamePhaseManagerProps & {
   onSubmitVote?: (choiceId: string) => void;
   hasSubmittedAnswer?: boolean;
   selectedChoiceId?: string;
+  onPlayAgain?: () => void;
 };
 
 export class FibbingItPhaseManager extends BaseGamePhaseManager {
   readonly gameType = 'fibbing-it';
 
   renderPhase(props: FibbingItPhaseManagerProps): React.ReactNode {
-      const {
-    phase,
-    isHost,
-    question,
-    correctAnswer,
-    timeLeft = 0,
-    totalTime = this.getDefaultTimeForPhase(phase),
-    round = 1,
-    maxRounds = 5,
-    choices = [],
-    players = [],
-    onSubmitAnswer,
-    onSubmitVote,
-    hasSubmittedAnswer = false,
-    selectedChoiceId,
-    onStartGame,
-  } = props;
+    const {
+      phase,
+      isHost,
+      question,
+      correctAnswer,
+      timeLeft = 0,
+      totalTime = this.getDefaultTimeForPhase(phase),
+      round = 1,
+      maxRounds = 5,
+      choices = [],
+      votes = [],
+      players = [],
+      onSubmitAnswer,
+      onSubmitVote,
+      hasSubmittedAnswer = false,
+      selectedChoiceId,
+      onStartGame,
+      onPlayAgain,
+    } = props;
 
     if (!this.isValidPhase(phase)) {
       console.warn(`Invalid phase for fibbing-it: ${phase}`);
@@ -92,6 +95,8 @@ export class FibbingItPhaseManager extends BaseGamePhaseManager {
               playerId: choice.by,
               playerAvatar: `avatar_${(index + 1) % 9 + 1}`
             }))}
+            votes={votes}
+            players={players}
             onSubmitVote={onSubmitVote}
             selectedChoiceId={selectedChoiceId}
           />
@@ -107,7 +112,7 @@ export class FibbingItPhaseManager extends BaseGamePhaseManager {
             totalTime={totalTime}
             round={round}
             maxRounds={maxRounds}
-            state="reveal"
+            state="scoring"
             options={choices.map((choice, index) => ({
               id: choice.id,
               text: choice.text,
@@ -121,6 +126,8 @@ export class FibbingItPhaseManager extends BaseGamePhaseManager {
               playerAvatar: `avatar_${(index + 1) % 9 + 1}`
             }))}
             correctAnswer={correctAnswer}
+            votes={votes}
+            players={players}
             onSubmitVote={onSubmitVote}
             selectedChoiceId={selectedChoiceId}
           />
@@ -128,10 +135,15 @@ export class FibbingItPhaseManager extends BaseGamePhaseManager {
 
       case 'over':
         return (
-          <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
-            <h1 className="text-3xl font-bold mb-8">Game Over!</h1>
-            <div className="text-[--muted]">Final scores coming soon...</div>
-          </div>
+          <SharedPromptView
+            question="Game Over!"
+            timeLeft={timeLeft}
+            totalTime={totalTime}
+            round={round}
+            maxRounds={maxRounds}
+            state="over"
+            onPlayAgain={onPlayAgain}
+          />
         );
 
       default:

@@ -1,5 +1,5 @@
 import './globals.css';
-import { Inter, Bangers } from 'next/font/google';
+import { Inter, Bangers, Baloo_2 } from 'next/font/google';
 import { ThemeProvider } from 'next-themes';
 import { Toaster } from '@/components/ui/sonner';
 import { ErrorBoundary } from '@/components/error-boundary';
@@ -9,6 +9,10 @@ const bangers = Bangers({
   weight: '400',
   subsets: ['latin'],
   variable: '--font-bangers',
+});
+const baloo2 = Baloo_2({
+  subsets: ['latin'],
+  variable: '--font-baloo2',
 });
 
 export const metadata = { title: 'Party Game', description: 'Multi-game party platform with Bluff Trivia, Fibbing It, Word Association, and more!' };
@@ -21,7 +25,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${inter.variable} ${bangers.variable} bg-[--bg] text-[--text] antialiased`}
+        className={`${inter.variable} ${bangers.variable} ${baloo2.variable} bg-[--bg] text-[--text] antialiased`}
       >
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
           {/* Subtle gradient bg */}

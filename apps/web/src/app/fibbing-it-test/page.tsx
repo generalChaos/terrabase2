@@ -19,11 +19,14 @@ export default function FibbingItTestPage() {
       { id: '2', text: 'Called the teacher "mom"', color: 'from-pink-500 to-pink-600', playerId: 'player2', playerAvatar: 'avatar_3' },
       { id: '3', text: 'Forgot to wear pants under my dress', color: 'from-teal-500 to-teal-600', playerId: 'player3', playerAvatar: 'avatar_4' },
       { id: '4', text: 'Farted during a test', color: 'from-green-600 to-green-700', playerId: 'host', playerAvatar: 'avatar_1' },
+      { id: '5', text: 'Anonymous confession', color: 'from-indigo-500 to-indigo-600', playerId: 'anonymous', playerAvatar: undefined },
     ],
     votes: [
       { voter: 'player1', choiceId: '1' },
       { voter: 'player2', choiceId: '2' },
       { voter: 'player3', choiceId: '1' },
+      { voter: 'player4', choiceId: '3' },
+      { voter: 'host', choiceId: '4' },
     ],
     players: [
       { id: 'host', name: 'Host Player', avatar: 'avatar_1', score: 150, connected: true },
@@ -133,6 +136,8 @@ export default function FibbingItTestPage() {
             maxRounds={mockState.maxRounds}
             state="options"
             options={mockState.choices}
+            votes={mockState.votes}
+            players={mockState.players}
             onSubmitVote={handleSubmitVote}
             selectedChoiceId={mockState.selectedChoiceId}
           />
@@ -149,6 +154,8 @@ export default function FibbingItTestPage() {
             state="reveal"
             options={mockState.choices}
             correctAnswer={mockState.correctAnswer}
+            votes={mockState.votes}
+            players={mockState.players}
             onSubmitVote={handleSubmitVote}
             selectedChoiceId={mockState.selectedChoiceId}
           />
@@ -157,15 +164,13 @@ export default function FibbingItTestPage() {
       case 'scoring':
         return (
           <SharedPromptView
-            question={mockState.question}
             timeLeft={mockState.timeLeft}
             totalTime={mockState.totalTime}
             round={mockState.round}
             maxRounds={mockState.maxRounds}
-
-            state="reveal"
-            options={mockState.choices}
-            correctAnswer={mockState.correctAnswer}
+            state="scoring"
+            votes={mockState.votes}
+            players={mockState.players}
             onSubmitVote={handleSubmitVote}
             selectedChoiceId={mockState.selectedChoiceId}
           />
@@ -173,30 +178,16 @@ export default function FibbingItTestPage() {
 
       case 'over':
         return (
-          <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col animate-fade-in min-h-screen">
-            <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
-              <h1 className="text-6xl font-bold text-white mb-8">Game Over!</h1>
-              <div className="bg-slate-800/50 rounded-2xl p-8 border border-slate-600 max-w-2xl">
-                <h2 className="text-2xl text-white mb-6">Final Scores</h2>
-                <div className="space-y-3">
-                  {mockState.scores
-                    .sort((a, b) => b.score - a.score)
-                    .map((score, index) => {
-                      const player = mockState.players.find(p => p.id === score.playerId);
-                      return (
-                        <div key={score.playerId} className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg">
-                          <div className="flex items-center gap-3">
-                            <span className="text-2xl">{index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`}</span>
-                            <span className="text-white font-medium">{player?.name || 'Unknown'}</span>
-                          </div>
-                          <span className="text-2xl font-bold text-teal-400">{score.score}</span>
-                        </div>
-                      );
-                    })}
-                </div>
-              </div>
-            </div>
-          </div>
+          <SharedPromptView
+            timeLeft={mockState.timeLeft}
+            totalTime={mockState.totalTime}
+            round={mockState.round}
+            maxRounds={mockState.maxRounds}
+            state="over"
+            votes={mockState.votes}
+            players={mockState.players}
+            onPlayAgain={resetGame}
+          />
         );
 
       default:

@@ -111,7 +111,7 @@ export function FibbingItScoringView({
           {/* Question and Answer */}
           <div className="bg-slate-800/50 rounded-2xl p-8 border border-slate-600">
             <h3 className="text-2xl text-white mb-4">{question}</h3>
-            <div className="text-xl text-teal-400 font-bold">
+            <div className="text-xl text-teal-400 font-bold font-baloo2">
               Correct Answer: {correctAnswer}
             </div>
           </div>

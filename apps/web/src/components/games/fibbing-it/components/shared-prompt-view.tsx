@@ -14,7 +14,7 @@ type SharedPromptViewProps = {
   totalTime: number;
   round: number;
   maxRounds: number;
-  state: 'waiting' | 'input' | 'options' | 'reveal';
+  state: 'waiting' | 'input' | 'options' | 'reveal' | 'scoring' | 'over';
   options?: Array<{
     id: string;
     text: string;
@@ -23,10 +23,13 @@ type SharedPromptViewProps = {
     playerAvatar?: string;
   }>;
   correctAnswer?: string;
+  votes?: Array<{ voter: string; choiceId: string }>;
+  players?: Array<{ id: string; name: string; avatar?: string; score: number }>;
   onSubmitAnswer?: (answer: string) => void;
   onSubmitVote?: (choiceId: string) => void;
   hasSubmitted?: boolean;
   selectedChoiceId?: string;
+  onPlayAgain?: () => void;
 };
 
 export function SharedPromptView({
@@ -35,14 +38,16 @@ export function SharedPromptView({
   totalTime,
   round,
   maxRounds,
-
   state,
   options = [],
   correctAnswer,
+  votes = [],
+  players = [],
   onSubmitAnswer,
   onSubmitVote,
   hasSubmitted = false,
   selectedChoiceId,
+  onPlayAgain,
 }: SharedPromptViewProps) {
   const [showOptions, setShowOptions] = useState(false);
 
@@ -64,11 +69,14 @@ export function SharedPromptView({
         state={state}
         options={options}
         correctAnswer={correctAnswer}
+        votes={votes}
+        players={players}
         onSubmitAnswer={onSubmitAnswer}
         onSubmitVote={onSubmitVote}
         hasSubmitted={hasSubmitted}
         selectedChoiceId={selectedChoiceId}
         showOptions={showOptions}
+        onPlayAgain={onPlayAgain}
       />
       <RoundInfo round={round} maxRounds={maxRounds} />
     </GameLayout>

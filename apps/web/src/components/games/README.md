@@ -2,6 +2,26 @@
 
 This directory contains game-specific phase managers that handle the UI logic for different game types. The system is designed to make adding new games as easy as possible.
 
+## Recent Improvements (Latest Update)
+
+### Enhanced Fibbing It Game
+- **Improved Voting Interface**: Question mark avatars (?) on voting buttons for clear visual distinction
+- **Separated Reveal vs Scoring Phases**: 
+  - **Reveal**: Shows answer choices with colored backgrounds, voter avatars, and points earned
+  - **Scoring**: Shows clean player rankings sorted by total points
+- **Enhanced UI Components**: 
+  - Question mark avatar component for unknown players
+  - Consistent Bangers font for all point displays
+  - Clean question display without distracting background effects
+  - Smooth animations and transitions
+- **Better Game Flow**: Clear distinction between game phases with proper data flow
+
+### UI Component Enhancements
+- **QuestionMarkAvatar**: New component for displaying unknown/placeholder avatars
+- **Consistent Typography**: Bangers font used across all scoring displays for gaming aesthetic
+- **Improved Animations**: Smooth fade-in effects with staggered delays for better UX
+- **Clean Design**: Removed unnecessary background effects for better readability
+
 ## New Directory Structure
 
 The games are now organized in a more scalable structure:

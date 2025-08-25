@@ -1,4 +1,5 @@
 'use client';
+import { QuestionMarkAvatar } from '../../shared/ui';
 
 type Option = {
   id: string;
@@ -72,10 +73,20 @@ export function VotingOptions({ options, onSubmitVote, selectedChoiceId, showOpt
           <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-transparent via-white/60 to-transparent -translate-x-full animate-shimmer" />
           
           {/* Content */}
-          <div className="relative z-10 flex items-center justify-between">
-            <span className="text-white font-bold text-xl drop-shadow-2xl tracking-wide">{option.text}</span>
+          <div className="relative z-10 flex items-center gap-3">
+            {/* Left: Question Mark Avatar */}
+            <div className="flex-shrink-0">
+              <QuestionMarkAvatar size="xl" />
+            </div>
+            
+            {/* Center: Answer Text */}
+            <div className="flex-1">
+              <span className="text-white font-bold text-xl">{option.text}</span>
+            </div>
+            
+            {/* Right: Checkmark */}
             {selectedChoiceId === option.id && (
-              <span className="text-white font-bold text-2xl animate-bounce">
+              <span className="text-white font-bold text-2xl animate-bounce flex-shrink-0">
                 ✓
               </span>
             )}
