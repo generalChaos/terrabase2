@@ -1,318 +1,311 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { RoomsGateway } from '../rooms.gateway';
-import { RoomManager } from '../room-manager';
-import { TimerService } from '../timer.service';
-import { ErrorHandlerService } from '../error-handler.service';
-import { ConnectionManagerService } from '../services/connection-manager.service';
-import { EventBroadcasterService } from '../services/event-broadcaster.service';
 import { ConnectionGatewayService } from '../services/connection-gateway.service';
 import { GameGatewayService } from '../services/game-gateway.service';
+import { RoomManager } from '../room-manager';
+import { EventBroadcasterService } from '../services/event-broadcaster.service';
+import { ErrorHandlerService } from '../error-handler.service';
+import { Socket } from 'socket.io';
+import { Result, success, failure, GameEvent } from '@party/types';
+import { TimerService } from '../timer.service';
+import { ConnectionManagerService } from '../services/connection-manager.service';
 import { EventGatewayService } from '../services/event-gateway.service';
-import { Socket, Namespace } from 'socket.io';
-import { ImmutableRoomState } from '../state/room.state';
-import { Player } from '@party/types';
 
 describe('RoomsGateway', () => {
   let gateway: RoomsGateway;
-  let roomManager: jest.Mocked<RoomManager>;
-  let timerService: jest.Mocked<TimerService>;
-  let errorHandler: jest.Mocked<ErrorHandlerService>;
-  let connectionManager: jest.Mocked<ConnectionManagerService>;
-  let eventBroadcaster: jest.Mocked<EventBroadcasterService>;
   let connectionGateway: jest.Mocked<ConnectionGatewayService>;
   let gameGateway: jest.Mocked<GameGatewayService>;
-  let eventGateway: jest.Mocked<EventGatewayService>;
-
-  const mockSocket = {
-    id: 'socket-1',
-    nsp: { name: '/rooms' },
-    join: jest.fn(),
-    leave: jest.fn(),
-    emit: jest.fn(),
-    disconnect: jest.fn(),
-    handshake: {
-      query: { roomCode: 'TEST123' },
-    },
-  } as any;
-
-  const mockNamespace = {
-    use: jest.fn(),
-    on: jest.fn(),
-    emit: jest.fn(),
-  } as any;
-
-  const mockPlayer: Player = {
-    id: 'player-1',
-    name: 'TestPlayer',
-    avatar: '😀',
-    score: 0,
-    connected: true,
-  };
-
-  const mockRoom: ImmutableRoomState = {
-    code: 'TEST123',
-    gameType: 'fibbing-it',
-    phase: 'lobby',
-    players: [mockPlayer],
-    hostId: 'player-1',
-    round: 1,
-    maxRounds: 5,
-    current: null,
-    timer: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    withPlayerAdded: jest.fn(),
-    withPlayerRemoved: jest.fn(),
-    withPlayerUpdated: jest.fn(),
-    withPhaseChanged: jest.fn(),
-    withRoundAdvanced: jest.fn(),
-    withTimerUpdated: jest.fn(),
-    withCurrentUpdated: jest.fn(),
-  } as any;
+  let roomManager: jest.Mocked<RoomManager>;
+  let eventBroadcaster: jest.Mocked<EventBroadcasterService>;
+  let errorHandler: jest.Mocked<ErrorHandlerService>;
+  let mockSocket: jest.Mocked<Socket>;
 
   beforeEach(async () => {
-    const mockRoomManager = {
-      hasRoom: jest.fn(),
-      getRoomSafe: jest.fn(),
-      createRoom: jest.fn(),
-      addPlayer: jest.fn(),
-      removePlayer: jest.fn(),
-      updatePlayerConnection: jest.fn(),
-      updatePlayerSocketId: jest.fn(),
-      cleanupDuplicatePlayers: jest.fn(),
-      cleanupInactiveRooms: jest.fn(),
-      getRoomStats: jest.fn(),
-      getRoomCount: jest.fn(),
-      getActivePlayerCount: jest.fn(),
-    };
-
-    const mockTimerService = {
-      startTimer: jest.fn(),
-      stopTimer: jest.fn(),
-      updateTimer: jest.fn(),
-      getTimeLeft: jest.fn(),
-    };
-
-    const mockErrorHandler = {
-      handleError: jest.fn(),
-      createErrorResponse: jest.fn(),
-    };
-
-    const mockConnectionManager = {
-      handleConnection: jest.fn(),
-      handleDisconnection: jest.fn(),
-      handlePlayerJoin: jest.fn(),
-    };
-
-    const mockEventBroadcaster = {
-      broadcastToRoom: jest.fn(),
-      broadcastToPlayer: jest.fn(),
-      setNamespace: jest.fn(),
-    };
-
-    const mockConnectionGateway = {
-      handleConnection: jest.fn(),
-      handleDisconnection: jest.fn(),
-      handlePlayerJoin: jest.fn(),
-    };
-
-    const mockGameGateway = {
-      startGame: jest.fn(),
-      handleGameAction: jest.fn(),
-    };
-
-    const mockEventGateway = {
-      handleGameEvent: jest.fn(),
-      handleTimerEvent: jest.fn(),
-    };
+    mockSocket = {
+      id: 'test-socket-id',
+      nsp: {
+        name: '/rooms/TEST123',
+      },
+      handshake: {
+        query: {
+          roomCode: 'TEST123',
+        },
+      },
+      emit: jest.fn(),
+      join: jest.fn(),
+      leave: jest.fn(),
+      disconnect: jest.fn(),
+    } as any;
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         RoomsGateway,
         {
           provide: RoomManager,
-          useValue: mockRoomManager,
+          useValue: {
+            getRoom: jest.fn(),
+          },
         },
         {
           provide: TimerService,
-          useValue: mockTimerService,
+          useValue: {
+            startTimer: jest.fn(),
+            stopTimer: jest.fn(),
+            updateTimer: jest.fn(),
+            getTimeLeft: jest.fn(),
+          },
         },
         {
           provide: ErrorHandlerService,
-          useValue: mockErrorHandler,
+          useValue: {
+            createWebSocketErrorResponse: jest.fn(),
+            validateRoomCode: jest.fn().mockReturnValue({ isFailure: () => false }),
+          },
         },
         {
           provide: ConnectionManagerService,
-          useValue: mockConnectionManager,
+          useValue: {
+            handleConnection: jest.fn(),
+            handleDisconnection: jest.fn(),
+            handlePlayerJoin: jest.fn(),
+          },
         },
         {
           provide: EventBroadcasterService,
-          useValue: mockEventBroadcaster,
+          useValue: {
+            broadcastEvents: jest.fn(),
+            setNamespace: jest.fn(),
+          },
         },
         {
           provide: ConnectionGatewayService,
-          useValue: mockConnectionGateway,
+          useValue: {
+            handleConnection: jest.fn(),
+            handleDisconnection: jest.fn(),
+            handlePlayerJoin: jest.fn(),
+          },
         },
         {
           provide: GameGatewayService,
-          useValue: mockGameGateway,
+          useValue: {
+            startGame: jest.fn(),
+            submitAnswer: jest.fn(),
+          },
         },
         {
           provide: EventGatewayService,
-          useValue: mockEventGateway,
+          useValue: {
+            handleGameEvent: jest.fn(),
+            handleTimerEvent: jest.fn(),
+          },
         },
       ],
     }).compile();
 
     gateway = module.get<RoomsGateway>(RoomsGateway);
-    roomManager = module.get(RoomManager);
-    timerService = module.get(TimerService);
-    errorHandler = module.get(ErrorHandlerService);
-    connectionManager = module.get(ConnectionManagerService);
-    eventBroadcaster = module.get(EventBroadcasterService);
     connectionGateway = module.get(ConnectionGatewayService);
     gameGateway = module.get(GameGatewayService);
-    eventGateway = module.get(EventGatewayService);
-  });
-
-  describe('afterInit', () => {
-    it('should initialize the gateway correctly', () => {
-      gateway.afterInit(mockNamespace);
-
-      expect(gateway['isReady']).toBe(true);
-      expect(eventBroadcaster.setNamespace).toHaveBeenCalledWith(mockNamespace);
-      expect(mockNamespace.use).toHaveBeenCalled();
-      expect(mockNamespace.on).toHaveBeenCalledWith('connection', expect.any(Function));
-    });
+    roomManager = module.get(RoomManager);
+    eventBroadcaster = module.get(EventBroadcasterService);
+    errorHandler = module.get(ErrorHandlerService);
   });
 
   describe('handleConnection', () => {
-    it('should delegate connection handling to ConnectionGatewayService', async () => {
+    it('should handle connection through connection gateway', async () => {
       await gateway.handleConnection(mockSocket);
 
       expect(connectionGateway.handleConnection).toHaveBeenCalledWith(mockSocket);
     });
-
-    it('should handle connection errors gracefully', async () => {
-      connectionGateway.handleConnection.mockRejectedValue(
-        new Error('Connection failed')
-      );
-
-      await expect(gateway.handleConnection(mockSocket)).rejects.toThrow(
-        'Connection failed'
-      );
-    });
   });
 
-  describe('handleDisconnection', () => {
-    it('should delegate disconnection handling to ConnectionGatewayService', async () => {
-      await gateway.handleDisconnection(mockSocket);
+  describe('handleDisconnect', () => {
+    it('should handle disconnection through connection gateway', async () => {
+      await gateway.handleDisconnect(mockSocket);
 
       expect(connectionGateway.handleDisconnection).toHaveBeenCalledWith(mockSocket);
     });
 
     it('should handle disconnection errors gracefully', async () => {
-      connectionGateway.handleDisconnection.mockRejectedValue(
-        new Error('Disconnection failed')
-      );
+      connectionGateway.handleDisconnection.mockRejectedValue(new Error('Connection error'));
 
-      await expect(gateway.handleDisconnection(mockSocket)).rejects.toThrow(
-        'Disconnection failed'
+      await expect(gateway.handleDisconnect(mockSocket)).rejects.toThrow(
+        'Connection error',
       );
     });
   });
 
-  describe('join event', () => {
-    it('should handle player join successfully', async () => {
-      const joinData = {
-        nickname: 'TestPlayer',
-        avatar: '😀',
-      };
+  describe('join', () => {
+    it('should handle player join through connection gateway', async () => {
+      const joinData = { nickname: 'TestPlayer', avatar: '😀' };
 
       await gateway.join(mockSocket, joinData);
 
-      expect(connectionGateway.handlePlayerJoin).toHaveBeenCalledWith(
-        mockSocket,
-        joinData
-      );
+      expect(connectionGateway.handlePlayerJoin).toHaveBeenCalledWith(mockSocket, joinData);
+    });
+  });
+
+  describe('startGame', () => {
+    it('should start game successfully and broadcast events', async () => {
+      const mockEvents: GameEvent[] = [
+        { 
+          type: 'gameStarted', 
+          data: { phase: 'prompt' }, 
+          timestamp: Date.now(),
+          target: 'room'
+        },
+      ];
+      const mockResult = success({ events: mockEvents });
+      const mockRoom = { code: 'TEST123', players: [{ id: 'test-socket-id' }] };
+
+      gameGateway.startGame.mockResolvedValue(mockResult);
+      roomManager.getRoom.mockReturnValue(mockRoom as any);
+
+      await gateway.start(mockSocket);
+
+      expect(gameGateway.startGame).toHaveBeenCalledWith(mockSocket, 'TEST123');
+      expect(eventBroadcaster.broadcastEvents).toHaveBeenCalledWith({
+        roomCode: 'TEST123',
+        events: mockEvents,
+        roomState: mockRoom,
+      });
     });
 
-    it('should handle join errors gracefully', async () => {
-      const joinData = {
-        nickname: 'TestPlayer',
-        avatar: '😀',
+    it('should handle game start failure and emit error', async () => {
+      const mockError = new Error('Game start failed');
+      const mockResult = failure(mockError);
+      const mockErrorResponse = { 
+        error: 'Game start failed', 
+        code: 'GAME_START_ERROR',
+        statusCode: 400,
+        details: {},
+        context: 'startGame',
+        timestamp: new Date().toISOString(),
+        requestId: undefined,
+        category: 'VALIDATION' as any,
+        retryable: false,
+        userActionRequired: false
       };
 
-      connectionGateway.handlePlayerJoin.mockRejectedValue(
-        new Error('Join failed')
-      );
-
-      await expect(gateway.join(mockSocket, joinData)).rejects.toThrow(
-        'Join failed'
-      );
-    });
-  });
-
-  describe('startGame event', () => {
-    it('should handle game start successfully', async () => {
-      const mockResult = { isSuccess: () => true };
       gameGateway.startGame.mockResolvedValue(mockResult);
+      errorHandler.createWebSocketErrorResponse.mockReturnValue(mockErrorResponse);
 
       await gateway.start(mockSocket);
 
       expect(gameGateway.startGame).toHaveBeenCalledWith(mockSocket, 'TEST123');
+      expect(errorHandler.createWebSocketErrorResponse).toHaveBeenCalledWith(
+        mockError,
+        'startGame',
+        'test-socket-id',
+      );
+      expect(mockSocket.emit).toHaveBeenCalledWith('error', mockErrorResponse);
     });
 
-    it('should handle game start failure', async () => {
-      const mockResult = { isSuccess: () => false, getError: () => 'Game start failed' };
-      gameGateway.startGame.mockResolvedValue(mockResult);
+    it('should handle unexpected errors during game start', async () => {
+      const mockError = new Error('Unexpected error');
+      const mockErrorResponse = { 
+        error: 'Unexpected error', 
+        code: 'UNEXPECTED_ERROR',
+        statusCode: 500,
+        details: {},
+        context: 'startGame',
+        timestamp: new Date().toISOString(),
+        requestId: undefined,
+        category: 'SYSTEM' as any,
+        retryable: false,
+        userActionRequired: false
+      };
+
+      gameGateway.startGame.mockRejectedValue(mockError);
+      errorHandler.createWebSocketErrorResponse.mockReturnValue(mockErrorResponse);
 
       await gateway.start(mockSocket);
 
-      expect(gameGateway.startGame).toHaveBeenCalledWith(mockSocket, 'TEST123');
-    });
-
-    it('should handle game start errors gracefully', async () => {
-      gameGateway.startGame.mockRejectedValue(new Error('Game start failed'));
-
-      await expect(gateway.start(mockSocket)).rejects.toThrow('Game start failed');
+      expect(errorHandler.createWebSocketErrorResponse).toHaveBeenCalledWith(
+        mockError,
+        'startGame',
+        'test-socket-id',
+      );
+      expect(mockSocket.emit).toHaveBeenCalledWith('error', mockErrorResponse);
     });
   });
 
-  describe('utility methods', () => {
-    it('should extract room code from socket namespace', () => {
-      const roomCode = gateway['codeFromNs'](mockSocket);
+  describe('submitAnswer', () => {
+    it('should handle answer submission successfully', async () => {
+      const mockResult = success(undefined);
+      const answerData = { answer: 'Test answer' };
+
+      gameGateway.submitAnswer.mockResolvedValue(mockResult);
+
+      await gateway.onAnswer(mockSocket, answerData);
+
+      expect(gameGateway.submitAnswer).toHaveBeenCalledWith(mockSocket, 'TEST123', answerData);
+    });
+
+    it('should handle answer submission failure and emit error', async () => {
+      const mockError = new Error('Answer submission failed');
+      const mockResult = failure(mockError);
+      const mockErrorResponse = { 
+        error: 'Answer submission failed', 
+        code: 'ANSWER_ERROR',
+        statusCode: 400,
+        details: {},
+        context: 'submitAnswer',
+        timestamp: new Date().toISOString(),
+        requestId: undefined,
+        category: 'VALIDATION' as any,
+        retryable: false,
+        userActionRequired: false
+      };
+      const answerData = { answer: 'Test answer' };
+
+      gameGateway.submitAnswer.mockResolvedValue(mockResult);
+      errorHandler.createWebSocketErrorResponse.mockReturnValue(mockErrorResponse);
+
+      await gateway.onAnswer(mockSocket, answerData);
+
+      expect(gameGateway.submitAnswer).toHaveBeenCalledWith(mockSocket, 'TEST123', answerData);
+      expect(errorHandler.createWebSocketErrorResponse).toHaveBeenCalledWith(
+        mockError,
+        'submitAnswer',
+        'test-socket-id',
+      );
+      expect(mockSocket.emit).toHaveBeenCalledWith('error', mockErrorResponse);
+    });
+
+    it('should handle unexpected errors during answer submission', async () => {
+      const mockError = new Error('Unexpected error');
+      const mockErrorResponse = { 
+        error: 'Unexpected error', 
+        code: 'UNEXPECTED_ERROR',
+        statusCode: 500,
+        details: {},
+        context: 'submitAnswer',
+        timestamp: new Date().toISOString(),
+        requestId: undefined,
+        category: 'SYSTEM' as any,
+        retryable: false,
+        userActionRequired: false
+      };
+      const answerData = { answer: 'Test answer' };
+
+      gameGateway.submitAnswer.mockRejectedValue(mockError);
+      errorHandler.createWebSocketErrorResponse.mockReturnValue(mockErrorResponse);
+
+      await gateway.onAnswer(mockSocket, answerData);
+
+      expect(errorHandler.createWebSocketErrorResponse).toHaveBeenCalledWith(
+        mockError,
+        'submitAnswer',
+        'test-socket-id',
+      );
+      expect(mockSocket.emit).toHaveBeenCalledWith('error', mockErrorResponse);
+    });
+  });
+
+  describe('codeFromNs', () => {
+    it('should extract room code from namespace', () => {
+      const roomCode = (gateway as any).codeFromNs(mockSocket);
       expect(roomCode).toBe('TEST123');
-    });
-
-    it('should handle missing room code gracefully', () => {
-      const socketWithoutRoomCode = {
-        ...mockSocket,
-        handshake: { query: {} },
-      };
-
-      const roomCode = gateway['codeFromNs'](socketWithoutRoomCode);
-      expect(roomCode).toBeUndefined();
-    });
-  });
-
-  describe('error handling', () => {
-    it('should use ErrorHandlerService for error handling', () => {
-      expect(errorHandler).toBeDefined();
-      expect(errorHandler.handleError).toBeDefined();
-      expect(errorHandler.createErrorResponse).toBeDefined();
-    });
-  });
-
-  describe('service integration', () => {
-    it('should have all required services injected', () => {
-      expect(roomManager).toBeDefined();
-      expect(timerService).toBeDefined();
-      expect(connectionManager).toBeDefined();
-      expect(eventBroadcaster).toBeDefined();
-      expect(connectionGateway).toBeDefined();
-      expect(gameGateway).toBeDefined();
-      expect(eventGateway).toBeDefined();
     });
   });
 });

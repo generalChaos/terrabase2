@@ -1,106 +1,130 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { RoomManager } from '../room-manager';
+import { GameRegistry } from '../game-registry';
+import { TimerService } from '../timer.service';
 import { StateManagerService } from '../state/state-manager.service';
 import { ImmutableRoomState } from '../state/room.state';
-import { Player } from '@party/types';
+import { Player, GameAction, GameEvent } from '@party/types';
 
 describe('RoomManager', () => {
   let roomManager: RoomManager;
+  let gameRegistry: jest.Mocked<GameRegistry>;
+  let timerService: jest.Mocked<TimerService>;
   let stateManager: jest.Mocked<StateManagerService>;
-
-  const mockPlayer: Player = {
-    id: 'player-1',
-    name: 'TestPlayer',
-    avatar: '😀',
-    score: 0,
-    connected: true,
-  };
-
-  const mockRoom: ImmutableRoomState = {
-    code: 'TEST123',
-    gameType: 'fibbing-it',
-    phase: 'lobby',
-    players: [mockPlayer],
-    hostId: 'player-1',
-    round: 1,
-    maxRounds: 5,
-    current: null,
-    timer: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    withPlayerAdded: jest.fn(),
-    withPlayerRemoved: jest.fn(),
-    withPlayerUpdated: jest.fn(),
-    withPhaseChanged: jest.fn(),
-    withRoundAdvanced: jest.fn(),
-    withTimerUpdated: jest.fn(),
-    withCurrentUpdated: jest.fn(),
-  } as any;
+  let mockRoom: ImmutableRoomState;
+  let mockPlayer: Player;
 
   beforeEach(async () => {
-    const mockStateManager = {
-      createRoom: jest.fn(),
-      getRoom: jest.fn(),
-      getRoomSafe: jest.fn(),
-      hasRoom: jest.fn(),
-      addPlayer: jest.fn(),
-      removePlayer: jest.fn(),
-      updatePlayerConnection: jest.fn(),
-      updatePlayerSocketId: jest.fn(),
-      cleanupDuplicatePlayers: jest.fn(),
-      cleanupInactiveRooms: jest.fn(),
-      advanceGamePhase: jest.fn(),
-      updateTimer: jest.fn(),
-      getRoomStats: jest.fn(),
-      getRoomCount: jest.fn(),
-      getActivePlayerCount: jest.fn(),
+    mockPlayer = {
+      id: 'player-1',
+      name: 'TestPlayer',
+      avatar: '😀',
+      connected: true,
+      score: 0,
     };
+
+    mockRoom = new ImmutableRoomState(
+      'TEST123',
+      'bluff-trivia',
+      {
+        phase: 'lobby',
+        players: [mockPlayer],
+        round: 1,
+        maxRounds: 5,
+        timeLeft: 0,
+        scores: new Map(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        isRoundComplete: false,
+        phaseStartTime: new Date(),
+      },
+      [mockPlayer],
+      'lobby',
+      'player-1',
+      new Date(),
+      1,
+    );
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         RoomManager,
         {
+          provide: GameRegistry,
+          useValue: {
+            getGame: jest.fn(),
+            register: jest.fn(),
+            listGames: jest.fn(),
+            hasGame: jest.fn(),
+            getDefaultGame: jest.fn(),
+          },
+        },
+        {
+          provide: TimerService,
+          useValue: {
+            startTimer: jest.fn(),
+            stopTimer: jest.fn(),
+            stopTimerForRoom: jest.fn(),
+            updateTimer: jest.fn(),
+            getTimeLeft: jest.fn(),
+          },
+        },
+        {
           provide: StateManagerService,
-          useValue: mockStateManager,
+          useValue: {
+            createRoom: jest.fn(),
+            getRoom: jest.fn(),
+            hasRoom: jest.fn(),
+            getRoomSafe: jest.fn(),
+            deleteRoom: jest.fn(),
+            addPlayer: jest.fn(),
+            removePlayer: jest.fn(),
+            processGameAction: jest.fn(),
+            advanceGamePhase: jest.fn(),
+            updateTimer: jest.fn(),
+            cleanupDuplicatePlayers: jest.fn(),
+            cleanupInactiveRooms: jest.fn(),
+            getRoomStats: jest.fn(),
+          },
         },
       ],
     }).compile();
 
     roomManager = module.get<RoomManager>(RoomManager);
+    gameRegistry = module.get(GameRegistry);
+    timerService = module.get(TimerService);
     stateManager = module.get(StateManagerService);
   });
 
   describe('createRoom', () => {
-    it('should create a room successfully', async () => {
-      const roomData = {
-        code: 'TEST123',
-        gameType: 'fibbing-it',
-        hostId: 'player-1',
-      };
+    it('should create room successfully', async () => {
+      stateManager.createRoom.mockReturnValue(mockRoom);
 
-      stateManager.createRoom.mockResolvedValue(mockRoom);
-
-      const result = await roomManager.createRoom(roomData);
+      const result = await roomManager.createRoom('TEST123', 'bluff-trivia');
 
       expect(result).toBe(mockRoom);
-      expect(stateManager.createRoom).toHaveBeenCalledWith(roomData);
+      expect(stateManager.createRoom).toHaveBeenCalledWith('TEST123', 'bluff-trivia');
     });
 
-    it('should handle room creation errors gracefully', async () => {
-      const roomData = {
-        code: 'TEST123',
-        gameType: 'fibbing-it',
-        hostId: 'player-1',
-      };
+    it('should create room with default game type', async () => {
+      stateManager.createRoom.mockReturnValue(mockRoom);
 
-      stateManager.createRoom.mockRejectedValue(new Error('Creation failed'));
+      const result = await roomManager.createRoom('TEST123');
 
-      await expect(roomManager.createRoom(roomData)).rejects.toThrow('Creation failed');
+      expect(result).toBe(mockRoom);
+      expect(stateManager.createRoom).toHaveBeenCalledWith('TEST123', 'bluff-trivia');
+    });
+
+    it('should handle room creation failure', () => {
+      stateManager.createRoom.mockImplementation(() => {
+        throw new Error('Creation failed');
+      });
+
+      expect(() => roomManager.createRoom('TEST123')).toThrow('Creation failed');
     });
   });
 
   describe('getRoom', () => {
-    it('should return room when it exists', () => {
+    it('should get room successfully', () => {
       stateManager.getRoom.mockReturnValue(mockRoom);
 
       const result = roomManager.getRoom('TEST123');
@@ -109,36 +133,36 @@ describe('RoomManager', () => {
       expect(stateManager.getRoom).toHaveBeenCalledWith('TEST123');
     });
 
-    it('should return undefined when room does not exist', () => {
-      stateManager.getRoom.mockReturnValue(undefined);
+    it('should throw error when room not found', () => {
+      stateManager.getRoom.mockImplementation(() => {
+        throw new Error('Room not found');
+      });
 
-      const result = roomManager.getRoom('INVALID');
-
-      expect(result).toBeUndefined();
+      expect(() => roomManager.getRoom('INVALID')).toThrow('Room not found');
     });
   });
 
   describe('getRoomSafe', () => {
-    it('should return room when it exists', async () => {
-      stateManager.getRoomSafe.mockResolvedValue(mockRoom);
+    it('should get room safely', () => {
+      stateManager.getRoomSafe.mockReturnValue(mockRoom);
 
-      const result = await roomManager.getRoomSafe('TEST123');
+      const result = roomManager.getRoomSafe('TEST123');
 
       expect(result).toBe(mockRoom);
       expect(stateManager.getRoomSafe).toHaveBeenCalledWith('TEST123');
     });
 
-    it('should return null when room does not exist', async () => {
-      stateManager.getRoomSafe.mockResolvedValue(null);
+    it('should return undefined when room not found', () => {
+      stateManager.getRoomSafe.mockReturnValue(undefined);
 
-      const result = await roomManager.getRoomSafe('INVALID');
+      const result = roomManager.getRoomSafe('INVALID');
 
-      expect(result).toBeNull();
+      expect(result).toBeUndefined();
     });
   });
 
   describe('hasRoom', () => {
-    it('should return true when room exists', () => {
+    it('should check if room exists', () => {
       stateManager.hasRoom.mockReturnValue(true);
 
       const result = roomManager.hasRoom('TEST123');
@@ -146,150 +170,117 @@ describe('RoomManager', () => {
       expect(result).toBe(true);
       expect(stateManager.hasRoom).toHaveBeenCalledWith('TEST123');
     });
+  });
 
-    it('should return false when room does not exist', () => {
-      stateManager.hasRoom.mockReturnValue(false);
+  describe('deleteRoom', () => {
+    it('should delete room successfully', () => {
+      stateManager.deleteRoom.mockReturnValue(true);
+      timerService.stopTimerForRoom.mockReturnValue(true);
 
-      const result = roomManager.hasRoom('INVALID');
+      const result = roomManager.deleteRoom('TEST123');
 
-      expect(result).toBe(false);
+      expect(result).toBe(true);
+      expect(timerService.stopTimerForRoom).toHaveBeenCalledWith('TEST123');
+      expect(stateManager.deleteRoom).toHaveBeenCalledWith('TEST123');
     });
   });
 
   describe('addPlayer', () => {
     it('should add player successfully', async () => {
-      const newPlayer = {
-        id: 'player-2',
-        name: 'NewPlayer',
-        avatar: '😎',
-        connected: true,
-        score: 0,
-      };
+      stateManager.addPlayer.mockResolvedValue(undefined);
 
-      stateManager.addPlayer.mockResolvedValue(true);
-
-      const result = await roomManager.addPlayer('TEST123', newPlayer);
+      const result = await roomManager.addPlayer('TEST123', mockPlayer);
 
       expect(result).toBe(true);
-      expect(stateManager.addPlayer).toHaveBeenCalledWith('TEST123', newPlayer);
+      expect(stateManager.addPlayer).toHaveBeenCalledWith('TEST123', mockPlayer);
     });
 
-    it('should handle add player errors gracefully', async () => {
-      const newPlayer = {
-        id: 'player-2',
-        name: 'NewPlayer',
-        avatar: '😎',
-        connected: true,
-        score: 0,
-      };
-
+    it('should handle player addition failure', async () => {
       stateManager.addPlayer.mockRejectedValue(new Error('Add failed'));
 
-      await expect(roomManager.addPlayer('TEST123', newPlayer)).rejects.toThrow('Add failed');
+      const result = await roomManager.addPlayer('TEST123', mockPlayer);
+
+      expect(result).toBe(false);
     });
   });
 
   describe('removePlayer', () => {
     it('should remove player successfully', async () => {
-      stateManager.removePlayer.mockResolvedValue();
+      stateManager.removePlayer.mockResolvedValue(mockRoom);
 
-      await roomManager.removePlayer('TEST123', 'player-1');
+      const result = await roomManager.removePlayer('TEST123', 'player-1');
 
+      expect(result).toBe(true);
       expect(stateManager.removePlayer).toHaveBeenCalledWith('TEST123', 'player-1');
     });
 
-    it('should handle remove player errors gracefully', async () => {
+    it('should handle player removal when room becomes empty', async () => {
+      stateManager.removePlayer.mockResolvedValue(null);
+
+      const result = await roomManager.removePlayer('TEST123', 'player-1');
+
+      expect(result).toBe(false);
+    });
+
+    it('should handle player removal failure', async () => {
       stateManager.removePlayer.mockRejectedValue(new Error('Remove failed'));
 
-      await expect(roomManager.removePlayer('TEST123', 'player-1')).rejects.toThrow('Remove failed');
+      const result = await roomManager.removePlayer('TEST123', 'player-1');
+
+      expect(result).toBe(false);
     });
   });
 
-  describe('updatePlayerConnection', () => {
-    it('should update player connection status successfully', async () => {
-      stateManager.updatePlayerConnection.mockResolvedValue();
+  describe('processGameAction', () => {
+    it('should process game action successfully', async () => {
+      const mockAction: GameAction = {
+        type: 'start',
+        playerId: 'player-1',
+        data: {},
+        timestamp: Date.now(),
+      };
+      const mockEvents: GameEvent[] = [
+        {
+          type: 'gameStarted',
+          data: { phase: 'prompt' },
+          target: 'room',
+          timestamp: Date.now(),
+        },
+      ];
 
-      await roomManager.updatePlayerConnection('TEST123', 'player-1', false);
+      stateManager.processGameAction.mockResolvedValue(mockEvents);
 
-      expect(stateManager.updatePlayerConnection).toHaveBeenCalledWith(
-        'TEST123',
-        'player-1',
-        false
-      );
+      const result = await roomManager.processGameAction('TEST123', 'player-1', mockAction);
+
+      expect(result).toEqual(mockEvents);
+      expect(stateManager.processGameAction).toHaveBeenCalledWith('TEST123', 'player-1', mockAction);
     });
 
-    it('should handle update connection errors gracefully', async () => {
-      stateManager.updatePlayerConnection.mockRejectedValue(new Error('Update failed'));
+    it('should handle game action failure', async () => {
+      const mockAction: GameAction = {
+        type: 'start',
+        playerId: 'player-1',
+        data: {},
+        timestamp: Date.now(),
+      };
 
-      await expect(
-        roomManager.updatePlayerConnection('TEST123', 'player-1', false)
-      ).rejects.toThrow('Update failed');
-    });
-  });
+      stateManager.processGameAction.mockRejectedValue(new Error('Action failed'));
 
-  describe('updatePlayerSocketId', () => {
-    it('should update player socket ID successfully', async () => {
-      stateManager.updatePlayerSocketId.mockResolvedValue();
-
-      await roomManager.updatePlayerSocketId('TEST123', 'player-1', 'new-socket-id');
-
-      expect(stateManager.updatePlayerSocketId).toHaveBeenCalledWith(
-        'TEST123',
-        'player-1',
-        'new-socket-id'
-      );
-    });
-
-    it('should handle update socket ID errors gracefully', async () => {
-      stateManager.updatePlayerSocketId.mockRejectedValue(new Error('Update failed'));
-
-      await expect(
-        roomManager.updatePlayerSocketId('TEST123', 'player-1', 'new-socket-id')
-      ).rejects.toThrow('Update failed');
-    });
-  });
-
-  describe('cleanupDuplicatePlayers', () => {
-    it('should cleanup duplicate players successfully', async () => {
-      stateManager.cleanupDuplicatePlayers.mockResolvedValue();
-
-      await roomManager.cleanupDuplicatePlayers('TEST123');
-
-      expect(stateManager.cleanupDuplicatePlayers).toHaveBeenCalledWith('TEST123');
-    });
-
-    it('should handle cleanup errors gracefully', async () => {
-      stateManager.cleanupDuplicatePlayers.mockRejectedValue(new Error('Cleanup failed'));
-
-      await expect(roomManager.cleanupDuplicatePlayers('TEST123')).rejects.toThrow('Cleanup failed');
-    });
-  });
-
-  describe('cleanupInactiveRooms', () => {
-    it('should cleanup inactive rooms and return count', () => {
-      const expectedCount = 3;
-      stateManager.cleanupInactiveRooms.mockReturnValue(expectedCount);
-
-      const result = roomManager.cleanupInactiveRooms(30);
-
-      expect(result).toBe(expectedCount);
-      expect(stateManager.cleanupInactiveRooms).toHaveBeenCalledWith(30);
-    });
-
-    it('should use default timeout when none provided', () => {
-      const expectedCount = 0;
-      stateManager.cleanupInactiveRooms.mockReturnValue(expectedCount);
-
-      const result = roomManager.cleanupInactiveRooms();
-
-      expect(result).toBe(expectedCount);
-      expect(stateManager.cleanupInactiveRooms).toHaveBeenCalledWith(30);
+      await expect(roomManager.processGameAction('TEST123', 'player-1', mockAction)).rejects.toThrow('Action failed');
     });
   });
 
   describe('advanceGamePhase', () => {
     it('should advance game phase successfully', async () => {
-      const mockEvents = [{ type: 'phaseChange', data: { phase: 'prompt' } }];
+      const mockEvents: GameEvent[] = [
+        {
+          type: 'phaseChanged',
+          data: { phase: 'prompt' },
+          target: 'room',
+          timestamp: Date.now(),
+        },
+      ];
+
       stateManager.advanceGamePhase.mockResolvedValue(mockEvents);
 
       const result = await roomManager.advanceGamePhase('TEST123');
@@ -298,8 +289,8 @@ describe('RoomManager', () => {
       expect(stateManager.advanceGamePhase).toHaveBeenCalledWith('TEST123');
     });
 
-    it('should handle phase advancement errors gracefully', async () => {
-      stateManager.advanceGamePhase.mockRejectedValue(new Error('Advance failed'));
+    it('should handle phase advancement failure', async () => {
+      stateManager.advanceGamePhase.mockRejectedValue(new Error('Phase change failed'));
 
       const result = await roomManager.advanceGamePhase('TEST123');
 
@@ -309,31 +300,61 @@ describe('RoomManager', () => {
 
   describe('updateTimer', () => {
     it('should update timer successfully', async () => {
-      const mockEvents = [{ type: 'timerUpdate', data: { timeLeft: 10 } }];
+      const mockEvents: GameEvent[] = [
+        {
+          type: 'timer',
+          data: { timeLeft: 30 },
+          target: 'room',
+          timestamp: Date.now(),
+        },
+      ];
+
       stateManager.updateTimer.mockResolvedValue(mockEvents);
 
-      const result = await roomManager.updateTimer('TEST123', -1);
+      const result = await roomManager.updateTimer('TEST123', -5);
 
       expect(result).toEqual(mockEvents);
-      expect(stateManager.updateTimer).toHaveBeenCalledWith('TEST123', -1);
+      expect(stateManager.updateTimer).toHaveBeenCalledWith('TEST123', -5);
     });
 
-    it('should handle timer update errors gracefully', async () => {
+    it('should handle timer update failure', async () => {
       stateManager.updateTimer.mockRejectedValue(new Error('Timer update failed'));
 
-      const result = await roomManager.updateTimer('TEST123', -1);
+      const result = await roomManager.updateTimer('TEST123', -5);
 
       expect(result).toEqual([]);
     });
   });
 
+  describe('cleanupDuplicatePlayers', () => {
+    it('should cleanup duplicate players successfully', async () => {
+      stateManager.cleanupDuplicatePlayers.mockResolvedValue(undefined);
+
+      await roomManager.cleanupDuplicatePlayers('TEST123');
+
+      expect(stateManager.cleanupDuplicatePlayers).toHaveBeenCalledWith('TEST123');
+    });
+  });
+
+  describe('cleanupInactiveRooms', () => {
+    it('should cleanup inactive rooms successfully', () => {
+      stateManager.cleanupInactiveRooms.mockReturnValue(5);
+
+      const result = roomManager.cleanupInactiveRooms();
+
+      expect(result).toBe(5);
+      expect(stateManager.cleanupInactiveRooms).toHaveBeenCalled();
+    });
+  });
+
   describe('getRoomStats', () => {
-    it('should return room statistics', () => {
+    it('should get room stats successfully', () => {
       const mockStats = {
-        totalRooms: 5,
-        activePlayers: 12,
-        gameTypes: { 'fibbing-it': 3, 'bluff-trivia': 2 },
+        totalRooms: 10,
+        activePlayers: 25,
+        gameTypes: { 'bluff-trivia': 5, 'fibbing-it': 5 },
       };
+
       stateManager.getRoomStats.mockReturnValue(mockStats);
 
       const result = roomManager.getRoomStats();
@@ -342,28 +363,5 @@ describe('RoomManager', () => {
       expect(stateManager.getRoomStats).toHaveBeenCalled();
     });
   });
-
-  describe('getRoomCount', () => {
-    it('should return room count', () => {
-      const expectedCount = 5;
-      stateManager.getRoomCount.mockReturnValue(expectedCount);
-
-      const result = roomManager.getRoomCount();
-
-      expect(result).toBe(expectedCount);
-      expect(stateManager.getRoomCount).toHaveBeenCalled();
-    });
-  });
-
-  describe('getActivePlayerCount', () => {
-    it('should return active player count', () => {
-      const expectedCount = 12;
-      stateManager.getActivePlayerCount.mockReturnValue(expectedCount);
-
-      const result = roomManager.getActivePlayerCount();
-
-      expect(result).toBe(expectedCount);
-      expect(stateManager.getActivePlayerCount).toHaveBeenCalled();
-    });
-  });
 });
+

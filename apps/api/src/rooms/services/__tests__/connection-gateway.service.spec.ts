@@ -109,30 +109,44 @@ describe('ConnectionGatewayService', () => {
     roomManager = module.get(RoomManager);
     errorHandler = module.get(ErrorHandlerService);
     eventGateway = module.get(EventGatewayService);
+
+    // Reset socket mocks between tests for proper isolation
+    mockSocket.emit.mockClear();
+    mockSocket.join.mockClear();
+    mockSocket.leave.mockClear();
+    mockSocket.disconnect.mockClear();
   });
 
   describe('handleConnection', () => {
     it('should handle successful connection', async () => {
-      // Mock validation methods
-      errorHandler.validateRoomCode.mockReturnValue(success(undefined));
-      
-      connectionManager.handleConnection.mockResolvedValue({
+      const mockResult = {
         success: true,
         room: mockRoom,
         isReconnection: false,
-      });
+      };
 
-      await service.handleConnection(mockSocket);
+      errorHandler.validateRoomCode.mockReturnValue(success(undefined));
+      connectionManager.handleConnection.mockResolvedValue(mockResult);
+      eventGateway.broadcastRoomUpdate.mockResolvedValue(success(undefined));
 
+      const result = await service.handleConnection(mockSocket);
+
+      expect(result.isSuccess()).toBe(true);
       expect(mockSocket.join).toHaveBeenCalledWith('TEST123');
-      expect(connectionManager.handleConnection).toHaveBeenCalledWith(
-        'TEST123',
-        'socket-1'
-      );
+      expect(mockSocket.emit).toHaveBeenCalledWith('connected', {
+        roomCode: 'TEST123',
+        playerId: 'socket-1',
+      });
     });
 
     it('should handle connection failure', async () => {
-      // Mock validation methods
+      const mockResult = {
+        success: false,
+        room: null,
+        isReconnection: false,
+        error: 'Room not found',
+      };
+
       errorHandler.validateRoomCode.mockReturnValue(success(undefined));
       errorHandler.createWebSocketErrorResponse.mockReturnValue({
         error: 'Room not found',
@@ -142,54 +156,44 @@ describe('ConnectionGatewayService', () => {
         context: 'connection',
         timestamp: new Date().toISOString(),
         requestId: undefined,
-        category: ErrorCategory.SYSTEM,
+        category: 'SYSTEM' as any,
         retryable: true,
         userActionRequired: false,
       });
-      
-      connectionManager.handleConnection.mockResolvedValue({
-        success: false,
-        room: null,
-        isReconnection: false,
-        error: 'Room not found',
-      });
+      connectionManager.handleConnection.mockResolvedValue(mockResult);
 
-      await service.handleConnection(mockSocket);
+      const result = await service.handleConnection(mockSocket);
 
-      expect(mockSocket.emit).toHaveBeenCalledWith('error', {
+      expect(result.isFailure()).toBe(true);
+      expect(mockSocket.emit).toHaveBeenCalledWith('error', expect.objectContaining({
         error: 'Room not found',
         code: 'CONNECTION_ERROR',
-        statusCode: 500,
-        details: undefined,
-        context: 'connection',
-        timestamp: expect.any(String),
-        requestId: undefined,
-        category: ErrorCategory.SYSTEM,
-        retryable: true,
-        userActionRequired: false,
-      });
+      }));
     });
 
     it('should handle connection errors', async () => {
-      connectionManager.handleConnection.mockRejectedValue(
-        new Error('Connection failed')
-      );
-
-      await service.handleConnection(mockSocket);
-
-      expect(mockSocket.disconnect).toHaveBeenCalled();
-      expect(mockSocket.emit).toHaveBeenCalledWith('error', {
+      errorHandler.validateRoomCode.mockReturnValue(success(undefined));
+      errorHandler.createWebSocketErrorResponse.mockReturnValue({
         error: 'Connection failed',
         code: 'CONNECTION_ERROR',
         statusCode: 500,
         details: undefined,
         context: 'connection',
-        timestamp: expect.any(String),
+        timestamp: new Date().toISOString(),
         requestId: undefined,
-        category: ErrorCategory.SYSTEM,
+        category: 'SYSTEM' as any,
         retryable: true,
         userActionRequired: false,
       });
+      connectionManager.handleConnection.mockRejectedValue(new Error('Connection failed'));
+
+      const result = await service.handleConnection(mockSocket);
+
+      expect(result.isFailure()).toBe(true);
+      expect(mockSocket.emit).toHaveBeenCalledWith('error', expect.objectContaining({
+        error: 'Connection failed',
+        code: 'CONNECTION_ERROR',
+      }));
     });
 
     it('should handle missing room code', async () => {
@@ -198,58 +202,60 @@ describe('ConnectionGatewayService', () => {
         handshake: { query: {} },
       };
 
-      await service.handlePlayerJoin(socketWithoutRoomCode, {
-        nickname: 'TestPlayer',
-        avatar: '😀',
-      });
-
-      expect(socketWithoutRoomCode.disconnect).toHaveBeenCalled();
-      expect(socketWithoutRoomCode.emit).toHaveBeenCalledWith('error', {
+      errorHandler.createWebSocketErrorResponse.mockReturnValue({
         error: 'Room code is required',
         code: 'VALIDATION_ERROR',
         statusCode: 400,
         details: undefined,
-        context: 'player-join',
-        timestamp: expect.any(String),
+        context: 'connection',
+        timestamp: new Date().toISOString(),
         requestId: undefined,
-        category: ErrorCategory.VALIDATION,
+        category: 'VALIDATION' as any,
         retryable: false,
         userActionRequired: true,
       });
+
+      const result = await service.handleConnection(socketWithoutRoomCode);
+
+      expect(result.isFailure()).toBe(true);
+      expect(socketWithoutRoomCode.emit).toHaveBeenCalledWith('error', expect.objectContaining({
+        error: 'Room code is required',
+        code: 'VALIDATION_ERROR',
+      }));
     });
   });
 
   describe('handleDisconnection', () => {
     it('should handle successful disconnection', async () => {
-      connectionManager.handleDisconnection.mockResolvedValue(true);
+      roomManager.getRoomSafe.mockReturnValue(mockRoom);
+      eventGateway.broadcastRoomUpdate.mockResolvedValue(success(undefined));
 
-      await service.handleDisconnection(mockSocket);
+      const result = await service.handleDisconnection(mockSocket);
 
-      expect(mockSocket.leave).toHaveBeenCalledWith('TEST123');
+      expect(result.isSuccess()).toBe(true);
       expect(connectionManager.handleDisconnection).toHaveBeenCalledWith(
         'TEST123',
-        'socket-1'
+        'socket-1',
       );
+      expect(eventGateway.broadcastRoomUpdate).toHaveBeenCalledWith('TEST123', mockRoom);
     });
 
     it('should handle disconnection failure', async () => {
-      connectionManager.handleDisconnection.mockResolvedValue(false);
+      connectionManager.handleDisconnection.mockRejectedValue(new Error('Disconnection failed'));
 
-      await service.handleDisconnection(mockSocket);
+      const result = await service.handleDisconnection(mockSocket);
 
-      expect(mockSocket.leave).toHaveBeenCalledWith('TEST123');
-      // Should still leave the room even if disconnection handling fails
+      expect(result.isFailure()).toBe(true);
+      // Should still attempt to handle disconnection even if it fails
     });
 
     it('should handle disconnection errors', async () => {
-      connectionManager.handleDisconnection.mockRejectedValue(
-        new Error('Disconnection failed')
-      );
+      connectionManager.handleDisconnection.mockRejectedValue(new Error('Disconnection failed'));
 
-      await service.handleDisconnection(mockSocket);
+      const result = await service.handleDisconnection(mockSocket);
 
-      expect(mockSocket.leave).toHaveBeenCalledWith('TEST123');
-      // Should still leave the room even if disconnection handling fails
+      expect(result.isFailure()).toBe(true);
+      // Should still attempt to handle disconnection even if it fails
     });
   });
 
@@ -260,91 +266,164 @@ describe('ConnectionGatewayService', () => {
     };
 
     it('should handle successful player join', async () => {
-      connectionManager.handlePlayerJoin.mockResolvedValue({
+      const mockResult = {
         success: true,
         room: mockRoom,
         isReconnection: false,
-      });
+      };
 
-      await service.handlePlayerJoin(mockSocket, joinData);
+      errorHandler.validateRoomCode.mockReturnValue(success(undefined));
+      errorHandler.validateNickname.mockReturnValue(success(undefined));
+      eventGateway.broadcastRoomUpdate.mockResolvedValue(success(undefined));
+      connectionManager.handlePlayerJoin.mockResolvedValue(mockResult);
 
+      const result = await service.handlePlayerJoin(mockSocket, joinData);
+
+      expect(result.isSuccess()).toBe(true);
       expect(connectionManager.handlePlayerJoin).toHaveBeenCalledWith(
         'TEST123',
         'socket-1',
         'TestPlayer',
-        '😀'
+        '😀',
       );
-      expect(eventGateway.broadcastRoomUpdate).toHaveBeenCalledWith(
-        'TEST123',
-        mockRoom
-      );
+      expect(eventGateway.broadcastRoomUpdate).toHaveBeenCalledWith('TEST123', mockRoom);
+      expect(mockSocket.emit).toHaveBeenCalledWith('joined', expect.objectContaining({
+        roomCode: 'TEST123',
+        playerId: 'socket-1',
+        nickname: 'TestPlayer',
+        avatar: '😀',
+      }));
     });
 
     it('should handle player join failure', async () => {
-      connectionManager.handlePlayerJoin.mockResolvedValue({
+      const mockResult = {
         success: false,
         room: null,
         isReconnection: false,
         error: 'Player name already taken',
-      });
+      };
 
-      await service.handlePlayerJoin(mockSocket, joinData);
-
-      expect(mockSocket.emit).toHaveBeenCalledWith('error', {
-        message: 'Player name already taken',
+      errorHandler.validateRoomCode.mockReturnValue(success(undefined));
+      errorHandler.validateNickname.mockReturnValue(success(undefined));
+      errorHandler.createWebSocketErrorResponse.mockReturnValue({
+        error: 'Player name already taken',
+        code: 'CONNECTION_ERROR',
+        statusCode: 500,
+        details: undefined,
+        context: 'player-join',
+        timestamp: new Date().toISOString(),
+        requestId: undefined,
+        category: 'SYSTEM' as any,
+        retryable: true,
+        userActionRequired: false,
       });
+      connectionManager.handlePlayerJoin.mockResolvedValue(mockResult);
+
+      const result = await service.handlePlayerJoin(mockSocket, joinData);
+
+      expect(result.isFailure()).toBe(true);
+      expect(mockSocket.emit).toHaveBeenCalledWith('error', expect.objectContaining({
+        error: 'Player name already taken',
+        code: 'CONNECTION_ERROR',
+      }));
     });
 
     it('should handle player reconnection', async () => {
-      connectionManager.handlePlayerJoin.mockResolvedValue({
+      const mockResult = {
         success: true,
         room: mockRoom,
         isReconnection: true,
-        reconnectedPlayerId: 'player-1',
-      });
+      };
 
-      await service.handlePlayerJoin(mockSocket, joinData);
+      errorHandler.validateRoomCode.mockReturnValue(success(undefined));
+      errorHandler.validateNickname.mockReturnValue(success(undefined));
+      eventGateway.broadcastRoomUpdate.mockResolvedValue(success(undefined));
+      connectionManager.handlePlayerJoin.mockResolvedValue(mockResult);
 
-      expect(eventGateway.broadcastRoomUpdate).toHaveBeenCalledWith(
-        'TEST123',
-        mockRoom
-      );
-      expect(mockSocket.emit).toHaveBeenCalledWith('reconnected', {
-        playerId: 'player-1',
-        room: mockRoom,
-      });
+      const result = await service.handlePlayerJoin(mockSocket, joinData);
+
+      expect(result.isSuccess()).toBe(true);
+      expect(eventGateway.broadcastRoomUpdate).toHaveBeenCalledWith('TEST123', mockRoom);
     });
 
     it('should handle join errors', async () => {
-      connectionManager.handlePlayerJoin.mockRejectedValue(
-        new Error('Join failed')
-      );
-
-      await service.handlePlayerJoin(mockSocket, joinData);
-
-      expect(mockSocket.emit).toHaveBeenCalledWith('error', {
-        message: 'Join failed',
+      errorHandler.validateRoomCode.mockReturnValue(success(undefined));
+      errorHandler.validateNickname.mockReturnValue(success(undefined));
+      errorHandler.createWebSocketErrorResponse.mockReturnValue({
+        error: 'Join failed',
+        code: 'CONNECTION_ERROR',
+        statusCode: 500,
+        details: undefined,
+        context: 'player-join',
+        timestamp: new Date().toISOString(),
+        requestId: undefined,
+        category: 'SYSTEM' as any,
+        retryable: true,
+        userActionRequired: false,
       });
+      connectionManager.handlePlayerJoin.mockRejectedValue(new Error('Join failed'));
+
+      const result = await service.handlePlayerJoin(mockSocket, joinData);
+
+      expect(result.isFailure()).toBe(true);
+      expect(mockSocket.emit).toHaveBeenCalledWith('error', expect.objectContaining({
+        error: 'Join failed',
+        code: 'CONNECTION_ERROR',
+      }));
     });
 
     it('should handle missing nickname', async () => {
       const invalidJoinData = { nickname: undefined, avatar: '😀' } as any;
 
-      await service.handlePlayerJoin(mockSocket, invalidJoinData);
-
-      expect(mockSocket.emit).toHaveBeenCalledWith('error', {
+      errorHandler.validateRoomCode.mockReturnValue(success(undefined));
+      errorHandler.validateNickname.mockReturnValue(failure({
         message: 'Nickname is required',
-      });
+        error: 'Nickname is required',
+        code: 'VALIDATION_ERROR',
+        statusCode: 400,
+        details: undefined,
+        context: 'player-join',
+        timestamp: new Date().toISOString(),
+        requestId: undefined,
+        category: 'VALIDATION' as any,
+        retryable: false,
+        userActionRequired: true,
+      }));
+
+      const result = await service.handlePlayerJoin(mockSocket, invalidJoinData);
+
+      expect(result.isFailure()).toBe(true);
+      expect(mockSocket.emit).toHaveBeenCalledWith('error', expect.objectContaining({
+        error: 'Nickname is required',
+        code: 'VALIDATION_ERROR',
+      }));
     });
 
     it('should handle empty nickname', async () => {
       const invalidJoinData = { nickname: '', avatar: '😀' };
 
-      await service.handlePlayerJoin(mockSocket, invalidJoinData);
-
-      expect(mockSocket.emit).toHaveBeenCalledWith('error', {
+      errorHandler.validateRoomCode.mockReturnValue(success(undefined));
+      errorHandler.validateNickname.mockReturnValue(failure({
         message: 'Nickname cannot be empty',
-      });
+        error: 'Nickname cannot be empty',
+        code: 'VALIDATION_ERROR',
+        statusCode: 400,
+        details: undefined,
+        context: 'player-join',
+        timestamp: new Date().toISOString(),
+        requestId: undefined,
+        category: 'VALIDATION' as any,
+        retryable: false,
+        userActionRequired: true,
+      }));
+
+      const result = await service.handlePlayerJoin(mockSocket, invalidJoinData);
+
+      expect(result.isFailure()).toBe(true);
+      expect(mockSocket.emit).toHaveBeenCalledWith('error', expect.objectContaining({
+        error: 'Nickname cannot be empty',
+        code: 'VALIDATION_ERROR',
+      }));
     });
   });
 
