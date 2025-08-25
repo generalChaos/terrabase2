@@ -24,8 +24,8 @@ export interface FibbingItRound {
   roundNumber: number;
   promptId: string;
   prompt: string;
-  answers: Map<string, string>; // playerId -> answer
-  votes: Map<string, string>; // playerId -> choiceId
+  answers: Map<string, { playerId: string; text: string }>; // answerId -> { playerId, text }
+  votes: Map<string, string>; // playerId -> answerId
   timeLeft: number;
   phase: 'prompt' | 'voting' | 'reveal' | 'scoring';
 }
@@ -36,7 +36,7 @@ export interface FibbingItAction extends GameAction {
 }
 
 export interface FibbingItEvent extends GameEvent {
-  type: 'prompt' | 'answers' | 'scores' | 'gameOver' | 'roomUpdate' | 'timer' | 'submitted';
+  type: 'prompt' | 'answers' | 'scores' | 'gameOver' | 'roomUpdate' | 'timer' | 'submitted' | 'allVoted';
   data: any;
 }
 
@@ -216,40 +216,386 @@ export class FibbingItNewEngine implements GameEngine<FibbingItGameState, Fibbin
 
   // Private helper methods
   private handleStart(state: FibbingItGameState, action: FibbingItAction): GameResult<FibbingItGameState, FibbingItEvent> {
-    const newState = this.advancePhase(state);
     const now = Date.now();
     
+    // Advance to the first phase (prompt)
+    const newState = this.advancePhase(state);
+    
+    // Initialize the first round
+    const promptId = this.selectRandomPrompt(newState.usedPromptIds);
+    const prompt = this.getPromptById(promptId);
+    
+    const updatedState: FibbingItGameState = {
+      ...newState,
+      round: 1,
+      currentRound: {
+        roundNumber: 1,
+        promptId,
+        prompt: prompt.question,
+        answers: new Map<string, { playerId: string; text: string }>(),
+        votes: new Map<string, string>(),
+        timeLeft: 60000, // 60 seconds
+        phase: 'prompt',
+      },
+      updatedAt: new Date(),
+    };
+    
     return {
-      newState,
+      newState: updatedState,
       events: [
-        { type: 'roomUpdate', data: newState, target: 'all', timestamp: now },
-        { type: 'prompt', data: { question: 'Starting new round...' }, target: 'all', timestamp: now },
+        { type: 'roomUpdate', data: updatedState, target: 'all', timestamp: now },
+        { type: 'prompt', data: { question: prompt.question }, target: 'all', timestamp: now },
       ],
       isValid: true,
     };
   }
 
   private handleSubmitAnswer(state: FibbingItGameState, action: FibbingItAction): GameResult<FibbingItGameState, FibbingItEvent> {
-    // Implementation for handling answer submission
     const now = Date.now();
+    
+    // Validate that we're in the prompt phase
+    if (state.phase !== 'prompt') {
+      return {
+        newState: state,
+        events: [],
+        isValid: false,
+        error: 'Can only submit answers during prompt phase',
+      };
+    }
+
+    // Validate that the player hasn't already submitted
+    if (state.currentRound?.answers.has(action.playerId)) {
+      return {
+        newState: state,
+        events: [],
+        isValid: false,
+        error: 'Player has already submitted an answer',
+      };
+    }
+
+    // Validate that the answer exists in the action data
+    const answer = action.data?.answer;
+    if (!answer || typeof answer !== 'string' || answer.trim().length === 0) {
+      return {
+        newState: state,
+        events: [],
+        isValid: false,
+        error: 'Answer is required and cannot be empty',
+      };
+    }
+
+    // Create or update the current round
+    let currentRound = state.currentRound;
+    if (!currentRound) {
+      // Initialize the round if it doesn't exist
+      const promptId = this.selectRandomPrompt(state.usedPromptIds);
+      const prompt = this.getPromptById(promptId);
+      currentRound = {
+        roundNumber: state.round,
+        promptId,
+        prompt: prompt.question,
+        answers: new Map(),
+        votes: new Map(),
+        timeLeft: 60000, // 60 seconds
+        phase: 'prompt',
+      };
+    }
+
+    // Add the player's answer with a unique ID
+    const answerId = `answer_${action.playerId}`;
+    const updatedAnswers = new Map(currentRound.answers);
+    updatedAnswers.set(answerId, {
+      playerId: action.playerId,
+      text: answer.trim(),
+    });
+
+    // Create updated round
+    const updatedRound = {
+      ...currentRound,
+      answers: updatedAnswers,
+    };
+
+    // Create updated state
+    const newState: FibbingItGameState = {
+      ...state,
+      currentRound: updatedRound,
+      updatedAt: new Date(),
+    };
+
+    // Check if all players have submitted
+    const allSubmitted = updatedAnswers.size === state.players.length;
+    
+    // Generate events
+    const events: FibbingItEvent[] = [
+      {
+        type: 'submitted',
+        data: { kind: 'answer', answer: answer.trim() },
+        target: 'player',
+        playerId: action.playerId,
+        timestamp: now,
+      },
+    ];
+
+    // If all players submitted, add a completion event
+    if (allSubmitted) {
+      events.push({
+        type: 'answers',
+        data: { 
+          answers: Array.from(updatedAnswers.entries()).map(([answerId, answerData]) => ({
+            answerId,
+            playerId: answerData.playerId,
+            text: answerData.text,
+          }))
+        },
+        target: 'all',
+        timestamp: now,
+      });
+    }
+
     return {
-      newState: state,
-      events: [
-        { type: 'submitted', data: { kind: 'answer' }, target: 'player', playerId: action.playerId, timestamp: now },
-      ],
+      newState,
+      events,
       isValid: true,
     };
   }
 
   private handleSubmitVote(state: FibbingItGameState, action: FibbingItAction): GameResult<FibbingItGameState, FibbingItEvent> {
-    // Implementation for handling vote submission
     const now = Date.now();
+    
+    // Validate that we're in the voting phase
+    if (state.phase !== 'voting') {
+      return {
+        newState: state,
+        events: [],
+        isValid: false,
+        error: 'Can only submit votes during voting phase',
+      };
+    }
+
+    // Validate that the current round exists
+    if (!state.currentRound) {
+      return {
+        newState: state,
+        events: [],
+        isValid: false,
+        error: 'No active round for voting',
+      };
+    }
+
+    // Validate that the player hasn't already voted
+    if (state.currentRound.votes.has(action.playerId)) {
+      return {
+        newState: state,
+        events: [],
+        isValid: false,
+        error: 'Player has already voted',
+      };
+    }
+
+    // Validate that the vote exists in the action data
+    const vote = action.data?.vote;
+    if (!vote || typeof vote !== 'string') {
+      return {
+        newState: state,
+        events: [],
+        isValid: false,
+        error: 'Vote is required',
+      };
+    }
+
+    // Validate that the vote is for a valid answer
+    const answerIds = Array.from(state.currentRound.answers.keys());
+    if (!answerIds.includes(vote)) {
+      return {
+        newState: state,
+        events: [],
+        isValid: false,
+        error: 'Invalid vote: must vote for an existing answer',
+      };
+    }
+
+    // Validate that the player isn't voting for their own answer
+    const playerAnswerId = action.playerId;
+    if (vote === playerAnswerId) {
+      return {
+        newState: state,
+        events: [],
+        isValid: false,
+        error: 'Cannot vote for your own answer',
+      };
+    }
+
+    // Add the player's vote
+    const updatedVotes = new Map(state.currentRound.votes);
+    updatedVotes.set(action.playerId, vote);
+
+    // Create updated round
+    const updatedRound = {
+      ...state.currentRound,
+      votes: updatedVotes,
+    };
+
+    // Create updated state
+    const newState: FibbingItGameState = {
+      ...state,
+      currentRound: updatedRound,
+      updatedAt: new Date(),
+    };
+
+    // Check if all players have voted
+    const allVoted = updatedVotes.size === state.players.length;
+    
+    // Generate events
+    const events: FibbingItEvent[] = [
+      {
+        type: 'submitted',
+        data: { kind: 'vote', vote },
+        target: 'player',
+        playerId: action.playerId,
+        timestamp: now,
+      },
+    ];
+
+    // If all players voted, add a completion event
+    if (allVoted) {
+      events.push({
+        type: 'allVoted',
+        data: { 
+          votes: Array.from(updatedVotes.entries()).map(([playerId, voteId]) => ({
+            playerId,
+            voteId,
+          }))
+        },
+        target: 'all',
+        timestamp: now,
+      });
+    }
+
     return {
-      newState: state,
-      events: [
-        { type: 'submitted', data: { kind: 'vote' }, target: 'player', playerId: action.playerId, timestamp: now },
-      ],
+      newState,
+      events,
       isValid: true,
     };
+  }
+
+  // Helper methods for prompt management
+  private selectRandomPrompt(usedPromptIds: Set<string>): string {
+    const availablePrompts = prompts.filter(p => !usedPromptIds.has(p.id));
+    if (availablePrompts.length === 0) {
+      // If all prompts used, reset the used set
+      usedPromptIds.clear();
+      return prompts[0].id;
+    }
+    const randomIndex = Math.floor(Math.random() * availablePrompts.length);
+    return availablePrompts[randomIndex].id;
+  }
+
+  private getPromptById(promptId: string): { question: string; answer: string } {
+    const prompt = prompts.find(p => p.id === promptId);
+    if (!prompt) {
+      throw new Error(`Prompt with id ${promptId} not found`);
+    }
+    return prompt;
+  }
+
+  // Round management methods
+  startNewRound(state: FibbingItGameState): FibbingItGameState {
+    const nextRound = state.round + 1;
+    
+    if (nextRound > state.maxRounds) {
+      // Game is over
+      return {
+        ...state,
+        phase: 'game-over',
+        round: nextRound,
+        updatedAt: new Date(),
+      };
+    }
+
+    // Select a new prompt for the next round
+    const promptId = this.selectRandomPrompt(state.usedPromptIds);
+    const prompt = this.getPromptById(promptId);
+    
+    // Add the prompt to used set
+    const updatedUsedPromptIds = new Set(state.usedPromptIds);
+    updatedUsedPromptIds.add(promptId);
+
+    return {
+      ...state,
+      round: nextRound,
+      phase: 'prompt',
+      timeLeft: 60000, // 60 seconds
+      phaseStartTime: new Date(),
+      updatedAt: new Date(),
+      usedPromptIds: updatedUsedPromptIds,
+      currentRound: {
+        roundNumber: nextRound,
+        promptId,
+        prompt: prompt.question,
+        answers: new Map<string, { playerId: string; text: string }>(),
+        votes: new Map<string, string>(),
+        timeLeft: 60000,
+        phase: 'prompt',
+      },
+      isRoundComplete: false,
+    };
+  }
+
+  calculateScores(state: FibbingItGameState): FibbingItGameState {
+    if (!state.currentRound) return state;
+
+    const { answers, votes } = state.currentRound;
+    const correctAnswer = this.getPromptById(state.currentRound.promptId).answer;
+    
+    // Calculate scores for this round
+    const roundScores = new Map<string, number>();
+    
+    // Players get points for correct answers
+    for (const [answerId, answerData] of answers.entries()) {
+      if (answerData.text === correctAnswer) {
+        roundScores.set(answerData.playerId, 1000); // Base points for correct answer
+      }
+    }
+    
+    // Players get points for votes received
+    for (const [voterId, votedForAnswerId] of votes.entries()) {
+      const votedAnswer = answers.get(votedForAnswerId);
+      if (votedAnswer) {
+        const currentScore = roundScores.get(votedAnswer.playerId) || 0;
+        roundScores.set(votedAnswer.playerId, currentScore + 500); // Points for each vote received
+      }
+    }
+    
+    // Update player scores
+    const updatedPlayers = state.players.map(player => {
+      const roundScore = roundScores.get(player.id) || 0;
+      return {
+        ...player,
+        score: player.score + roundScore,
+      };
+    });
+
+    // Update overall scores
+    const updatedScores = { ...state.scores };
+    for (const [playerId, score] of roundScores.entries()) {
+      updatedScores[playerId] = (updatedScores[playerId] || 0) + score;
+    }
+
+    return {
+      ...state,
+      players: updatedPlayers,
+      scores: updatedScores,
+      updatedAt: new Date(),
+    };
+  }
+
+  isRoundComplete(state: FibbingItGameState): boolean {
+    if (!state.currentRound) return false;
+    
+    // Round is complete when all players have submitted answers and votes
+    const allAnswersSubmitted = state.currentRound.answers.size === state.players.length;
+    const allVotesSubmitted = state.currentRound.votes.size === state.players.length;
+    
+    return allAnswersSubmitted && allVotesSubmitted;
   }
 }

@@ -50,6 +50,9 @@ A **real-time multiplayer party game platform** featuring:
 - **[Game Logic](./api/game-logic.md)** - Game engine documentation
 - **[WebSocket Events](./api/websocket-events.md)** - Real-time communication
 
+### **🎮 Game-Specific Documentation**
+- **[Fibbing It Game Flow](./games/fibbing-it-game-flow.md)** - Complete game implementation guide
+
 ## 🎯 **Project Status:**
 
 - **Test Coverage: 100%** ✅

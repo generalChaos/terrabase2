@@ -238,8 +238,8 @@ describe('FibbingItNewEngine', () => {
         promptId: 'prompt1',
         prompt: 'What is your favorite color?',
         answers: new Map([
-          ['player1', 'Blue'],
-          ['player2', 'Red'],
+          ['answer1', { playerId: 'player1', text: 'Blue' }],
+          ['answer2', { playerId: 'player2', text: 'Red' }],
         ]),
         votes: new Map(),
         timeLeft: 45,
@@ -249,7 +249,7 @@ describe('FibbingItNewEngine', () => {
       const action: FibbingItAction = {
         type: 'submitVote',
         playerId: 'player1',
-        data: { choiceId: 'player2' },
+        data: { vote: 'answer2' },
         timestamp: Date.now(),
       };
 
@@ -325,6 +325,109 @@ describe('FibbingItNewEngine', () => {
       
       const newState = engine.advancePhase(state);
       expect(newState.phase).toBe('round-end'); // After scoring comes round-end, not 'over'
+    });
+  });
+
+  describe('round management', () => {
+    it('should start new round correctly', () => {
+      const state = engine.initialize(mockPlayers);
+      state.round = 1;
+      state.phase = 'scoring';
+      
+      const newState = engine.startNewRound(state);
+      
+      expect(newState.round).toBe(2);
+      expect(newState.phase).toBe('prompt');
+      expect(newState.currentRound).toBeDefined();
+      expect(newState.currentRound?.roundNumber).toBe(2);
+      expect(newState.currentRound?.answers.size).toBe(0);
+      expect(newState.currentRound?.votes.size).toBe(0);
+    });
+
+    it('should end game when max rounds reached', () => {
+      const state = engine.initialize(mockPlayers);
+      state.round = 5; // Max rounds
+      state.phase = 'scoring';
+      
+      const newState = engine.startNewRound(state);
+      
+      expect(newState.phase).toBe('game-over');
+      expect(newState.round).toBe(6);
+    });
+
+    it('should calculate scores correctly', () => {
+      const state = engine.initialize(mockPlayers);
+      state.currentRound = {
+        roundNumber: 1,
+        promptId: 'p1',
+        prompt: 'What is the national animal of Scotland?',
+        answers: new Map([
+          ['answer1', { playerId: 'player1', text: 'Unicorn' }], // Correct answer
+          ['answer2', { playerId: 'player2', text: 'Lion' }],    // Wrong answer
+        ]),
+        votes: new Map([
+          ['player1', 'answer2'], // Player1 votes for answer2
+          ['player2', 'answer1'], // Player2 votes for answer1
+        ]),
+        timeLeft: 0,
+        phase: 'voting',
+      };
+      
+      const newState = engine.calculateScores(state);
+      
+      // Player1 should get 1000 points for correct answer + 500 for vote received = 1500
+      const player1 = newState.players.find(p => p.id === 'player1');
+      expect(player1?.score).toBe(1500);
+      
+      // Player2 should get 500 points for vote received = 500
+      const player2 = newState.players.find(p => p.id === 'player2');
+      expect(player2?.score).toBe(500);
+    });
+
+    it('should detect round completion correctly', () => {
+      const state = engine.initialize(mockPlayers);
+      state.currentRound = {
+        roundNumber: 1,
+        promptId: 'p1',
+        prompt: 'What is the national animal of Scotland?',
+        answers: new Map([
+          ['answer1', { playerId: 'player1', text: 'Unicorn' }],
+          ['answer2', { playerId: 'player2', text: 'Lion' }],
+          ['answer3', { playerId: 'player3', text: 'Dragon' }],
+        ]),
+        votes: new Map([
+          ['player1', 'answer2'],
+          ['player2', 'answer1'],
+          ['player3', 'answer1'],
+        ]),
+        timeLeft: 0,
+        phase: 'voting',
+      };
+      
+      const isComplete = engine.isRoundComplete(state);
+      expect(isComplete).toBe(true);
+    });
+
+    it('should detect incomplete round correctly', () => {
+      const state = engine.initialize(mockPlayers);
+      state.currentRound = {
+        roundNumber: 1,
+        promptId: 'p1',
+        prompt: 'What is the national animal of Scotland?',
+        answers: new Map([
+          ['answer1', { playerId: 'player1', text: 'Unicorn' }],
+          ['answer2', { playerId: 'player2', text: 'Lion' }],
+        ]),
+        votes: new Map([
+          ['player1', 'answer2'],
+          // Player2 hasn't voted yet
+        ]),
+        timeLeft: 0,
+        phase: 'voting',
+      };
+      
+      const isComplete = engine.isRoundComplete(state);
+      expect(isComplete).toBe(false);
     });
   });
 });
