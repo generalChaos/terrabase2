@@ -1,26 +1,17 @@
 {
   "name": "@party/config",
   "version": "0.0.1",
-  "description": "Centralized configuration for Party Game",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "description": "Configuration package for Party Game",
+  "main": "src/index.js",
+  "types": "src/index.ts",
   "scripts": {
     "build": "tsc",
-    "dev": "tsc --watch",
-    "clean": "rm -rf dist",
-    "type-check": "tsc --noEmit",
-    "format": "prettier --write \"src/**/*.{ts,js,json,md}\""
+    "dev": "tsc --watch"
   },
   "dependencies": {
     "@party/types": "workspace:*"
   },
   "devDependencies": {
-    "typescript": "^5.6.3"
-  },
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
-    }
+    "typescript": "^5.0.0"
   }
 }

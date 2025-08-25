@@ -34,6 +34,29 @@ export function HostClient({ code }: { code: string }) {
   // Available games data with themes
   const availableGames = getAllGames();
 
+  // Reset component state when room code changes
+  useEffect(() => {
+    console.log('🔄 Room code changed to:', code);
+    // Reset all component state when navigating to a different room
+    setState(null);
+    setChoices([]);
+    setScores([]);
+    setTimer(0);
+    setSelectedGame(null);
+    setShowAllGames(false);
+    setShowPlayerCreation(true);
+    setIsCreatingRoom(false);
+    
+    // Close any existing socket connection
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+      socketRef.current = null;
+    }
+    
+    // Reset room code context
+    setRoomCode(code);
+  }, [code, setRoomCode]);
+
   // Pre-select game based on URL or room state
   useEffect(() => {
     if (state?.gameType && !selectedGame) {
@@ -47,6 +70,9 @@ export function HostClient({ code }: { code: string }) {
 
     try {
       console.log('🏠 Creating room via API...');
+      console.log('🏠 Using room code from URL:', code);
+      console.log('🏠 Current component state - isCreatingRoom:', isCreatingRoom);
+      
       // First, create the room via API with the specific room code from URL
       const response = await fetch(
         getApiUrl('http') + AppConfig.API.ROOMS_ENDPOINT,

@@ -164,6 +164,7 @@ export default function FibbingItTestPage() {
       case 'scoring':
         return (
           <SharedPromptView
+            question={mockState.question}
             timeLeft={mockState.timeLeft}
             totalTime={mockState.totalTime}
             round={mockState.round}
@@ -179,6 +180,7 @@ export default function FibbingItTestPage() {
       case 'over':
         return (
           <SharedPromptView
+            question={mockState.question}
             timeLeft={mockState.timeLeft}
             totalTime={mockState.totalTime}
             round={mockState.round}

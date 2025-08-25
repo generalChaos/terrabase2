@@ -4,7 +4,9 @@ import { getApiUrl, AppConfig } from '@party/config';
 
 export function connectToRoom(code: string): Socket {
   const url = `${getApiUrl('ws')}${AppConfig.API.ROOMS_ENDPOINT}`;
-  console.log('connecting to', url, 'with room code:', code);
+  console.log('🔌 Connecting to WebSocket:', url);
+  console.log('🔌 Room code for connection:', code);
+  console.log('🔌 Full WebSocket URL with query:', `${url}?roomCode=${code}`);
 
   const socket = io(url, {
     transports: ['websocket'],

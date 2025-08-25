@@ -66,7 +66,7 @@ export class GameGatewayService {
       }
 
       // Start the game by processing a start action
-      const action = { type: 'start', playerId: client.id, data: {} };
+      const action = { type: 'start', playerId: client.id, data: {}, timestamp: Date.now() };
       const events = await this.stateManager.processGameAction(code, client.id, action);
 
       this.logger.log(`Game started in room ${code} by host ${client.id}, generated ${events.length} events`);
@@ -120,6 +120,7 @@ export class GameGatewayService {
         type: 'submitAnswer',
         playerId: client.id,
         data: { answer: body.answer },
+        timestamp: Date.now(),
       };
       await this.stateManager.processGameAction(code, client.id, action);
 
@@ -174,6 +175,7 @@ export class GameGatewayService {
         type: 'submitVote',
         playerId: client.id,
         data: { choiceId: body.choiceId },
+        timestamp: Date.now(),
       };
       await this.stateManager.processGameAction(code, client.id, action);
 

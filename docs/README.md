@@ -26,6 +26,7 @@ A real-time multiplayer party game platform built with **NestJS**, **Socket.io**
 - **[State Management](./architecture/state-management.md)** - Immutable state patterns
 - **[Testing Guide](./development/testing.md)** - How to test the application
 - **[Contributing Guide](./development/contributing.md)** - How to contribute code
+- **[Development History](./history/README.md)** - Development logs and evolution tracking
 
 ### **🚀 Deployment & Operations**
 

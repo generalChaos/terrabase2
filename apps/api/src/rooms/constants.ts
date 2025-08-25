@@ -1,9 +1,14 @@
-import { GameConfig } from '@party/types';
+import { GameConfig, getGameConfig, BLUFF_TRIVIA_CONFIG } from '@party/types';
 
 // Re-export game configuration for backward compatibility
-export const GAME_PHASE_DURATIONS = GameConfig.TIMING.PHASES;
+export const GAME_PHASE_DURATIONS = {
+  PROMPT: BLUFF_TRIVIA_CONFIG.phases.find(p => p.name === 'prompt')?.duration || 15,
+  CHOOSE: BLUFF_TRIVIA_CONFIG.phases.find(p => p.name === 'choose')?.duration || 20,
+  SCORING: BLUFF_TRIVIA_CONFIG.phases.find(p => p.name === 'scoring')?.duration || 6,
+};
+
 export const GAME_CONFIG = {
-  MAX_ROUNDS: GameConfig.RULES.ROUNDS.MAX_ROUNDS,
+  MAX_ROUNDS: BLUFF_TRIVIA_CONFIG.defaultSettings.maxRounds || 5,
   CLEANUP_INTERVAL_MS: GameConfig.TIMING.TIMER.CLEANUP_INTERVAL_MS,
   TIMER_TICK_MS: GameConfig.TIMING.TIMER.TICK_MS,
 };

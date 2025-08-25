@@ -56,7 +56,7 @@ export class FibbingItPhaseManager extends BaseGamePhaseManager {
             players={players}
             isHost={isHost}
             onStartGame={onStartGame}
-            selectedGame={getGameInfo('fibbing-it')}
+            selectedGame={getGameInfo('fibbing-it') || undefined}
           />
         );
 

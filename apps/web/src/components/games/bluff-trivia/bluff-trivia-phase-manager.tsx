@@ -68,7 +68,7 @@ export class BluffTriviaPhaseManager extends BaseGamePhaseManager {
             players={players}
             isHost={isHost}
             onStartGame={onStartGame}
-            selectedGame={getGameInfo('bluff-trivia')}
+            selectedGame={getGameInfo('bluff-trivia') || undefined}
           />
         );
 

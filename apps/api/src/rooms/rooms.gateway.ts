@@ -1,7 +1,7 @@
 import { RoomManager } from './room-manager';
 import { TimerService } from './timer.service';
 import { GameAction, GameEvent, Player } from '@party/types';
-import { BluffTriviaState } from './games/bluff-trivia.engine';
+import { BluffTriviaState } from './games/bluff-trivia-new.engine';
 import {
   GAME_PHASE_DURATIONS,
   EventType,

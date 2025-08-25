@@ -8,6 +8,7 @@ import { EventGatewayService } from '../event-gateway.service';
 import { Socket } from 'socket.io';
 import { ImmutableRoomState } from '../../state/room.state';
 import { Player } from '@party/types';
+import { success, failure, ErrorCategory } from '@party/types';
 
 describe('ConnectionGatewayService', () => {
   let service: ConnectionGatewayService;
@@ -113,7 +114,7 @@ describe('ConnectionGatewayService', () => {
   describe('handleConnection', () => {
     it('should handle successful connection', async () => {
       // Mock validation methods
-      errorHandler.validateRoomCode.mockReturnValue({ isFailure: () => false });
+      errorHandler.validateRoomCode.mockReturnValue(success(undefined));
       
       connectionManager.handleConnection.mockResolvedValue({
         success: true,
@@ -132,9 +133,18 @@ describe('ConnectionGatewayService', () => {
 
     it('should handle connection failure', async () => {
       // Mock validation methods
-      errorHandler.validateRoomCode.mockReturnValue({ isFailure: () => false });
+      errorHandler.validateRoomCode.mockReturnValue(success(undefined));
       errorHandler.createWebSocketErrorResponse.mockReturnValue({
-        message: 'Room not found',
+        error: 'Room not found',
+        code: 'CONNECTION_ERROR',
+        statusCode: 500,
+        details: undefined,
+        context: 'connection',
+        timestamp: new Date().toISOString(),
+        requestId: undefined,
+        category: ErrorCategory.SYSTEM,
+        retryable: true,
+        userActionRequired: false,
       });
       
       connectionManager.handleConnection.mockResolvedValue({
@@ -147,7 +157,16 @@ describe('ConnectionGatewayService', () => {
       await service.handleConnection(mockSocket);
 
       expect(mockSocket.emit).toHaveBeenCalledWith('error', {
-        message: 'Room not found',
+        error: 'Room not found',
+        code: 'CONNECTION_ERROR',
+        statusCode: 500,
+        details: undefined,
+        context: 'connection',
+        timestamp: expect.any(String),
+        requestId: undefined,
+        category: ErrorCategory.SYSTEM,
+        retryable: true,
+        userActionRequired: false,
       });
     });
 
@@ -160,7 +179,16 @@ describe('ConnectionGatewayService', () => {
 
       expect(mockSocket.disconnect).toHaveBeenCalled();
       expect(mockSocket.emit).toHaveBeenCalledWith('error', {
-        message: 'Connection failed',
+        error: 'Connection failed',
+        code: 'CONNECTION_ERROR',
+        statusCode: 500,
+        details: undefined,
+        context: 'connection',
+        timestamp: expect.any(String),
+        requestId: undefined,
+        category: ErrorCategory.SYSTEM,
+        retryable: true,
+        userActionRequired: false,
       });
     });
 
@@ -170,11 +198,23 @@ describe('ConnectionGatewayService', () => {
         handshake: { query: {} },
       };
 
-      await service.handleConnection(socketWithoutRoomCode);
+      await service.handlePlayerJoin(socketWithoutRoomCode, {
+        nickname: 'TestPlayer',
+        avatar: '😀',
+      });
 
       expect(socketWithoutRoomCode.disconnect).toHaveBeenCalled();
       expect(socketWithoutRoomCode.emit).toHaveBeenCalledWith('error', {
-        message: 'Room code is required',
+        error: 'Room code is required',
+        code: 'VALIDATION_ERROR',
+        statusCode: 400,
+        details: undefined,
+        context: 'player-join',
+        timestamp: expect.any(String),
+        requestId: undefined,
+        category: ErrorCategory.VALIDATION,
+        retryable: false,
+        userActionRequired: true,
       });
     });
   });

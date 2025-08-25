@@ -82,6 +82,7 @@ export class GameCommandHandler {
         type: 'start',
         playerId,
         data: {},
+        timestamp: Date.now(),
       };
 
       const events = await this.roomManager.processGameAction(
@@ -136,6 +137,7 @@ export class GameCommandHandler {
         type: 'submitAnswer',
         playerId,
         data: { answer },
+        timestamp: Date.now(),
       };
 
       const events = await this.roomManager.processGameAction(
@@ -190,6 +192,7 @@ export class GameCommandHandler {
         type: 'submitBluff',
         playerId,
         data: { text },
+        timestamp: Date.now(),
       };
 
       const events = await this.roomManager.processGameAction(
@@ -244,6 +247,7 @@ export class GameCommandHandler {
         type: 'submitVote',
         playerId,
         data: { choiceId },
+        timestamp: Date.now(),
       };
 
       const events = await this.roomManager.processGameAction(

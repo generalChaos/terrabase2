@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { GameEngine, GameAction, GameEvent } from '@party/types';
-import { BluffTriviaEngine } from './games/bluff-trivia.engine';
-import { FibbingItEngine } from './games/fibbing-it.engine';
-import { WordAssociationEngine } from './games/word-association.engine';
+import { BluffTriviaNewEngine } from './games/bluff-trivia-new.engine';
+import { FibbingItNewEngine } from './games/fibbing-it-new.engine';
+import { WordAssociationNewEngine } from './games/word-association-new.engine';
 import { GAME_TYPES } from './constants';
 
 @Injectable()
@@ -11,9 +11,9 @@ export class GameRegistry {
 
   constructor() {
     // Register all available game engines
-    this.register(GAME_TYPES.BLUFF_TRIVIA, new BluffTriviaEngine());
-    this.register(GAME_TYPES.FIBBING_IT, new FibbingItEngine());
-    this.register(GAME_TYPES.WORD_ASSOCIATION, new WordAssociationEngine());
+    this.register(GAME_TYPES.BLUFF_TRIVIA, new BluffTriviaNewEngine());
+    this.register(GAME_TYPES.FIBBING_IT, new FibbingItNewEngine());
+    this.register(GAME_TYPES.WORD_ASSOCIATION, new WordAssociationNewEngine());
   }
 
   register(gameType: string, engine: GameEngine<any, any, any>): void {

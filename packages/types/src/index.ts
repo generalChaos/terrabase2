@@ -1,5 +1,5 @@
 // Core game types
-export type Phase = 'lobby' | 'prompt' | 'choose' | 'scoring' | 'over';
+export type Phase = 'lobby' | 'prompt' | 'voting' | 'choose' | 'reveal' | 'scoring' | 'round-end' | 'game-over' | 'over';
 
 export interface Player {
   id: string;
@@ -9,33 +9,94 @@ export interface Player {
   connected: boolean;
 }
 
+// Standardized game configuration
+export interface GameConfig {
+  id: string;
+  name: string;
+  description: string;
+  minPlayers: number;
+  maxPlayers: number;
+  phases: GamePhase[];
+  defaultSettings: Record<string, any>;
+  uiComponents: string[];
+}
+
+// Enhanced game phase interface
+export interface GamePhase {
+  name: string;
+  duration: number;
+  allowedActions: string[];
+  autoAdvance: boolean; // Should phase auto-advance when timer expires?
+  requiresAllPlayers: boolean; // Do all players need to complete action?
+  canSkip: boolean; // Can host skip this phase?
+  onEnter?: (state: any) => void;
+  onExit?: (state: any) => void;
+}
+
 // Game state interfaces
 export interface BaseGameState {
   phase: string;
   players: Player[];
   timeLeft: number;
+  round: number;
+  maxRounds: number;
+  scores: Record<string, number>;
+  createdAt: Date;
+  updatedAt: Date;
+  isRoundComplete: boolean;
+  phaseStartTime: Date;
 }
 
-export interface GamePhase {
-  name: string;
-  duration: number;
-  allowedActions: string[];
-  onEnter?: (state: any) => void;
-  onExit?: (state: any) => void;
-}
+// Standardized action types that all games should support
+export const STANDARD_ACTIONS = {
+  START_GAME: 'start',
+  SUBMIT_ANSWER: 'submitAnswer',
+  SUBMIT_VOTE: 'submitVote',
+  SKIP_PHASE: 'skipPhase',
+  ADVANCE_PHASE: 'advancePhase',
+  PLAYER_READY: 'playerReady',
+  PLAYER_NOT_READY: 'playerNotReady'
+} as const;
 
-// Game action and event interfaces
+export type StandardActionType = typeof STANDARD_ACTIONS[keyof typeof STANDARD_ACTIONS];
+
+// Enhanced game action interface
 export interface GameAction {
   type: string;
   playerId: string;
-  [key: string]: any;
+  timestamp: number;
+  data: Record<string, any>;
+  phase?: string;
+  round?: number;
 }
 
+// Standardized event types that all games should use
+export const STANDARD_EVENTS = {
+  PHASE_CHANGED: 'phaseChanged',
+  TIMER_TICK: 'timerTick',
+  TIMER_EXPIRED: 'timerExpired',
+  PLAYER_ACTION: 'playerAction',
+  ROUND_COMPLETE: 'roundComplete',
+  ROUND_START: 'roundStart',
+  GAME_OVER: 'gameOver',
+  SCORES_UPDATED: 'scoresUpdated',
+  ERROR: 'error',
+  PLAYER_JOINED: 'playerJoined',
+  PLAYER_LEFT: 'playerLeft',
+  GAME_STARTED: 'gameStarted'
+} as const;
+
+export type StandardEventType = typeof STANDARD_EVENTS[keyof typeof STANDARD_EVENTS];
+
+// Enhanced game event interface
 export interface GameEvent {
   type: string;
   data: any;
-  target?: 'all' | 'player' | 'host';
+  target: 'all' | 'player' | 'host' | 'room';
   playerId?: string;
+  timestamp: number;
+  phase?: string;
+  round?: number;
 }
 
 export interface GameResult<TState, TEvent> {
@@ -51,16 +112,216 @@ export interface GameEngine<
   TAction extends GameAction,
   TEvent extends GameEvent,
 > {
+  // Core lifecycle methods
   initialize(players: Player[]): TState;
   processAction(state: TState, action: TAction): GameResult<TState, TEvent>;
-  getValidActions(state: TState, playerId: string): TAction[];
+  
+  // Phase management (required)
+  advancePhase(state: TState): TState;
+  
+  // Game state queries (required)
+  getCurrentPhase(state: TState): GamePhase;
   isGameOver(state: TState): boolean;
   getWinners(state: TState): Player[];
-  getCurrentPhase(state: TState): GamePhase;
-  advancePhase(state: TState): TState;
-  getTimeLeft(state: TState): number;
-  updateTimer(state: TState, delta: number): TState;
+  getValidActions(state: TState, playerId: string): TAction[];
+  
+  // Event generation (required)
   generatePhaseEvents(state: TState): TEvent[];
+  
+  // Game configuration (required)
+  getGameConfig(): GameConfig;
+  
+  // Optional methods with default implementations
+  getPhaseDuration?(phase: string): number;
+  canAdvancePhase?(state: TState): boolean;
+  getNextPhase?(currentPhase: string): string;
+  isPhaseComplete?(state: TState): boolean;
+  updateTimer?(state: TState, delta: number): TState;
+  shouldAutoAdvancePhase?(state: TState): boolean;
+  getTimeLeft?(state: TState): number;
+  generateTimerEvents?(state: TState): TEvent[];
+  generateActionEvents?(state: TState, action: TAction): TEvent[];
+  validateAction?(state: TState, action: TAction): boolean;
+  calculateScores?(state: TState): TState;
+  updatePlayerScores?(state: TState, playerId: string, points: number): TState;
+}
+
+// Base game engine class that provides common functionality
+export abstract class BaseGameEngine<
+  TState extends BaseGameState,
+  TAction extends GameAction,
+  TEvent extends GameEvent,
+> implements GameEngine<TState, TAction, TEvent> {
+  
+  // Abstract methods that each game must implement
+  abstract initialize(players: Player[]): TState;
+  abstract processAction(state: TState, action: TAction): GameResult<TState, TEvent>;
+  abstract getGameConfig(): GameConfig;
+  
+  // Common phase management logic
+  getPhaseDuration(phase: string): number {
+    const config = this.getGameConfig();
+    const phaseConfig = config.phases.find(p => p.name === phase);
+    return phaseConfig?.duration || 0;
+  }
+  
+  canAdvancePhase(state: TState): boolean {
+    const config = this.getGameConfig();
+    const currentPhase = config.phases.find(p => p.name === state.phase);
+    return currentPhase?.autoAdvance || false;
+  }
+  
+  getNextPhase(currentPhase: string): string {
+    const config = this.getGameConfig();
+    const currentIndex = config.phases.findIndex(p => p.name === currentPhase);
+    if (currentIndex < config.phases.length - 1) {
+      return config.phases[currentIndex + 1].name;
+    }
+    return currentPhase;
+  }
+  
+  advancePhase(state: TState): TState {
+    const nextPhase = this.getNextPhase(state.phase);
+    return {
+      ...state,
+      phase: nextPhase,
+      timeLeft: this.getPhaseDuration(nextPhase) * 1000,
+      phaseStartTime: new Date(),
+      isRoundComplete: false
+    };
+  }
+  
+  isPhaseComplete(state: TState): boolean {
+    const config = this.getGameConfig();
+    const currentPhase = config.phases.find(p => p.name === state.phase);
+    
+    if (!currentPhase?.requiresAllPlayers) {
+      return true;
+    }
+    
+    // Check if all players have completed required actions
+    // This is game-specific and should be overridden
+    return this.checkPhaseCompletion(state);
+  }
+  
+  // Timer management
+  updateTimer(state: TState, delta: number): TState {
+    const newTimeLeft = Math.max(0, state.timeLeft - delta);
+    return {
+      ...state,
+      timeLeft: newTimeLeft
+    };
+  }
+  
+  shouldAutoAdvancePhase(state: TState): boolean {
+    return state.timeLeft === 0 && this.canAdvancePhase(state);
+  }
+  
+  getTimeLeft(state: TState): number {
+    return state.timeLeft;
+  }
+  
+  // Game state queries
+  getCurrentPhase(state: TState): GamePhase {
+    const config = this.getGameConfig();
+    const phaseConfig = config.phases.find(p => p.name === state.phase);
+    return phaseConfig || { name: state.phase, duration: 0, allowedActions: [], autoAdvance: false, requiresAllPlayers: false, canSkip: false };
+  }
+  
+  isGameOver(state: TState): boolean {
+    return state.phase === 'game-over' || state.round >= state.maxRounds;
+  }
+  
+  getWinners(state: TState): Player[] {
+    return state.players
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3);
+  }
+  
+  getValidActions(state: TState, playerId: string): TAction[] {
+    const currentPhase = this.getCurrentPhase(state);
+    return currentPhase.allowedActions.map(actionType => ({
+      type: actionType,
+      playerId,
+      timestamp: Date.now(),
+      data: {},
+      phase: state.phase,
+      round: state.round
+    })) as TAction[];
+  }
+  
+  // Event generation
+  generatePhaseEvents(state: TState): TEvent[] {
+    return [{
+      type: STANDARD_EVENTS.PHASE_CHANGED,
+      data: { phase: state.phase, round: state.round },
+      target: 'all',
+      timestamp: Date.now(),
+      phase: state.phase,
+      round: state.round
+    } as TEvent];
+  }
+  
+  generateTimerEvents(state: TState): TEvent[] {
+    if (state.timeLeft === 0) {
+      return [{
+        type: STANDARD_EVENTS.TIMER_EXPIRED,
+        data: { phase: state.phase, round: state.round },
+        target: 'all',
+        timestamp: Date.now(),
+        phase: state.phase,
+        round: state.round
+      } as TEvent];
+    }
+    
+    return [{
+      type: STANDARD_EVENTS.TIMER_TICK,
+      data: { timeLeft: state.timeLeft, phase: state.phase, round: state.round },
+      target: 'all',
+      timestamp: Date.now(),
+      phase: state.phase,
+      round: state.round
+    } as TEvent];
+  }
+  
+  generateActionEvents(state: TState, action: TAction): TEvent[] {
+    return [{
+      type: STANDARD_EVENTS.PLAYER_ACTION,
+      data: { action: action.type, playerId: action.playerId },
+      target: 'all',
+      timestamp: Date.now(),
+      phase: state.phase,
+      round: state.round
+    } as TEvent];
+  }
+  
+  // Score management
+  calculateScores(state: TState): TState {
+    // Base implementation - games should override for specific scoring logic
+    return state;
+  }
+  
+  updatePlayerScores(state: TState, playerId: string, points: number): TState {
+    const updatedScores = { ...state.scores };
+    updatedScores[playerId] = (updatedScores[playerId] || 0) + points;
+    
+    return {
+      ...state,
+      scores: updatedScores
+    };
+  }
+  
+  // Validation
+  validateAction(state: TState, action: TAction): boolean {
+    const currentPhase = this.getCurrentPhase(state);
+    return currentPhase.allowedActions.includes(action.type);
+  }
+  
+  // Helper method for phase completion checking
+  protected checkPhaseCompletion(state: TState): boolean {
+    // Base implementation - games should override
+    return true;
+  }
 }
 
 // Game-specific types
@@ -80,6 +341,47 @@ export interface Choice {
   id: string;
   by: string;
   text: string;
+}
+
+// Fibbing It specific types
+export interface FibbingItAnswer {
+  id: string;
+  text: string;
+  playerId: string;
+  isTruth: boolean;
+}
+
+export interface FibbingItVote {
+  playerId: string;
+  answerId: string;
+}
+
+export interface FibbingItGameState extends BaseGameState {
+  phase: 'lobby' | 'prompt' | 'voting' | 'reveal' | 'scoring' | 'round-end' | 'game-over';
+  answers: FibbingItAnswer[];
+  votes: FibbingItVote[];
+  currentPrompt: string;
+  usedPromptIds: Set<string>;
+}
+
+export interface FibbingItAction extends GameAction {
+  type: 'start' | 'submitAnswer' | 'submitVote' | 'skipPhase' | 'advancePhase';
+  data: {
+    answer?: string;
+    choiceId?: string;
+  };
+}
+
+export interface FibbingItEvent extends GameEvent {
+  type: StandardEventType | 'answerSubmitted' | 'voteSubmitted' | 'prompt';
+  data: {
+    answerId?: string;
+    playerId?: string;
+    question?: string;
+    round?: number;
+    timeLeft?: number;
+    phase?: string;
+  };
 }
 
 export interface RoundState extends Record<string, unknown> {
@@ -430,3 +732,202 @@ export interface GameCommandResult {
   error?: string;
   details?: any;
 }
+
+// Fibbing It game configuration
+export const FIBBING_IT_CONFIG: GameConfig = {
+  id: 'fibbing-it',
+  name: 'Fibbing It',
+  description: 'Players create answers and vote on the best ones',
+  minPlayers: 2,
+  maxPlayers: 8,
+  phases: [
+    {
+      name: 'lobby',
+      duration: 0,
+      allowedActions: ['start'],
+      autoAdvance: false,
+      requiresAllPlayers: false,
+      canSkip: false
+    },
+    {
+      name: 'prompt',
+      duration: 60,
+      allowedActions: ['submitAnswer'],
+      autoAdvance: true,
+      requiresAllPlayers: true,
+      canSkip: false
+    },
+    {
+      name: 'voting',
+      duration: 45,
+      allowedActions: ['submitVote'],
+      autoAdvance: true,
+      requiresAllPlayers: true,
+      canSkip: false
+    },
+    {
+      name: 'reveal',
+      duration: 15,
+      allowedActions: [],
+      autoAdvance: true,
+      requiresAllPlayers: false,
+      canSkip: false
+    },
+    {
+      name: 'scoring',
+      duration: 10,
+      allowedActions: [],
+      autoAdvance: true,
+      requiresAllPlayers: false,
+      canSkip: false
+    },
+    {
+      name: 'round-end',
+      duration: 5,
+      allowedActions: [],
+      autoAdvance: true,
+      requiresAllPlayers: false,
+      canSkip: false
+    },
+    {
+      name: 'game-over',
+      duration: 0,
+      allowedActions: [],
+      autoAdvance: false,
+      requiresAllPlayers: false,
+      canSkip: false
+    }
+  ],
+  defaultSettings: {
+    maxRounds: 5,
+    pointsPerVote: 100,
+    bonusForCorrect: 500
+  },
+  uiComponents: ['fibbing-it-phase-manager']
+};
+
+// Bluff Trivia game configuration
+export const BLUFF_TRIVIA_CONFIG: GameConfig = {
+  id: 'bluff-trivia',
+  name: 'Bluff Trivia',
+  description: 'Players create bluffs and vote on the correct answer',
+  minPlayers: 2,
+  maxPlayers: 8,
+  phases: [
+    {
+      name: 'lobby',
+      duration: 0,
+      allowedActions: ['start'],
+      autoAdvance: false,
+      requiresAllPlayers: false,
+      canSkip: false
+    },
+    {
+      name: 'prompt',
+      duration: 15,
+      allowedActions: ['submitAnswer'],
+      autoAdvance: true,
+      requiresAllPlayers: true,
+      canSkip: false
+    },
+    {
+      name: 'choose',
+      duration: 20,
+      allowedActions: ['submitVote'],
+      autoAdvance: true,
+      requiresAllPlayers: true,
+      canSkip: false
+    },
+    {
+      name: 'scoring',
+      duration: 6,
+      allowedActions: [],
+      autoAdvance: true,
+      requiresAllPlayers: false,
+      canSkip: false
+    },
+    {
+      name: 'over',
+      duration: 0,
+      allowedActions: [],
+      autoAdvance: false,
+      requiresAllPlayers: false,
+      canSkip: false
+    }
+  ],
+  defaultSettings: {
+    maxRounds: 5,
+    correctAnswerPoints: 1000,
+    bluffPoints: 500
+  },
+  uiComponents: ['bluff-trivia-phase-manager']
+};
+
+// Word Association game configuration
+export const WORD_ASSOCIATION_CONFIG: GameConfig = {
+  id: 'word-association',
+  name: 'Word Association',
+  description: 'Players create word chains based on prompts',
+  minPlayers: 2,
+  maxPlayers: 8,
+  phases: [
+    {
+      name: 'lobby',
+      duration: 0,
+      allowedActions: ['start'],
+      autoAdvance: false,
+      requiresAllPlayers: false,
+      canSkip: false
+    },
+    {
+      name: 'prompt',
+      duration: 30,
+      allowedActions: ['submitAnswer'],
+      autoAdvance: true,
+      requiresAllPlayers: true,
+      canSkip: false
+    },
+    {
+      name: 'scoring',
+      duration: 10,
+      allowedActions: [],
+      autoAdvance: true,
+      requiresAllPlayers: false,
+      canSkip: false
+    },
+    {
+      name: 'round-end',
+      duration: 5,
+      allowedActions: [],
+      autoAdvance: true,
+      requiresAllPlayers: false,
+      canSkip: false
+    },
+    {
+      name: 'game-over',
+      duration: 0,
+      allowedActions: [],
+      autoAdvance: false,
+      requiresAllPlayers: false,
+      canSkip: false
+    }
+  ],
+  defaultSettings: {
+    maxRounds: 5,
+    pointsPerWord: 100,
+    bonusForCreativity: 200
+  },
+  uiComponents: ['word-association-phase-manager']
+};
+
+// Game configuration registry
+export const GAME_CONFIGS: Record<string, GameConfig> = {
+  'fibbing-it': FIBBING_IT_CONFIG,
+  'bluff-trivia': BLUFF_TRIVIA_CONFIG,
+  'word-association': WORD_ASSOCIATION_CONFIG,
+};
+
+// Helper function to get game configuration by ID
+export const getGameConfig = (gameId: string): GameConfig | undefined => {
+  return GAME_CONFIGS[gameId];
+};

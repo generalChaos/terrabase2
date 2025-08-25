@@ -292,7 +292,7 @@ export class StateManagerService {
         return [];
       }
 
-      const updatedGameState = engine.updateTimer(room.gameState, delta);
+      const updatedGameState = engine.updateTimer ? engine.updateTimer(room.gameState, delta) : room.gameState;
       const newState = room
         .withGameStateUpdated(updatedGameState)
         .withActivityUpdated();
@@ -309,6 +309,7 @@ export class StateManagerService {
           type: 'timer',
           data: { timeLeft: updatedGameState.timeLeft },
           target: 'all',
+          timestamp: Date.now(),
         },
       ];
     });

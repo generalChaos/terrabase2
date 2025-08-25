@@ -37,6 +37,15 @@ export class TimerService implements OnModuleDestroy {
 
     console.log(`⏰ Starting ${duration}s timer for room ${roomCode}`);
 
+    // Handle edge cases: zero or negative duration timers should complete immediately
+    if (duration <= 0) {
+      console.log(`⏰ Duration ${duration}s <= 0, calling onExpire immediately for room ${roomCode}`);
+      if (callbacks.onExpire) {
+        callbacks.onExpire();
+      }
+      return;
+    }
+
     let timeRemaining = duration;
 
     const timer = setInterval(() => {
@@ -46,13 +55,15 @@ export class TimerService implements OnModuleDestroy {
         // Call the tick callback every second with remaining time
         if (callbacks.onTick) {
           callbacks.onTick([
-            { type: 'timer', data: { timeLeft: timeRemaining }, target: 'all' },
+            { type: 'timer', data: { timeLeft: timeRemaining }, target: 'all', timestamp: Date.now() },
           ]);
         }
 
         // Call the expire callback when timer reaches 0
         if (timeRemaining <= 0) {
-          callbacks.onExpire();
+          if (callbacks.onExpire) {
+            callbacks.onExpire();
+          }
           this.stopTimer(roomCode);
         }
       } catch (error) {

@@ -23,8 +23,7 @@ describe('Game Constants', () => {
 
     it('should be readonly', () => {
       expect(() => {
-        // @ts-expect-error - Testing readonly constraint
-        GAME_PHASE_DURATIONS.PROMPT = 999;
+        (GAME_PHASE_DURATIONS as any).PROMPT = 999;
       }).toThrow();
     });
   });
@@ -97,8 +96,7 @@ describe('Game Constants', () => {
 
     it('should be readonly', () => {
       expect(() => {
-        // @ts-expect-error - Testing readonly constraint
-        GAME_TYPES.BLUFF_TRIVIA = 'different-game';
+        (GAME_TYPES as any).BLUFF_TRIVIA = 'different-game';
       }).toThrow();
     });
   });
