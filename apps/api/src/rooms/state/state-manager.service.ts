@@ -249,6 +249,15 @@ export class StateManagerService {
 
         // Check if we need to start a timer for this phase
         if (result.newState.timeLeft && result.newState.timeLeft > 0) {
+          // Check if the phase changed (auto-advancement happened)
+          const phaseChanged = result.newState.phase !== room.gameState.phase;
+          
+          if (phaseChanged) {
+            this.logger.log(`🔄 Phase changed from ${room.gameState.phase} to ${result.newState.phase}, restarting timer with new duration: ${result.newState.timeLeft}ms`);
+            // Stop any existing timer for this room
+            this.timerService.stopTimer(roomCode);
+          }
+          
           this.logger.log(`🚀 Starting timer for room ${roomCode}: ${result.newState.timeLeft}ms, phase: ${result.newState.phase}`);
           this.startTimerForPhase(roomCode, result.newState.timeLeft, engine);
         } else {
@@ -309,22 +318,11 @@ export class StateManagerService {
       // Update the room
       this.updateRoom(roomCode, () => newState);
 
-      // Create a timer event to broadcast to all clients
-      const timerEvent: GameEvent = {
-        type: 'timer',
-        data: { timeLeft: updatedGameState.timeLeft },
-        target: 'all',
-        timestamp: Date.now(),
-      };
+      // Use the optimized timer update method to send only timer data
+      // This avoids broadcasting the entire room state every second
+      this.eventBroadcaster.sendTimerUpdate(roomCode, updatedGameState.timeLeft);
 
-      // Broadcast the timer event to all clients in the room
-      this.eventBroadcaster.broadcastEvents({
-        roomCode,
-        events: [timerEvent],
-        roomState: newState,
-      });
-
-      this.logger.debug(`Timer tick for room ${roomCode}: ${updatedGameState.timeLeft}ms remaining, broadcasted to clients`);
+      this.logger.debug(`Timer tick for room ${roomCode}: ${updatedGameState.timeLeft}ms remaining, sent minimal timer data`);
     } catch (error) {
       this.logger.error(`Error handling timer tick for room ${roomCode}:`, error);
     }

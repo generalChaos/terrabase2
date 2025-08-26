@@ -10,6 +10,7 @@ import {
   InvalidGamePhaseError,
 } from '../errors';
 import { Result, success, failure, GameEvent } from '@party/types';
+import { EventGatewayService } from './event-gateway.service';
 
 @Injectable()
 export class GameGatewayService {
@@ -18,6 +19,7 @@ export class GameGatewayService {
   constructor(
     private readonly stateManager: StateManagerService,
     private readonly errorHandler: ErrorHandlerService,
+    private readonly eventGateway: EventGatewayService,
   ) {}
 
   /**
@@ -80,7 +82,7 @@ export class GameGatewayService {
   }
 
   /**
-   * Submit an answer with proper error handling
+   * Submit answer with proper error handling
    */
   async submitAnswer(
     client: Socket,
@@ -122,11 +124,23 @@ export class GameGatewayService {
         data: { answer: body.answer },
         timestamp: Date.now(),
       };
-      await this.stateManager.processGameAction(code, client.id, action);
+      
+      // Process the action and get the events
+      const events = await this.stateManager.processGameAction(code, client.id, action);
+      
+      // Get the updated room state
+      const updatedRoom = this.stateManager.getRoom(code);
+      if (!updatedRoom) {
+        throw new Error('Room not found after processing action');
+      }
+      
+      // Broadcast the events and room state update
+      await this.eventGateway.broadcastEvents(code, events, updatedRoom);
+      
+      // Also broadcast the room state update to ensure all clients get the latest state
+      await this.eventGateway.broadcastRoomUpdate(code, updatedRoom);
 
-      this.logger.log(
-        `Answer submitted in room ${code} by player ${client.id}`,
-      );
+      this.logger.log(`Answer submitted in room ${code} by player ${client.id}`);
       return success(undefined);
     } catch (error) {
       this.logger.error(`Error in submitAnswer:`, error);
@@ -135,7 +149,7 @@ export class GameGatewayService {
   }
 
   /**
-   * Submit a vote with proper error handling
+   * Submit vote with proper error handling
    */
   async submitVote(
     client: Socket,
@@ -177,7 +191,21 @@ export class GameGatewayService {
         data: { choiceId: body.choiceId },
         timestamp: Date.now(),
       };
-      await this.stateManager.processGameAction(code, client.id, action);
+      
+      // Process the action and get the events
+      const events = await this.stateManager.processGameAction(code, client.id, action);
+      
+      // Get the updated room state
+      const updatedRoom = this.stateManager.getRoom(code);
+      if (!updatedRoom) {
+        throw new Error('Room not found after processing action');
+      }
+      
+      // Broadcast the events and room state update
+      await this.eventGateway.broadcastEvents(code, events, updatedRoom);
+      
+      // Also broadcast the room state update to ensure all clients get the latest state
+      await this.eventGateway.broadcastRoomUpdate(code, updatedRoom);
 
       this.logger.log(`Vote submitted in room ${code} by player ${client.id}`);
       return success(undefined);

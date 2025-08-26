@@ -343,18 +343,13 @@ export class FibbingItNewEngine implements GameEngine<FibbingItGameState, Fibbin
       answers: updatedAnswers,
     };
 
-    // Create updated state
-    const newState: FibbingItGameState = {
-      ...state,
-      currentRound: updatedRound,
-      updatedAt: new Date(),
-    };
-
     // Check if all players have submitted
     const allSubmitted = updatedAnswers.size === state.players.length;
     
-    // Generate events
-    const events: FibbingItEvent[] = [
+    console.log(`📝 Answer submission: playerId=${action.playerId}, allSubmitted=${allSubmitted}, answersCount=${updatedAnswers.size}, totalPlayers=${state.players.length}`);
+    
+    let newState: FibbingItGameState;
+    let events: FibbingItEvent[] = [
       {
         type: 'submitted',
         data: { kind: 'answer', answer: answer.trim() },
@@ -364,8 +359,41 @@ export class FibbingItNewEngine implements GameEngine<FibbingItGameState, Fibbin
       },
     ];
 
-    // If all players submitted, add a completion event
     if (allSubmitted) {
+      // All players submitted - advance to choose phase
+      const choosePhase = this.getGameConfig().phases.find(p => p.name === 'choose');
+      const chooseDuration = choosePhase ? choosePhase.duration * 1000 : 45000; // fallback to 45s
+      
+      console.log(`🎯 All players submitted answers, advancing to choose phase with ${chooseDuration}ms timer`);
+      console.log(`📊 Current answers:`, Array.from(updatedAnswers.entries()));
+      
+      // Update the round to choose phase
+      const chooseRound = {
+        ...updatedRound,
+        phase: 'choose' as const,
+        timeLeft: chooseDuration,
+      };
+      
+      // Advance the game state to choose phase
+      newState = {
+        ...state,
+        phase: 'choose',
+        timeLeft: chooseDuration,
+        currentRound: chooseRound,
+        updatedAt: new Date(),
+      };
+      
+      console.log(`✅ New state: phase=${newState.phase}, timeLeft=${newState.timeLeft}ms`);
+      
+      // Add phase change event
+      events.push({
+        type: 'roomUpdate',
+        data: newState,
+        target: 'all',
+        timestamp: now,
+      });
+      
+      // Add answers event for voting
       events.push({
         type: 'answers',
         data: { 
@@ -378,6 +406,14 @@ export class FibbingItNewEngine implements GameEngine<FibbingItGameState, Fibbin
         target: 'all',
         timestamp: now,
       });
+    } else {
+      // Not all players submitted yet - stay in prompt phase
+      console.log(`⏳ Waiting for more answers: ${updatedAnswers.size}/${state.players.length} submitted`);
+      newState = {
+        ...state,
+        currentRound: updatedRound,
+        updatedAt: new Date(),
+      };
     }
 
     return {
@@ -463,18 +499,13 @@ export class FibbingItNewEngine implements GameEngine<FibbingItGameState, Fibbin
       votes: updatedVotes,
     };
 
-    // Create updated state
-    const newState: FibbingItGameState = {
-      ...state,
-      currentRound: updatedRound,
-      updatedAt: new Date(),
-    };
-
     // Check if all players have voted
     const allVoted = updatedVotes.size === state.players.length;
     
-    // Generate events
-    const events: FibbingItEvent[] = [
+    console.log(`🗳️ Vote submission: playerId=${action.playerId}, allVoted=${allVoted}, votesCount=${updatedVotes.size}, totalPlayers=${state.players.length}`);
+    
+    let newState: FibbingItGameState;
+    let events: FibbingItEvent[] = [
       {
         type: 'submitted',
         data: { kind: 'vote', vote },
@@ -484,8 +515,41 @@ export class FibbingItNewEngine implements GameEngine<FibbingItGameState, Fibbin
       },
     ];
 
-    // If all players voted, add a completion event
     if (allVoted) {
+      // All players voted - advance to reveal phase
+      const revealPhase = this.getGameConfig().phases.find(p => p.name === 'reveal');
+      const revealDuration = revealPhase ? revealPhase.duration * 1000 : 15000; // fallback to 15s
+      
+      console.log(`🎯 All players voted, advancing to reveal phase with ${revealDuration}ms timer`);
+      console.log(`📊 Current votes:`, Array.from(updatedVotes.entries()));
+      
+      // Update the round to reveal phase
+      const revealRound = {
+        ...updatedRound,
+        phase: 'reveal' as const,
+        timeLeft: revealDuration,
+      };
+      
+      // Advance the game state to reveal phase
+      newState = {
+        ...state,
+        phase: 'reveal',
+        timeLeft: revealDuration,
+        currentRound: revealRound,
+        updatedAt: new Date(),
+      };
+      
+      console.log(`✅ New state: phase=${newState.phase}, timeLeft=${newState.timeLeft}ms`);
+      
+      // Add phase change event
+      events.push({
+        type: 'roomUpdate',
+        data: newState,
+        target: 'all',
+        timestamp: now,
+      });
+      
+      // Add all voted event
       events.push({
         type: 'allVoted',
         data: { 
@@ -497,6 +561,14 @@ export class FibbingItNewEngine implements GameEngine<FibbingItGameState, Fibbin
         target: 'all',
         timestamp: now,
       });
+    } else {
+      // Not all players voted yet - stay in choose phase
+      console.log(`⏳ Waiting for more votes: ${updatedVotes.size}/${state.players.length} submitted`);
+      newState = {
+        ...state,
+        currentRound: updatedRound,
+        updatedAt: new Date(),
+      };
     }
 
     return {

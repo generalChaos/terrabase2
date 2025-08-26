@@ -65,6 +65,15 @@ export class EventBroadcasterService {
     if (!this.isReady()) return;
 
     try {
+      // Special handling for roomUpdate events - trigger a full room state broadcast
+      if (event.type === 'roomUpdate') {
+        // For roomUpdate events, we need to broadcast the full room state
+        // This ensures the frontend receives the updated state including phase changes
+        console.log(`🔄 Room update event detected, triggering full room state broadcast`);
+        // The roomState will be broadcast separately by the calling code
+        return;
+      }
+
       switch (event.target) {
         case EventTarget.ALL:
           // Broadcast to specific room instead of entire namespace
@@ -99,14 +108,28 @@ export class EventBroadcasterService {
         `📡 Broadcasting room update for room ${roomCode}:`,
         serializedRoom,
       );
-      console.log(`📡 Namespace ready:`, this.isReady());
-      console.log(`📡 Broadcasting to room:`, roomCode);
-      // Broadcast to specific room instead of entire namespace
       this.namespace!.to(roomCode).emit('room', serializedRoom);
-      this.logger.debug(`📡 Room state broadcasted for room ${roomCode}`);
     } catch (error) {
       this.logger.error(
         `❌ Error broadcasting room update for room ${roomCode}:`,
+        error,
+      );
+    }
+  }
+
+  /**
+   * Send timer update without broadcasting full room state
+   * This is optimized for frequent timer ticks to reduce data transmission
+   */
+  sendTimerUpdate(roomCode: string, timeLeft: number): void {
+    if (!this.isReady()) return;
+
+    try {
+      // Send only the timer data, not the entire room state
+      this.namespace!.to(roomCode).emit('timer', { timeLeft });
+    } catch (error) {
+      this.logger.error(
+        `❌ Error sending timer update for room ${roomCode}:`,
         error,
       );
     }
@@ -296,15 +319,33 @@ export class EventBroadcasterService {
     // Find players who got the correct answer
     let correctAnswerPlayers: string[] = [];
     if (round.correctAnswerPlayers instanceof Set) {
-      correctAnswerPlayers = Array.from(round.correctAnswerPlayers);
+      correctAnswerPlayers = Array.from(correctAnswerPlayers);
     } else if (Array.isArray(round.correctAnswerPlayers)) {
       correctAnswerPlayers = round.correctAnswerPlayers;
     }
 
-    // Create truth choice - show who got it right, or 'system' if no one did
+    // For Fibbing It, we need to get the correct answer from the prompt data
+    // The correct answer should come from the prompts.seed.ts file, not from round.answer
+    let correctAnswerText = '';
+    if (round.promptId) {
+      // Import prompts to get the correct answer
+      try {
+        // Dynamic import to avoid circular dependencies
+        const prompts = require('../prompts.seed').prompts;
+        const promptData = prompts.find((p: any) => p.id === round.promptId);
+        if (promptData) {
+          correctAnswerText = promptData.answer;
+        }
+      } catch (error) {
+        console.warn('Could not load prompt data for correct answer:', error);
+        correctAnswerText = 'Correct Answer'; // Fallback
+      }
+    }
+
+    // Create truth choice - show the actual correct answer
     const truth = {
       id: `TRUE::${round.promptId}`,
-      text: round.answer || round.prompt, // Handle both old and new structure
+      text: correctAnswerText || 'Correct Answer',
       by: correctAnswerPlayers.length > 0 ? correctAnswerPlayers[0] : 'system',
     };
 
@@ -327,12 +368,19 @@ export class EventBroadcasterService {
       }));
     }
 
-    // Simple shuffle for now
+    // Deterministic sorting: sort by player ID to ensure consistent order
+    // This prevents choices from jumping around on every timer tick
     const allChoices = [truth, ...bluffChoices];
-    for (let i = allChoices.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [allChoices[i], allChoices[j]] = [allChoices[j], allChoices[i]];
-    }
+    
+    // Sort by ID to ensure consistent order across all clients
+    allChoices.sort((a, b) => {
+      // Truth choice always comes first
+      if (a.id.startsWith('TRUE::')) return -1;
+      if (b.id.startsWith('TRUE::')) return 1;
+      
+      // Then sort by player ID for consistent ordering
+      return a.by.localeCompare(b.by);
+    });
 
     return allChoices;
   }
