@@ -8,6 +8,7 @@ import {
   Player,
   FIBBING_IT_CONFIG,
   GameConfig,
+  GamePhaseConfig,
 } from '@party/types';
 import { prompts } from '../prompts.seed';
 import { uid, shuffle } from '../utils';
@@ -27,7 +28,7 @@ export interface FibbingItRound {
   answers: Map<string, { playerId: string; text: string }>; // answerId -> { playerId, text }
   votes: Map<string, string>; // playerId -> answerId
   timeLeft: number;
-  phase: 'prompt' | 'voting' | 'reveal' | 'scoring';
+  phase: 'prompt' | 'choose' | 'reveal' | 'scoring';
 }
 
 export interface FibbingItAction extends GameAction {
@@ -97,8 +98,18 @@ export class FibbingItNewEngine implements GameEngine<FibbingItGameState, Fibbin
     const config = this.getGameConfig();
     const currentIndex = config.phases.findIndex(p => p.name === state.phase);
     
+    console.log(`🔄 FibbingItNewEngine.advancePhase:`, {
+      currentPhase: state.phase,
+      currentIndex,
+      totalPhases: config.phases.length,
+      phases: config.phases.map(p => ({ name: p.name, duration: p.duration })),
+      configId: config.id
+    });
+    
     if (currentIndex < config.phases.length - 1) {
       const nextPhase = config.phases[currentIndex + 1];
+      console.log(`✅ Advancing to next phase: ${state.phase} → ${nextPhase.name}, duration: ${nextPhase.duration}s (${nextPhase.duration * 1000}ms)`);
+      
       return {
         ...state,
         phase: nextPhase.name,
@@ -108,10 +119,11 @@ export class FibbingItNewEngine implements GameEngine<FibbingItGameState, Fibbin
       };
     }
     
+    console.log(`⚠️ Cannot advance phase: already at last phase (${state.phase})`);
     return state;
   }
 
-  getCurrentPhase(state: FibbingItGameState): GamePhase {
+  getCurrentPhase(state: FibbingItGameState): GamePhaseConfig {
     const config = this.getGameConfig();
     return config.phases.find((p) => p.name === state.phase) || config.phases[0];
   }
@@ -142,7 +154,7 @@ export class FibbingItNewEngine implements GameEngine<FibbingItGameState, Fibbin
       actions.push({ type: 'submitAnswer', playerId, data: {}, timestamp: now });
     }
 
-    if (currentPhase.allowedActions.includes('submitVote') && state.phase === 'voting') {
+    if (currentPhase.allowedActions.includes('submitVote') && state.phase === 'choose') {
       actions.push({ type: 'submitVote', playerId, data: {}, timestamp: now });
     }
 
@@ -172,7 +184,7 @@ export class FibbingItNewEngine implements GameEngine<FibbingItGameState, Fibbin
           });
         }
         break;
-      case 'voting':
+      case 'choose':
         if (state.currentRound) {
           const answers = Array.from(state.currentRound.answers.entries()).map(([playerId, answer]) => ({
             playerId,
@@ -218,8 +230,18 @@ export class FibbingItNewEngine implements GameEngine<FibbingItGameState, Fibbin
   private handleStart(state: FibbingItGameState, action: FibbingItAction): GameResult<FibbingItGameState, FibbingItEvent> {
     const now = Date.now();
     
+    console.log(`🚀 FibbingItNewEngine.handleStart: Starting game, current phase: ${state.phase}`);
+    
     // Advance to the first phase (prompt)
     const newState = this.advancePhase(state);
+    
+    console.log(`🔄 After advancePhase: phase=${newState.phase}, timeLeft=${newState.timeLeft}ms`);
+    
+    // Get the prompt phase config for duration
+    const promptPhase = this.getGameConfig().phases.find(p => p.name === 'prompt');
+    const promptDuration = promptPhase ? promptPhase.duration * 1000 : 25000; // fallback to 25s
+    
+    console.log(`⚙️ Config: promptPhase=${promptPhase?.name}, duration=${promptPhase?.duration}s, promptDuration=${promptDuration}ms`);
     
     // Initialize the first round
     const promptId = this.selectRandomPrompt(newState.usedPromptIds);
@@ -228,17 +250,20 @@ export class FibbingItNewEngine implements GameEngine<FibbingItGameState, Fibbin
     const updatedState: FibbingItGameState = {
       ...newState,
       round: 1,
+      timeLeft: promptDuration, // Read from config instead of hardcoded
       currentRound: {
         roundNumber: 1,
         promptId,
         prompt: prompt.question,
         answers: new Map<string, { playerId: string; text: string }>(),
         votes: new Map<string, string>(),
-        timeLeft: 60000, // 60 seconds
+        timeLeft: promptDuration, // Read from config instead of hardcoded
         phase: 'prompt',
       },
       updatedAt: new Date(),
     };
+    
+    console.log(`✅ Final state: phase=${updatedState.phase}, timeLeft=${updatedState.timeLeft}ms, currentRound.timeLeft=${updatedState.currentRound?.timeLeft}ms`);
     
     return {
       newState: updatedState,
@@ -290,13 +315,16 @@ export class FibbingItNewEngine implements GameEngine<FibbingItGameState, Fibbin
       // Initialize the round if it doesn't exist
       const promptId = this.selectRandomPrompt(state.usedPromptIds);
       const prompt = this.getPromptById(promptId);
+      const promptPhase = this.getGameConfig().phases.find(p => p.name === 'prompt');
+      const promptDuration = promptPhase ? promptPhase.duration * 1000 : 25000; // fallback to 25s
+      
       currentRound = {
         roundNumber: state.round,
         promptId,
         prompt: prompt.question,
         answers: new Map(),
         votes: new Map(),
-        timeLeft: 60000, // 60 seconds
+        timeLeft: promptDuration, // Read from config instead of hardcoded
         phase: 'prompt',
       };
     }
@@ -362,13 +390,13 @@ export class FibbingItNewEngine implements GameEngine<FibbingItGameState, Fibbin
   private handleSubmitVote(state: FibbingItGameState, action: FibbingItAction): GameResult<FibbingItGameState, FibbingItEvent> {
     const now = Date.now();
     
-    // Validate that we're in the voting phase
-    if (state.phase !== 'voting') {
+    // Validate that we're in the choose phase
+    if (state.phase !== 'choose') {
       return {
         newState: state,
         events: [],
         isValid: false,
-        error: 'Can only submit votes during voting phase',
+        error: 'Can only submit votes during choose phase',
       };
     }
 
@@ -516,6 +544,10 @@ export class FibbingItNewEngine implements GameEngine<FibbingItGameState, Fibbin
     const promptId = this.selectRandomPrompt(state.usedPromptIds);
     const prompt = this.getPromptById(promptId);
     
+    // Get the prompt phase config for duration
+    const promptPhase = this.getGameConfig().phases.find(p => p.name === 'prompt');
+    const promptDuration = promptPhase ? promptPhase.duration * 1000 : 25000; // fallback to 25s
+    
     // Add the prompt to used set
     const updatedUsedPromptIds = new Set(state.usedPromptIds);
     updatedUsedPromptIds.add(promptId);
@@ -524,7 +556,7 @@ export class FibbingItNewEngine implements GameEngine<FibbingItGameState, Fibbin
       ...state,
       round: nextRound,
       phase: 'prompt',
-      timeLeft: 60000, // 60 seconds
+      timeLeft: promptDuration, // Read from config instead of hardcoded
       phaseStartTime: new Date(),
       updatedAt: new Date(),
       usedPromptIds: updatedUsedPromptIds,
@@ -534,7 +566,7 @@ export class FibbingItNewEngine implements GameEngine<FibbingItGameState, Fibbin
         prompt: prompt.question,
         answers: new Map<string, { playerId: string; text: string }>(),
         votes: new Map<string, string>(),
-        timeLeft: 60000,
+        timeLeft: promptDuration, // Read from config instead of hardcoded
         phase: 'prompt',
       },
       isRoundComplete: false,

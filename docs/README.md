@@ -25,33 +25,12 @@ A **real-time multiplayer party game platform** featuring:
 - **✅ Resolved all major compilation and dependency issues**
 - **✅ Achieved complete test coverage across the entire API**
 
-## 📚 **Documentation Structure:**
+## 📚 **Documentation**
 
-### **🚀 Getting Started**
-- **[Quick Start Guide](./getting-started.md)** - Get up and running in minutes
-- **[Architecture Overview](./architecture/overview.md)** - High-level system design
-- **[API Reference](./api/README.md)** - Complete API documentation
-
-### **🧪 Development & Testing**
-- **[Testing Guide](./development/testing.md)** - **100% Test Coverage Achieved!** ✅
-- **[Contributing Guidelines](./development/contributing.md)** - Development standards
-- **[API Development](./api/README.md)** - Backend development guide
-
-### **📖 Development History**
-- **[Current Status](./history/2024-08-current-status.md)** - **MISSION ACCOMPLISHED** status
-- **[Phase 1: Initial Setup](./history/2024-08-phase-1-initial-setup.md)** - Project foundation
-- **[Phase 2: Game Engine Refactor](./history/2024-08-phase-2-game-engine-refactor.md)** - Engine simplification
-- **[Phase 3: Configuration System](./history/2024-08-phase-3-configuration-system.md)** - Unified configuration
-- **[Phase 4: Testing Coverage](./history/2024-08-phase-4-testing-coverage.md)** - Complete testing achievement
-
-### **🏗️ Architecture & Design**
-- **[System Architecture](./architecture/overview.md)** - High-level design
-- **[Service Architecture](./architecture/services.md)** - Service layer design
-- **[Game Logic](./api/game-logic.md)** - Game engine documentation
-- **[WebSocket Events](./api/websocket-events.md)** - Real-time communication
-
-### **🎮 Game-Specific Documentation**
-- **[Fibbing It Game Flow](./games/fibbing-it-game-flow.md)** - Complete game implementation guide
+- **[API Documentation](./api/)** - Backend API endpoints, WebSocket events, and error codes
+- **[Architecture Overview](./architecture/overview.md)** - System design and component relationships
+- **[Game Phases](./architecture/game-phases.md)** - **Single source of truth for game phase naming conventions**
+- **[Development History](./history/)** - Project development log and milestones
 
 ## 🎯 **Project Status:**
 

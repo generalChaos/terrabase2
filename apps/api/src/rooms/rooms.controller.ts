@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Logger } from '@nestjs/common';
+import { Controller, Post, Delete, Body, Param, Logger } from '@nestjs/common';
 import { RoomManager } from './room-manager';
 import { genRoomCode } from './room-code.util';
 
@@ -39,5 +39,28 @@ export class RoomsController {
     );
 
     return { code: room.code };
+  }
+
+  @Delete(':code')
+  async deleteRoom(@Param('code') code: string) {
+    this.logger.log(`🗑️ Deleting room: ${code}`);
+    
+    try {
+      const deleted = this.roomManager.deleteRoom(code);
+      
+      if (deleted) {
+        this.logger.log(`✅ Room ${code} deleted successfully`);
+        return { success: true, message: `Room ${code} deleted successfully` };
+      } else {
+        this.logger.warn(`⚠️ Room ${code} not found`);
+        return { success: false, message: `Room ${code} not found` };
+      }
+    } catch (error) {
+      this.logger.error(`❌ Error deleting room ${code}:`, error);
+      return { 
+        success: false, 
+        message: `Error deleting room: ${error instanceof Error ? error.message : 'Unknown error'}` 
+      };
+    }
   }
 }

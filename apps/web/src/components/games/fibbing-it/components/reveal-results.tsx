@@ -16,7 +16,7 @@ type RevealResultsProps = {
   players?: Array<{ id: string; name: string; avatar?: string; score: number }>;
   selectedChoiceId?: string;
   showOptions: boolean;
-  state?: 'options' | 'reveal' | 'scoring' | 'over';
+  state?: 'options' | 'reveal' | 'scoring' | 'game-over';
   onPlayAgain?: () => void;
 };
 
@@ -106,7 +106,7 @@ export function RevealResults({ options, correctAnswer, votes = [], players = []
   }
 
   // If we're in game over state, show final scores with play again button
-  if (state === 'over' && players.length > 0) {
+  if (state === 'game-over' && players.length > 0) {
     // Sort players by score (highest to lowest)
     const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
     

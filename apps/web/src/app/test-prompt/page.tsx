@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { GamePhaseManager } from '@/components/game-phase-manager';
 import type { Choice } from '@party/types';
-import { DUR } from '@party/types';
+import { getTotalTimeForPhase } from '@/lib/game-timing';
 
 export default function TestPromptPage() {
   const [timeLeft, setTimeLeft] = useState(30);
@@ -108,7 +108,7 @@ export default function TestPromptPage() {
           >
             Switch to{' '}
             {phase === 'prompt'
-              ? 'Voting'
+              ? 'Choose'
               : phase === 'choose'
                 ? 'Scoring'
                 : 'Prompt'}{' '}
@@ -144,10 +144,10 @@ export default function TestPromptPage() {
           timeLeft={timeLeft}
           totalTime={
             phase === 'prompt'
-              ? DUR.PROMPT
+              ? getTotalTimeForPhase('prompt')
               : phase === 'choose'
-                ? DUR.CHOOSE
-                : DUR.SCORING
+                ? getTotalTimeForPhase('choose')
+                : getTotalTimeForPhase('scoring')
           }
           round={1}
           maxRounds={5}

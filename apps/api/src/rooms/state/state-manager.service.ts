@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { GameConfig } from '@party/types';
+import { Injectable, Logger } from '@nestjs/common';
+import { GameConfig, GameEngine } from '@party/types';
 import { GameRegistry } from '../game-registry';
 import { ImmutableRoomState, RoomState } from './room.state';
 import { Player, GameAction, GameEvent } from '@party/types';
@@ -10,13 +10,20 @@ import {
   RoomFullError,
   PlayerNameTakenError,
 } from '../errors';
+import { TimerService } from '../timer.service';
+import { EventBroadcasterService } from '../services/event-broadcaster.service';
 
 @Injectable()
 export class StateManagerService {
   private rooms = new Map<string, ImmutableRoomState>();
   private stateLocks = new Map<string, Promise<any>>();
+  private readonly logger = new Logger(StateManagerService.name);
 
-  constructor(private readonly gameRegistry: GameRegistry) {}
+  constructor(
+    private readonly gameRegistry: GameRegistry,
+    private readonly timerService: TimerService,
+    private readonly eventBroadcaster: EventBroadcasterService,
+  ) {}
 
   /**
    * Helper method to update room state consistently
@@ -239,6 +246,15 @@ export class StateManagerService {
 
         // Update the room using consistent pattern
         this.updateRoom(roomCode, () => newState);
+
+        // Check if we need to start a timer for this phase
+        if (result.newState.timeLeft && result.newState.timeLeft > 0) {
+          this.logger.log(`🚀 Starting timer for room ${roomCode}: ${result.newState.timeLeft}ms, phase: ${result.newState.phase}`);
+          this.startTimerForPhase(roomCode, result.newState.timeLeft, engine);
+        } else {
+          this.logger.log(`⏰ No timer needed for room ${roomCode}: timeLeft=${result.newState.timeLeft}, phase: ${result.newState.phase}`);
+        }
+
         return result.events;
       } else {
         return [
@@ -251,6 +267,109 @@ export class StateManagerService {
         ];
       }
     });
+  }
+
+  /**
+   * Start a timer for a specific game phase
+   */
+  private startTimerForPhase(roomCode: string, timeLeftMs: number, engine: GameEngine<any, any, any>): void {
+    // Convert milliseconds to seconds for the timer service
+    const durationSeconds = Math.ceil(timeLeftMs / 1000);
+    
+    this.logger.log(`Starting timer for room ${roomCode}: ${durationSeconds}s (${timeLeftMs}ms)`);
+    
+    this.timerService.startTimer(roomCode, durationSeconds, {
+      onTick: (events: GameEvent[]) => {
+        // Handle timer tick by updating the game state and broadcasting events
+        this.handleTimerTick(roomCode, events);
+      },
+      onExpire: () => {
+        // Handle timer expiration by advancing the game phase
+        this.handleTimerExpiration(roomCode);
+      },
+    });
+  }
+
+  /**
+   * Handle timer tick events
+   */
+  private async handleTimerTick(roomCode: string, events: GameEvent[]): Promise<void> {
+    try {
+      // Update the game state with the new time
+      const room = this.getRoom(roomCode);
+      if (!room) return;
+
+      const engine = this.gameRegistry.getGame(room.gameType);
+      if (!engine) return;
+
+      // Update the timer in the game state
+      const updatedGameState = engine.updateTimer ? engine.updateTimer(room.gameState, 1000) : room.gameState;
+      const newState = room.withGameStateUpdated(updatedGameState);
+
+      // Update the room
+      this.updateRoom(roomCode, () => newState);
+
+      // Create a timer event to broadcast to all clients
+      const timerEvent: GameEvent = {
+        type: 'timer',
+        data: { timeLeft: updatedGameState.timeLeft },
+        target: 'all',
+        timestamp: Date.now(),
+      };
+
+      // Broadcast the timer event to all clients in the room
+      this.eventBroadcaster.broadcastEvents({
+        roomCode,
+        events: [timerEvent],
+        roomState: newState,
+      });
+
+      this.logger.debug(`Timer tick for room ${roomCode}: ${updatedGameState.timeLeft}ms remaining, broadcasted to clients`);
+    } catch (error) {
+      this.logger.error(`Error handling timer tick for room ${roomCode}:`, error);
+    }
+  }
+
+  /**
+   * Handle timer expiration
+   */
+  private async handleTimerExpiration(roomCode: string): Promise<void> {
+    try {
+      this.logger.log(`⏰ Timer expired for room ${roomCode}, advancing phase`);
+      
+      // Get current room state for debugging
+      const room = this.getRoom(roomCode);
+      this.logger.log(`📊 Current room state before phase advancement:`, {
+        phase: room.gameState.phase,
+        timeLeft: room.gameState.timeLeft,
+        round: room.gameState.round
+      });
+      
+      // Advance the game phase when the timer expires
+      const events = await this.advanceGamePhase(roomCode);
+      
+      // Get updated room state for debugging
+      const updatedRoom = this.getRoom(roomCode);
+      this.logger.log(`📊 Updated room state after phase advancement:`, {
+        phase: updatedRoom.gameState.phase,
+        timeLeft: updatedRoom.gameState.timeLeft,
+        round: updatedRoom.gameState.round
+      });
+      
+      // The events will be broadcast by the calling code
+      this.logger.log(`✅ Advanced phase for room ${roomCode}, generated ${events.length} events`);
+      
+      // Broadcast the phase change events
+      if (events.length > 0) {
+        this.eventBroadcaster.broadcastEvents({
+          roomCode,
+          events,
+          roomState: updatedRoom,
+        });
+      }
+    } catch (error) {
+      this.logger.error(`❌ Error handling timer expiration for room ${roomCode}:`, error);
+    }
   }
 
   /**

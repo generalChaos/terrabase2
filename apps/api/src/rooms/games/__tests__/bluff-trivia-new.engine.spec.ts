@@ -68,7 +68,7 @@ describe('BluffTriviaNewEngine', () => {
 
     it('should return true for over phase', () => {
       const state = engine.initialize(mockPlayers);
-      state.phase = 'over';
+      state.phase = 'game-over';
       expect(engine.isGameOver(state)).toBe(true);
     });
   });

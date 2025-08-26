@@ -1,11 +1,11 @@
 'use client';
-import { TimerRing, PlayerAvatar } from '../../shared/ui';
+import { TimerPhaseLayout, gameStyles, animationDelays } from '../shared';
 import type { Choice } from '@party/types';
 
 type FibbingItScoringViewProps = {
   question: string;
-  correctAnswer: string;
   choices: Choice[];
+  correctAnswer: string;
   timeLeft: number;
   totalTime: number;
   round: number;
@@ -19,109 +19,60 @@ type FibbingItScoringViewProps = {
     score: number;
     connected?: boolean;
   }>;
-  scores?: Array<{ playerId: string; score: number }>;
-  playerId?: string;
   isPlayer?: boolean;
   isHost?: boolean;
 };
 
 export function FibbingItScoringView({
   question,
-  correctAnswer,
   choices,
+  correctAnswer,
   timeLeft,
   totalTime,
+  round,
+  maxRounds,
   roomCode = 'GR7A',
   votes = [],
   players = [],
-  scores = [],
   isPlayer = false,
-  round,
-  maxRounds,
+  isHost = false,
 }: FibbingItScoringViewProps) {
-  const getPlayerScore = (playerId: string) => {
-    return scores.find(s => s.playerId === playerId)?.score || 0;
-  };
+  // Content for both mobile and desktop
+  const scoringContent = (
+    <>
+      {/* Question */}
+      <h2 className={`${gameStyles.text.headingMedium} mb-6 leading-relaxed ${gameStyles.animation.fadeIn}`} style={{ animationDelay: animationDelays.fast }}>
+        {question}
+      </h2>
 
-  if (isPlayer) {
-    // Mobile-style player view
-    return (
-      <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col animate-fade-in">
-        {/* Mobile Header */}
-        <div className="flex items-center justify-between p-4 bg-slate-800/50 backdrop-blur-sm animate-slide-down">
-          <button className="text-white text-2xl hover:scale-110 transition-transform duration-200">←</button>
-          <div className="text-white font-mono text-lg">{roomCode}</div>
-          <div className="text-white font-bold text-xl animate-pulse-slow">
-            {Math.ceil(timeLeft / 1000)}
-          </div>
+      {/* Answer Display */}
+      <div className={`${gameStyles.content.box} ${gameStyles.animation.fadeIn}`} style={{ animationDelay: animationDelays.medium }}>
+        <div className="bg-slate-800 border border-slate-600 rounded-xl p-4">
+          <div className="text-sm text-slate-400 mb-2">Correct Answer:</div>
+          <div className="text-white font-medium">{correctAnswer}</div>
         </div>
 
-        {/* Scoring Interface */}
-        <div className="flex-1 flex flex-col items-center justify-center px-6 text-center animate-fade-in-up" style={{ animationDelay: '300ms' }}>
-          <h2 className="text-2xl font-bold text-white mb-6 leading-relaxed">
-            {question}
-          </h2>
-
-          {/* Answer Display */}
-          <div className="w-full max-w-md space-y-4 animate-fade-in-up" style={{ animationDelay: '500ms' }}>
-            <div className="bg-slate-800 border border-slate-600 rounded-xl p-4">
-              <div className="text-sm text-slate-400 mb-2">Correct Answer:</div>
-              <div className="text-white font-medium">{correctAnswer}</div>
-            </div>
-
-            {/* Score */}
-            <div className="text-2xl font-bold text-teal-400">
-              Round {round} of {maxRounds}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Host view (desktop)
-  return (
-    <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col animate-fade-in">
-      {/* Header */}
-      <div className="flex justify-between items-center p-6">
-        <h1 className="text-4xl font-bold text-white tracking-wider">
-          FIBBING IT!
-        </h1>
-        <div className="text-2xl font-mono text-teal-400 bg-slate-800 px-4 py-2 rounded-lg">
-          {roomCode}
+        {/* Round Info */}
+        <div className={`text-2xl font-bold ${gameStyles.text.accent}`}>
+          Round {round} of {maxRounds}
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6">
-        <div className="text-center space-y-8 w-full max-w-4xl">
-          {/* Title */}
-          <h2 className="text-6xl font-bold text-white tracking-wider">
-            SCORING
-          </h2>
-
-          {/* Timer */}
-          <div className="flex justify-center">
-            <TimerRing
-              seconds={Math.ceil(timeLeft / 1000)}
-              total={Math.ceil(totalTime / 1000)}
-            />
-          </div>
-
-          {/* Question and Answer */}
-          <div className="bg-slate-800/50 rounded-2xl p-8 border border-slate-600">
+      {/* Host view: Enhanced scoring display */}
+      {isHost && (
+        <>
+          {/* Question and Answer Card */}
+          <div className={gameStyles.card.standard}>
             <h3 className="text-2xl text-white mb-4">{question}</h3>
-            <div className="text-xl text-teal-400 font-bold font-baloo2">
+            <div className={`text-xl ${gameStyles.text.accent} font-bold font-baloo2`}>
               Correct Answer: {correctAnswer}
             </div>
           </div>
 
-          {/* Choices and Votes */}
+          {/* Choices and Votes Grid */}
           <div className="grid grid-cols-2 gap-6 mb-8">
             {choices.map(choice => {
-              const voteCount = votes.filter(
-                v => v.choiceId === choice.id
-              ).length;
+              const voteCount = votes.filter(v => v.choiceId === choice.id).length;
               const isCorrect = choice.text === correctAnswer;
 
               return (
@@ -148,18 +99,65 @@ export function FibbingItScoringView({
           </div>
 
           {/* Player Scores */}
-          <div className="grid grid-cols-3 gap-4">
-            {players.slice(0, 6).map(player => (
-              <div key={player.id} className="text-center">
-                <PlayerAvatar avatar={player.avatar} />
-                <div className="text-lg text-white font-bold mt-2">
-                  {getPlayerScore(player.id)}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
+          {players.length > 0 && (
+            <div className="w-full max-w-md mx-auto space-y-3">
+              <h3 className="text-2xl text-white font-bold mb-4">Player Scores</h3>
+              {players
+                .sort((a, b) => b.score - a.score)
+                .map((player, index) => (
+                  <div
+                    key={player.id}
+                    className={`w-full p-4 rounded-xl transition-all duration-500 transform
+                      opacity-100 translate-y-0
+                      relative overflow-hidden bg-slate-800/50 border border-slate-600/50
+                    `}
+                    style={{ 
+                      animationDelay: `${900 + index * 100}ms`,
+                      transitionDelay: `${index * 100}ms`
+                    }}
+                  >
+                    {/* Content */}
+                    <div className="relative z-10 flex items-center gap-3">
+                      {/* Left: Player Avatar */}
+                      <div className="flex-shrink-0">
+                        <div className="w-12 h-12 rounded-full bg-slate-700 flex items-center justify-center text-white font-bold">
+                          {player.name.charAt(0).toUpperCase()}
+                        </div>
+                      </div>
+                      
+                      {/* Center: Player Name */}
+                      <div className="flex-1">
+                        <span className="text-white font-bold text-xl drop-shadow-2xl tracking-wide">{player.name}</span>
+                      </div>
+                      
+                      {/* Right: Points */}
+                      <div className={`text-white font-black text-3xl ${gameStyles.text.accent} font-baloo2 tracking-wider`}>
+                        {player.score}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          )}
+        </>
+      )}
+    </>
+  );
+
+  return (
+    <TimerPhaseLayout
+      roomCode={roomCode}
+      timeLeft={timeLeft}
+      totalTime={totalTime}
+      isPlayer={isPlayer}
+      isHost={isHost}
+      phaseTitle="SCORING"
+      round={round}
+      maxRounds={maxRounds}
+      showBackButton={isPlayer}
+      onBackClick={() => window.history.back()}
+    >
+      {scoringContent}
+    </TimerPhaseLayout>
   );
 }

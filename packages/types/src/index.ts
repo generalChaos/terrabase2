@@ -1,5 +1,15 @@
-// Core game types
-export type Phase = 'lobby' | 'prompt' | 'voting' | 'choose' | 'reveal' | 'scoring' | 'round-end' | 'game-over' | 'over';
+// Core game types - Using const assertions for type safety and values
+export const GAME_PHASES = {
+  LOBBY: 'lobby',
+  PROMPT: 'prompt',
+  CHOOSE: 'choose',
+  REVEAL: 'reveal',
+  SCORING: 'scoring',
+  ROUND_END: 'round-end',
+  GAME_OVER: 'game-over'
+} as const;
+
+export type GamePhase = typeof GAME_PHASES[keyof typeof GAME_PHASES];
 
 export interface Player {
   id: string;
@@ -16,14 +26,14 @@ export interface GameConfig {
   description: string;
   minPlayers: number;
   maxPlayers: number;
-  phases: GamePhase[];
+  phases: GamePhaseConfig[];
   defaultSettings: Record<string, any>;
   uiComponents: string[];
 }
 
 // Enhanced game phase interface
-export interface GamePhase {
-  name: string;
+export interface GamePhaseConfig {
+  name: GamePhase;
   duration: number;
   allowedActions: string[];
   autoAdvance: boolean; // Should phase auto-advance when timer expires?
@@ -35,7 +45,7 @@ export interface GamePhase {
 
 // Game state interfaces
 export interface BaseGameState {
-  phase: string;
+  phase: GamePhase;
   players: Player[];
   timeLeft: number;
   round: number;
@@ -120,7 +130,7 @@ export interface GameEngine<
   advancePhase(state: TState): TState;
   
   // Game state queries (required)
-  getCurrentPhase(state: TState): GamePhase;
+  getCurrentPhase(state: TState): GamePhaseConfig;
   isGameOver(state: TState): boolean;
   getWinners(state: TState): Player[];
   getValidActions(state: TState, playerId: string): TAction[];
@@ -222,14 +232,40 @@ export abstract class BaseGameEngine<
   }
   
   // Game state queries
-  getCurrentPhase(state: TState): GamePhase {
+  getCurrentPhase(state: TState): GamePhaseConfig {
     const config = this.getGameConfig();
     const phaseConfig = config.phases.find(p => p.name === state.phase);
-    return phaseConfig || { name: state.phase, duration: 0, allowedActions: [], autoAdvance: false, requiresAllPlayers: false, canSkip: false };
+    if (phaseConfig) {
+      return phaseConfig;
+    }
+    
+    // Fallback for unknown phases - convert string to enum if possible
+    const fallbackName = this.convertStringToPhaseName(state.phase);
+    return { 
+      name: fallbackName, 
+      duration: 0, 
+      allowedActions: [], 
+      autoAdvance: false, 
+      requiresAllPlayers: false, 
+      canSkip: false 
+    };
+  }
+
+  // Helper method to convert string phase names to enum values
+  private convertStringToPhaseName(phaseString: string): GamePhase {
+    // Try to find a matching phase name
+    const validPhases: GamePhase[] = [GAME_PHASES.LOBBY, GAME_PHASES.PROMPT, GAME_PHASES.CHOOSE, GAME_PHASES.REVEAL, GAME_PHASES.SCORING, GAME_PHASES.ROUND_END, GAME_PHASES.GAME_OVER];
+    const validPhase = validPhases.find(value => value === phaseString);
+    if (validPhase) {
+      return validPhase;
+    }
+    
+    // Default fallback
+    return GAME_PHASES.LOBBY;
   }
   
   isGameOver(state: TState): boolean {
-    return state.phase === 'game-over' || state.round >= state.maxRounds;
+    return state.phase === GAME_PHASES.GAME_OVER || state.round >= state.maxRounds;
   }
   
   getWinners(state: TState): Player[] {
@@ -357,7 +393,7 @@ export interface FibbingItVote {
 }
 
 export interface FibbingItGameState extends BaseGameState {
-  phase: 'lobby' | 'prompt' | 'voting' | 'reveal' | 'scoring' | 'round-end' | 'game-over';
+  phase: GamePhase;
   answers: FibbingItAnswer[];
   votes: FibbingItVote[];
   currentPrompt: string;
@@ -393,13 +429,13 @@ export interface RoundState extends Record<string, unknown> {
   votes: Vote[];
   correctAnswerPlayers?: string[]; // Array of player IDs who got the answer correct
   timeLeft: number;
-  phase: string;
+  phase: GamePhase;
 }
 
 export interface RoomState {
   code: string;
   gameType: string;
-  phase: Phase;
+  phase: GamePhase;
   round: number;
   maxRounds: number;
   timeLeft: number;
@@ -408,6 +444,7 @@ export interface RoomState {
   hostId?: string;
   usedPromptIds: Set<string>;
   timer?: NodeJS.Timeout;
+  choices?: Choice[]; // Choices for voting phases
 }
 
 // Game configuration - Single source of truth
@@ -742,7 +779,7 @@ export const FIBBING_IT_CONFIG: GameConfig = {
   maxPlayers: 8,
   phases: [
     {
-      name: 'lobby',
+      name: GAME_PHASES.LOBBY,
       duration: 0,
       allowedActions: ['start'],
       autoAdvance: false,
@@ -750,15 +787,15 @@ export const FIBBING_IT_CONFIG: GameConfig = {
       canSkip: false
     },
     {
-      name: 'prompt',
-      duration: 60,
+      name: GAME_PHASES.PROMPT,
+      duration: 25,
       allowedActions: ['submitAnswer'],
       autoAdvance: true,
       requiresAllPlayers: true,
       canSkip: false
     },
     {
-      name: 'voting',
+      name: GAME_PHASES.CHOOSE,
       duration: 45,
       allowedActions: ['submitVote'],
       autoAdvance: true,
@@ -766,7 +803,7 @@ export const FIBBING_IT_CONFIG: GameConfig = {
       canSkip: false
     },
     {
-      name: 'reveal',
+      name: GAME_PHASES.REVEAL,
       duration: 15,
       allowedActions: [],
       autoAdvance: true,
@@ -774,7 +811,7 @@ export const FIBBING_IT_CONFIG: GameConfig = {
       canSkip: false
     },
     {
-      name: 'scoring',
+      name: GAME_PHASES.SCORING,
       duration: 10,
       allowedActions: [],
       autoAdvance: true,
@@ -782,7 +819,7 @@ export const FIBBING_IT_CONFIG: GameConfig = {
       canSkip: false
     },
     {
-      name: 'round-end',
+      name: GAME_PHASES.ROUND_END,
       duration: 5,
       allowedActions: [],
       autoAdvance: true,
@@ -790,7 +827,7 @@ export const FIBBING_IT_CONFIG: GameConfig = {
       canSkip: false
     },
     {
-      name: 'game-over',
+      name: GAME_PHASES.GAME_OVER,
       duration: 0,
       allowedActions: [],
       autoAdvance: false,
@@ -815,7 +852,7 @@ export const BLUFF_TRIVIA_CONFIG: GameConfig = {
   maxPlayers: 8,
   phases: [
     {
-      name: 'lobby',
+      name: GAME_PHASES.LOBBY,
       duration: 0,
       allowedActions: ['start'],
       autoAdvance: false,
@@ -823,7 +860,7 @@ export const BLUFF_TRIVIA_CONFIG: GameConfig = {
       canSkip: false
     },
     {
-      name: 'prompt',
+      name: GAME_PHASES.PROMPT,
       duration: 15,
       allowedActions: ['submitAnswer'],
       autoAdvance: true,
@@ -831,7 +868,7 @@ export const BLUFF_TRIVIA_CONFIG: GameConfig = {
       canSkip: false
     },
     {
-      name: 'choose',
+      name: GAME_PHASES.CHOOSE,
       duration: 20,
       allowedActions: ['submitVote'],
       autoAdvance: true,
@@ -839,7 +876,7 @@ export const BLUFF_TRIVIA_CONFIG: GameConfig = {
       canSkip: false
     },
     {
-      name: 'scoring',
+      name: GAME_PHASES.SCORING,
       duration: 6,
       allowedActions: [],
       autoAdvance: true,
@@ -847,7 +884,7 @@ export const BLUFF_TRIVIA_CONFIG: GameConfig = {
       canSkip: false
     },
     {
-      name: 'over',
+      name: GAME_PHASES.ROUND_END,
       duration: 0,
       allowedActions: [],
       autoAdvance: false,
@@ -872,7 +909,7 @@ export const WORD_ASSOCIATION_CONFIG: GameConfig = {
   maxPlayers: 8,
   phases: [
     {
-      name: 'lobby',
+      name: GAME_PHASES.LOBBY,
       duration: 0,
       allowedActions: ['start'],
       autoAdvance: false,
@@ -880,7 +917,7 @@ export const WORD_ASSOCIATION_CONFIG: GameConfig = {
       canSkip: false
     },
     {
-      name: 'prompt',
+      name: GAME_PHASES.PROMPT,
       duration: 30,
       allowedActions: ['submitAnswer'],
       autoAdvance: true,
@@ -888,7 +925,7 @@ export const WORD_ASSOCIATION_CONFIG: GameConfig = {
       canSkip: false
     },
     {
-      name: 'scoring',
+      name: GAME_PHASES.SCORING,
       duration: 10,
       allowedActions: [],
       autoAdvance: true,
@@ -896,7 +933,7 @@ export const WORD_ASSOCIATION_CONFIG: GameConfig = {
       canSkip: false
     },
     {
-      name: 'round-end',
+      name: GAME_PHASES.ROUND_END,
       duration: 5,
       allowedActions: [],
       autoAdvance: true,
@@ -904,7 +941,7 @@ export const WORD_ASSOCIATION_CONFIG: GameConfig = {
       canSkip: false
     },
     {
-      name: 'game-over',
+      name: GAME_PHASES.GAME_OVER,
       duration: 0,
       allowedActions: [],
       autoAdvance: false,

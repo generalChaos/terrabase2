@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useGamePhase } from '../hooks/use-game-phase';
 import { 
   GameLayout, 
   TimerDisplay, 
@@ -7,6 +7,7 @@ import {
   RoundInfo, 
   GamePhaseContent 
 } from './index';
+import type { ComponentState } from '../shared/types';
 
 type SharedPromptViewProps = {
   question: string;
@@ -14,7 +15,7 @@ type SharedPromptViewProps = {
   totalTime: number;
   round: number;
   maxRounds: number;
-  state: 'waiting' | 'input' | 'options' | 'reveal' | 'scoring' | 'over';
+  state: ComponentState;
   options?: Array<{
     id: string;
     text: string;
@@ -32,53 +33,19 @@ type SharedPromptViewProps = {
   onPlayAgain?: () => void;
 };
 
-export function SharedPromptView({
-  question,
-  timeLeft,
-  totalTime,
-  round,
-  maxRounds,
-  state,
-  options = [],
-  correctAnswer,
-  votes = [],
-  players = [],
-  onSubmitAnswer,
-  onSubmitVote,
-  hasSubmitted = false,
-  selectedChoiceId,
-  onPlayAgain,
-}: SharedPromptViewProps) {
-  const [showOptions, setShowOptions] = useState(false);
-
-  useEffect(() => {
-    if (state === 'options' || state === 'reveal') {
-      // Delay showing options for smooth animation
-      const timer = setTimeout(() => setShowOptions(true), 300);
-      return () => clearTimeout(timer);
-    } else {
-      setShowOptions(false);
-    }
-  }, [state]);
+export function SharedPromptView(props: SharedPromptViewProps) {
+  const { showOptions, phaseProps } = useGamePhase(props);
 
   return (
     <GameLayout>
-      <TimerDisplay timeLeft={timeLeft} totalTime={totalTime} />
-      <QuestionDisplay question={question} />
+      <TimerDisplay timeLeft={props.timeLeft} totalTime={props.totalTime} />
+      <QuestionDisplay question={props.question} />
       <GamePhaseContent
-        state={state}
-        options={options}
-        correctAnswer={correctAnswer}
-        votes={votes}
-        players={players}
-        onSubmitAnswer={onSubmitAnswer}
-        onSubmitVote={onSubmitVote}
-        hasSubmitted={hasSubmitted}
-        selectedChoiceId={selectedChoiceId}
+        state={props.state}
+        {...phaseProps}
         showOptions={showOptions}
-        onPlayAgain={onPlayAgain}
       />
-      <RoundInfo round={round} maxRounds={maxRounds} />
+      <RoundInfo round={props.round} maxRounds={props.maxRounds} />
     </GameLayout>
   );
 }

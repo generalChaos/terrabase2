@@ -1,13 +1,13 @@
 'use client';
 import { useState } from 'react';
 import { GamePhaseManager } from '@/components/game-phase-manager';
-import type { Phase } from '@party/types';
+import type { GamePhase } from '@party/types';
 
 export default function GameDemoPage() {
   const [gameType, setGameType] = useState<
     'bluff-trivia' | 'word-association' | 'fibbing-it'
   >('fibbing-it');
-  const [phase, setPhase] = useState<Phase>('lobby');
+  const [phase, setPhase] = useState<GamePhase>('lobby');
   const [isHost, setIsHost] = useState(true);
 
   // Mock data for bluff-trivia
@@ -200,14 +200,14 @@ export default function GameDemoPage() {
               </label>
               <select
                 value={phase}
-                onChange={e => setPhase(e.target.value as Phase)}
+                onChange={e => setPhase(e.target.value as GamePhase)}
                 className="w-full px-3 py-2 border border-slate-600 rounded-lg bg-slate-800 text-white"
               >
                 <option value="lobby">Lobby</option>
                 <option value="prompt">Prompt</option>
                 <option value="choose">Choose</option>
                 <option value="scoring">Scoring</option>
-                <option value="over">Over</option>
+                <option value="game_over">Game Over</option>
               </select>
             </div>
 

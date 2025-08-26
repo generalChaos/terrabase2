@@ -8,6 +8,7 @@ import {
   Player,
   BLUFF_TRIVIA_CONFIG,
   GameConfig,
+  GamePhaseConfig,
 } from '@party/types';
 import { prompts } from '../prompts.seed';
 import { uid, shuffle } from '../utils';
@@ -135,13 +136,13 @@ export class BluffTriviaNewEngine implements GameEngine<BluffTriviaState, BluffT
     return state;
   }
 
-  getCurrentPhase(state: BluffTriviaState): GamePhase {
+  getCurrentPhase(state: BluffTriviaState): GamePhaseConfig {
     const config = this.getGameConfig();
     return config.phases.find((p) => p.name === state.phase) || config.phases[0];
   }
 
   isGameOver(state: BluffTriviaState): boolean {
-    return state.phase === 'over';
+    return state.phase === 'game-over';
   }
 
   getWinners(state: BluffTriviaState): Player[] {
@@ -178,7 +179,7 @@ export class BluffTriviaNewEngine implements GameEngine<BluffTriviaState, BluffT
     const now = Date.now();
 
     switch (state.phase) {
-      case 'over':
+      case 'game-over':
         events.push({
           type: 'gameOver',
           data: { winners: this.getWinners(state) },

@@ -2,7 +2,7 @@ import {
   GAME_CONFIGS, 
   getGameConfig, 
   type GameConfig,
-  type GamePhase 
+  type GamePhaseConfig 
 } from '@party/types';
 
 // Game information interface that the frontend expects
@@ -19,7 +19,7 @@ export interface GameInfo {
   gradient: string;
   minPlayers: number;
   maxPlayers: number;
-  phases: GamePhase[];
+  phases: GamePhaseConfig[];
   defaultSettings: Record<string, any>;
   uiComponents: string[];
   theme?: {
@@ -199,7 +199,7 @@ function getGameTheme(gameId: string) {
 }
 
 // Export types for convenience
-export type { GameConfig, GamePhase };
+export type { GameConfig, GamePhaseConfig };
 
 // Re-export utility functions from types package
 export { 

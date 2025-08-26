@@ -13,15 +13,13 @@ import type {
   SubmitVoteData,
   Choice,
 } from '@party/types';
-import { DUR } from '@party/types';
 import { ErrorBoundary, useErrorBoundary } from '@/components/error-boundary';
+import { getTotalTimeForPhase } from '@/lib/game-timing';
 
 export function JoinClient({ code }: { code: string }) {
   const [joined, setJoined] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [roomState, setRoomState] = useState<RoomState | null>(null);
-  const [hasSubmittedAnswer, setHasSubmittedAnswer] = useState(false);
-  const [hasVoted, setHasVoted] = useState(false);
   const [choices, setChoices] = useState<Choice[]>([]);
   const [scores, setScores] = useState<
     Array<{ playerId: string; score: number }>
@@ -40,14 +38,9 @@ export function JoinClient({ code }: { code: string }) {
   const { throwError } = useErrorBoundary();
 
   // Use refs to avoid dependency issues in useEffect
-  const hasSubmittedAnswerRef = useRef(hasSubmittedAnswer);
   const playerIdRef = useRef(playerId);
 
   // Update refs when state changes
-  useEffect(() => {
-    hasSubmittedAnswerRef.current = hasSubmittedAnswer;
-  }, [hasSubmittedAnswer]);
-
   useEffect(() => {
     playerIdRef.current = playerId;
   }, [playerId]);
@@ -142,72 +135,16 @@ export function JoinClient({ code }: { code: string }) {
         throwError(`Connection failed: ${error.message}`);
       });
 
+      // Listen for room state updates
       s.on('room', (roomState: RoomState) => {
-        // Update room state
-
-        // Handle phase changes
-        if (previousPhase && previousPhase !== roomState.phase) {
-          console.log(`🔄 Phase change: ${previousPhase} → ${roomState.phase}`);
-          if (roomState.phase === 'prompt') {
-            console.log(
-              '🔄 Checking if player has already submitted in current round'
-            );
-            // Check if player has already submitted (either as a bluff or correct answer)
-            const hasSubmittedInCurrentRound =
-              roomState.current?.bluffs?.some(
-                (bluff: { by: string }) => bluff.by === playerIdRef.current
-              ) ||
-              roomState.current?.correctAnswerPlayers?.includes(
-                playerIdRef.current
-              );
-
-            console.log(
-              '🔄 Has submitted in current round:',
-              hasSubmittedInCurrentRound
-            );
-            console.log(
-              '🔄 Bluffs by current player:',
-              roomState.current?.bluffs?.filter(
-                (b: { by: string }) => b.by === playerIdRef.current
-              )
-            );
-            console.log(
-              '🔄 Correct answer players:',
-              roomState.current?.correctAnswerPlayers
-            );
-
-            if (!hasSubmittedInCurrentRound) {
-              console.log(
-                '🔄 Resetting submission state - no submission found in current round'
-              );
-              setHasSubmittedAnswer(false);
-            } else {
-              console.log(
-                '🔄 Keeping submission state - player already submitted in current round'
-              );
-            }
-            setHasVoted(false);
-            setSelectedChoiceId(undefined);
-          } else if (roomState.phase === 'choose') {
-            console.log('🔄 Resetting voting state for choose phase');
-            setHasVoted(false);
-            setSelectedChoiceId(undefined);
-            // Keep answer submitted when moving to voting phase
-          }
+        console.log('🎮 Room state update:', roomState);
+        
+        // Extract choices from room state if available
+        if (roomState.choices && Array.isArray(roomState.choices)) {
+          console.log('🎲 Choices extracted from room state:', roomState.choices);
+          setChoices(roomState.choices);
         }
-
-        // Also reset submission state when entering a new prompt round
-        if (previousRound !== roomState.round && roomState.phase === 'prompt') {
-          console.log(
-            `🔄 New round started: ${previousRound} → ${roomState.round}`
-          );
-          setHasSubmittedAnswer(false);
-          setHasVoted(false);
-          setSelectedChoiceId(undefined);
-        }
-
-        setPreviousPhase(roomState.phase);
-        setPreviousRound(roomState.round);
+        
         setRoomState(roomState);
         setTimer(roomState.timeLeft || 0);
       });
@@ -221,6 +158,12 @@ export function JoinClient({ code }: { code: string }) {
       // Listen for game events
       s.on('prompt', (data: { question: string }) => {
         console.log('🎯 Prompt received:', data);
+      });
+
+      s.on('answerSubmitted', (data: { answerId: string; playerId: string }) => {
+        console.log('✍️ Answer submitted:', data);
+        // Server confirmed the answer submission
+        // The local state is already set, so this is just confirmation
       });
 
       s.on('choices', (data: { choices: Choice[] }) => {
@@ -254,8 +197,12 @@ export function JoinClient({ code }: { code: string }) {
     if (!socketRef.current) return;
     const submitData: SubmitAnswerData = { answer };
     console.log('📝 Submitting answer:', submitData);
+    
+    // Update local state immediately for better UX
+    // setHasSubmittedAnswer(true); // This line is removed
+    
+    // Send to server
     socketRef.current.emit('submitAnswer', submitData);
-    // Don't set hasSubmittedAnswer here - wait for server confirmation
   };
 
   const handleSubmitVote = (choiceId: string) => {
@@ -264,7 +211,7 @@ export function JoinClient({ code }: { code: string }) {
     console.log('🗳️ Submitting vote:', submitData);
     socketRef.current.emit('submitVote', submitData);
     // Set local state immediately for better UX
-    setHasVoted(true);
+    // setHasVoted(true); // This line is removed
     setSelectedChoiceId(choiceId);
   };
 
@@ -310,19 +257,38 @@ export function JoinClient({ code }: { code: string }) {
     roomState &&
     (joined || roomState.players?.some(p => p.id === playerId))
   ) {
-    // Get the correct total time for the current phase
-    const getTotalTimeForPhase = (phase: string) => {
-      switch (phase) {
-        case 'prompt':
-          return DUR.PROMPT;
-        case 'choose':
-          return DUR.CHOOSE;
-        case 'scoring':
-          return DUR.SCORING;
-        default:
-          return 30;
-      }
-    };
+    // Compute submission and voting state from game state
+    // Use the structure that the backend actually sends (old structure)
+    const hasSubmittedAnswer: boolean = 
+      (roomState?.current?.bluffs?.some(
+        (bluff: { by: string }) => bluff?.by === playerId
+      )) ||
+      (roomState?.current?.correctAnswerPlayers?.includes(playerId)) ||
+      false;
+
+    const hasVoted: boolean = 
+      (roomState?.current?.votes?.some(
+        (vote: { voter: string }) => vote?.voter === playerId
+      )) ||
+      false;
+
+    const selectedChoiceId: string | undefined = 
+      roomState?.current?.votes?.find(
+        (vote: { voter: string; choiceId: string }) => vote?.voter === playerId
+      )?.choiceId;
+
+    // Debug logging for computed values
+    console.log('🎮 JoinClient computed values:', {
+      playerId,
+      hasSubmittedAnswer,
+      hasVoted,
+      selectedChoiceId,
+      bluffs: roomState?.current?.bluffs,
+      correctAnswerPlayers: roomState?.current?.correctAnswerPlayers,
+      votes: roomState?.current?.votes,
+      phase: roomState?.phase,
+      round: roomState?.round
+    });
 
     return (
       <ErrorBoundary>

@@ -254,6 +254,26 @@ export default function Home() {
                   </Button>
                 </CardContent>
               </Card>
+
+              <Card variant="glass" size="lg">
+                <CardContent className="text-center">
+                  <div className="text-4xl mb-4">🎨</div>
+                  <CardTitle className="text-xl font-semibold text-white mb-2">
+                    Layout System Test
+                  </CardTitle>
+                  <CardDescription className="text-slate-300 mb-4">
+                    Test our new shared layout system for all game phases with mobile/desktop views.
+                  </CardDescription>
+                  <Button
+                    variant="game"
+                    size="lg"
+                    onClick={() => router.push('/layout-test')}
+                    className="bg-gradient-to-r from-green-500 to-emerald-600"
+                  >
+                    🎨 Test Layout System
+                  </Button>
+                </CardContent>
+              </Card>
             </div>
           </div>
         )}

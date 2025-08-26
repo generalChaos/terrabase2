@@ -4,6 +4,8 @@ import { GameRegistry } from '../../game-registry';
 import { ImmutableRoomState } from '../room.state';
 import { Player, GameAction, GameEvent } from '@party/types';
 import { RoomNotFoundError, PlayerNotFoundError } from '../../errors';
+import { TimerService } from '../../timer.service';
+import { EventBroadcasterService } from '../../services/event-broadcaster.service';
 
 describe('StateManagerService', () => {
   let service: StateManagerService;
@@ -32,6 +34,24 @@ describe('StateManagerService', () => {
             listGames: jest.fn(),
             hasGame: jest.fn(),
             getDefaultGame: jest.fn(),
+          },
+        },
+        {
+          provide: TimerService,
+          useValue: {
+            startTimer: jest.fn(),
+            stopTimer: jest.fn(),
+            stopTimerForRoom: jest.fn(),
+            isTimerRunning: jest.fn(),
+            getActiveTimers: jest.fn(),
+            getTimerCount: jest.fn(),
+            onModuleDestroy: jest.fn(),
+          },
+        },
+        {
+          provide: EventBroadcasterService,
+          useValue: {
+            broadcastEvents: jest.fn(),
           },
         },
       ],

@@ -32,7 +32,7 @@ describe('FibbingItNewEngine', () => {
       
       expect(phaseNames).toContain('lobby');
       expect(phaseNames).toContain('prompt');
-      expect(phaseNames).toContain('voting');
+      expect(phaseNames).toContain('choose');
       expect(phaseNames).toContain('reveal');
       expect(phaseNames).toContain('scoring');
     });
@@ -94,9 +94,9 @@ describe('FibbingItNewEngine', () => {
       expect(engine.isGameOver(state)).toBe(false);
     });
 
-    it('should return true for over phase', () => {
+    it('should return true for game-over phase', () => {
       const state = engine.initialize(mockPlayers);
-      state.phase = 'game-over'; // Changed from 'over' to 'game-over'
+      state.phase = 'game-over';
       expect(engine.isGameOver(state)).toBe(true);
     });
 
@@ -155,7 +155,7 @@ describe('FibbingItNewEngine', () => {
       
       // Prompt -> Voting
       state = engine.advancePhase(state);
-      expect(state.phase).toBe('voting');
+      expect(state.phase).toBe('choose');
       
       // Voting -> Reveal
       state = engine.advancePhase(state);
@@ -232,7 +232,7 @@ describe('FibbingItNewEngine', () => {
 
     it('should process submitVote action correctly', () => {
       const state = engine.initialize(mockPlayers);
-      state.phase = 'voting';
+      state.phase = 'choose';
       state.currentRound = {
         roundNumber: 1,
         promptId: 'prompt1',
@@ -243,7 +243,7 @@ describe('FibbingItNewEngine', () => {
         ]),
         votes: new Map(),
         timeLeft: 45,
-        phase: 'voting',
+        phase: 'choose',
       };
 
       const action: FibbingItAction = {
@@ -370,7 +370,7 @@ describe('FibbingItNewEngine', () => {
           ['player2', 'answer1'], // Player2 votes for answer1
         ]),
         timeLeft: 0,
-        phase: 'voting',
+        phase: 'choose',
       };
       
       const newState = engine.calculateScores(state);
@@ -401,7 +401,7 @@ describe('FibbingItNewEngine', () => {
           ['player3', 'answer1'],
         ]),
         timeLeft: 0,
-        phase: 'voting',
+        phase: 'choose',
       };
       
       const isComplete = engine.isRoundComplete(state);
@@ -423,7 +423,7 @@ describe('FibbingItNewEngine', () => {
           // Player2 hasn't voted yet
         ]),
         timeLeft: 0,
-        phase: 'voting',
+        phase: 'choose',
       };
       
       const isComplete = engine.isRoundComplete(state);

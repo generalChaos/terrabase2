@@ -7,10 +7,10 @@ import {
   type PlayerCreationData,
 } from './player-creation-form';
 import type { RoomState, Choice } from '@party/types';
-import { DUR } from '@party/types';
 import { getAllGames, getApiUrl, AppConfig } from '@party/config';
 import { useRoomCode } from '@/components/host/room-code-provider';
 import { ErrorBoundary, useErrorBoundary } from '@/components/error-boundary';
+import { getTotalTimeForPhase } from '@/lib/game-timing';
 
 export function HostClient({ code }: { code: string }) {
   const [state, setState] = useState<RoomState | null>(null);
@@ -23,6 +23,10 @@ export function HostClient({ code }: { code: string }) {
   const [showAllGames, setShowAllGames] = useState(false);
   const [showPlayerCreation, setShowPlayerCreation] = useState(true);
   const [isCreatingRoom, setIsCreatingRoom] = useState(false);
+  const [previousPhase, setPreviousPhase] = useState<string | null>(null);
+  const [previousRound, setPreviousRound] = useState<number>(0);
+  const [playerId, setPlayerId] = useState<string>('');
+  const [isDeletingRoom, setIsDeletingRoom] = useState(false);
   const socketRef = useRef<ReturnType<typeof connectToRoom> | null>(null);
 
   // Use Error Boundary hook for manual error throwing
@@ -46,6 +50,9 @@ export function HostClient({ code }: { code: string }) {
     setShowAllGames(false);
     setShowPlayerCreation(true);
     setIsCreatingRoom(false);
+    setPreviousPhase(null);
+    setPreviousRound(0);
+    setPlayerId('');
     
     // Close any existing socket connection
     if (socketRef.current) {
@@ -143,6 +150,9 @@ export function HostClient({ code }: { code: string }) {
       // Listen for join confirmation
       s.on('joined', (data: { ok: boolean }) => {
         console.log('✅ Host successfully joined room:', data);
+        // Set the host's player ID from the socket connection
+        setPlayerId(s.id || '');
+        console.log('🏠 Host player ID set to:', s.id);
       });
 
       // Listen for errors
@@ -156,35 +166,9 @@ export function HostClient({ code }: { code: string }) {
         throwError(`Connection failed: ${error.message}`);
       });
 
-      // Listen for room state updates
-      s.on('room', (st: RoomState) => {
-        console.log('🏠 Room state updated:', st);
-        console.log('🏠 Players:', st.players);
-        console.log('🏠 Host ID:', st.hostId);
-        console.log('🏠 Current socket ID:', s.id);
-        console.log('🏠 Phase changed from:', state?.phase, 'to:', st.phase);
-        
-        // Check if host is in the players list
-        const hostPlayer = st.players.find(p => p.id === s.id);
-        if (hostPlayer) {
-          console.log('✅ Host found in players list:', hostPlayer);
-        } else {
-          console.warn('⚠️ Host not found in players list. Players:', st.players.map(p => ({ id: p.id, name: p.name })));
-        }
-        
-        setState(st);
-        setTimer(st.timeLeft || 0);
-      });
-
-      // Listen for timer updates
-      s.on('timer', (data: { timeLeft: number }) => {
-        console.log('⏰ Timer update:', data.timeLeft);
-        setTimer(data.timeLeft);
-      });
-
-      // Listen for game events
-      s.on('prompt', (data: { question: string }) => {
-        console.log('🎯 Prompt received:', data);
+      // Listen for answerSubmitted
+      s.on('answerSubmitted', (data: { answerId: string; playerId: string }) => {
+        console.log('✍️ Answer submitted:', data);
       });
 
       s.on('choices', (data: { choices: Choice[] }) => {
@@ -192,22 +176,15 @@ export function HostClient({ code }: { code: string }) {
         setChoices(data.choices);
       });
 
-      s.on('phaseChanged', (data: { phase: string; round: number; timeLeft: number; prompt?: string }) => {
-        console.log('🔄 Phase changed:', data);
-      });
-
-      s.on('answerSubmitted', (data: { answerId: string; playerId: string }) => {
-        console.log('✍️ Answer submitted:', data);
-      });
-
       s.on(
         'scores',
         (data: { totals: Array<{ playerId: string; score: number }> }) => {
-          console.log('�� Scores received:', data);
+          console.log('🏆 Scores received:', data);
           setScores(data.totals);
         }
       );
 
+      // Listen for gameOver
       s.on(
         'gameOver',
         (data: {
@@ -216,6 +193,38 @@ export function HostClient({ code }: { code: string }) {
           console.log('🎉 Game over:', data);
         }
       );
+
+      // Listen for timer updates
+      s.on('timer', (data: { timeLeft: number }) => {
+        console.log('⏰ Timer update:', data.timeLeft);
+        setTimer(data.timeLeft);
+      });
+
+      // Listen for room state updates
+      s.on('room', (roomState: RoomState) => {
+        console.log('🏠 Room state update:', roomState);
+        
+        // Extract choices from room state if available
+        if (roomState.choices && Array.isArray(roomState.choices)) {
+          console.log('🎲 Choices extracted from room state:', roomState.choices);
+          setChoices(roomState.choices);
+        }
+        
+        // Handle phase changes - no need to manually reset states since they're computed
+        if (previousPhase && previousPhase !== roomState.phase) {
+          console.log(`🔄 Phase change: ${previousPhase} → ${roomState.phase}`);
+        }
+
+        // Handle new rounds - no need to manually reset states since they're computed
+        if (previousRound !== roomState.round && roomState.phase === 'prompt') {
+          console.log(`🔄 New round started: ${previousRound} → ${roomState.round}`);
+        }
+
+        setPreviousPhase(roomState.phase);
+        setPreviousRound(roomState.round);
+        setState(roomState);
+        setTimer(roomState.timeLeft || 0);
+      });
     } catch (error) {
       console.error('❌ Failed to create room:', error);
       setShowPlayerCreation(true); // Show form again on error
@@ -235,6 +244,84 @@ export function HostClient({ code }: { code: string }) {
     }
     console.log('🚀 Starting game:', gameType, 'with socket:', socketRef.current.id);
     socketRef.current.emit('startGame', { gameType });
+  };
+
+  const handleSubmitAnswer = (answer: string) => {
+    if (!socketRef.current) return;
+    console.log('✍️ Host submitting answer:', answer);
+    // Emit the answer submission event - state will be updated via room updates
+    socketRef.current.emit('submitAnswer', { answer });
+  };
+
+  const handleSubmitVote = (choiceId: string) => {
+    if (!socketRef.current) return;
+    console.log('🗳️ Host submitting vote:', choiceId);
+    // Emit the vote submission event - state will be updated via room updates
+    socketRef.current.emit('submitVote', { choiceId });
+  };
+
+  const handleDeleteRoom = async () => {
+    if (!roomCode) return;
+    
+    // Add confirmation dialog
+    const confirmed = window.confirm(
+      `Are you sure you want to delete room "${roomCode}"? This action cannot be undone and will disconnect all players.`
+    );
+    
+    if (!confirmed) return;
+    
+    setIsDeletingRoom(true);
+    try {
+      console.log('🗑️ Deleting room:', roomCode);
+      
+      // First disconnect from socket
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
+      
+      // Delete room via API
+      const response = await fetch(
+        getApiUrl('http') + AppConfig.API.ROOMS_ENDPOINT + `/${roomCode}`,
+        {
+          method: 'DELETE',
+        }
+      );
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ Room deleted successfully:', result);
+        
+        if (result.success) {
+          // Show success message
+          alert(`Room "${roomCode}" deleted successfully!`);
+          // Reset component state
+          setState(null);
+          setChoices([]);
+          setScores([]);
+          setTimer(0);
+          setSelectedGame(null);
+          setShowAllGames(false);
+          setShowPlayerCreation(true);
+          setIsCreatingRoom(false);
+          setPreviousPhase(null);
+          setPreviousRound(0);
+          setPlayerId('');
+        } else {
+          // Show error message from server
+          alert(`Failed to delete room: ${result.message}`);
+        }
+      } else {
+        const errorText = await response.text();
+        console.error('❌ Failed to delete room:', response.status, errorText);
+        alert(`Failed to delete room: ${response.status} - ${errorText}`);
+      }
+    } catch (error) {
+      console.error('❌ Error deleting room:', error);
+      alert(`Error deleting room: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsDeletingRoom(false);
+    }
   };
 
   const handleGameSelect = (gameId: string) => {
@@ -259,6 +346,39 @@ export function HostClient({ code }: { code: string }) {
   // Get the selected game info for display
   const selectedGameInfo =
     availableGames.find(game => game.id === (state?.gameType || selectedGame)) || availableGames[0];
+
+  // Compute submission and voting state from game state
+  // Use the structure that the backend actually sends (old structure)
+  const hasSubmittedAnswer: boolean = 
+    (state?.current?.bluffs?.some(
+      (bluff: { by: string }) => bluff?.by === playerId
+    )) ||
+    (state?.current?.correctAnswerPlayers?.includes(playerId)) ||
+    false;
+
+  const hasVoted: boolean = 
+    (state?.current?.votes?.some(
+      (vote: { voter: string }) => vote?.voter === playerId
+    )) ||
+    false;
+
+  const selectedChoiceId: string | undefined = 
+    state?.current?.votes?.find(
+      (vote: { voter: string; choiceId: string }) => vote?.voter === playerId
+    )?.choiceId;
+
+  // Debug logging for computed values
+  console.log('🏠 HostClient computed values:', {
+    playerId,
+    hasSubmittedAnswer,
+    hasVoted,
+    selectedChoiceId,
+    bluffs: state?.current?.bluffs,
+    correctAnswerPlayers: state?.current?.correctAnswerPlayers,
+    votes: state?.current?.votes,
+    phase: state?.phase,
+    round: state?.round
+  });
 
   // Show player creation form first
   if (showPlayerCreation) {
@@ -291,6 +411,31 @@ export function HostClient({ code }: { code: string }) {
               '🏠 HostClient rendering GamePhaseManager with state:',
               state
             )}
+            
+            {/* Debug Controls */}
+            <div className="fixed top-4 right-4 z-50">
+              <div className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg shadow-lg transition-colors">
+                <button
+                  onClick={handleDeleteRoom}
+                  className="flex items-center gap-2 font-semibold"
+                  title={`Delete room ${roomCode} (Debug tool)`}
+                  disabled={isDeletingRoom}
+                >
+                  {isDeletingRoom ? (
+                    <>
+                      <div className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      🗑️ Delete Room
+                      <span className="text-xs opacity-75">({roomCode})</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+            
             <GamePhaseManager
               gameType={state.gameType || selectedGame || 'fibbing-it'}
               phase={state.phase || 'lobby'}
@@ -299,18 +444,7 @@ export function HostClient({ code }: { code: string }) {
               question={state.current?.prompt}
               correctAnswer={state.current?.answer}
               timeLeft={timer}
-              totalTime={(() => {
-                switch (state.phase) {
-                  case 'prompt':
-                    return DUR.PROMPT;
-                  case 'choose':
-                    return DUR.CHOOSE;
-                  case 'scoring':
-                    return DUR.SCORING;
-                  default:
-                    return 30;
-                }
-              })()}
+              totalTime={getTotalTimeForPhase(state.phase)}
               round={state.round || 1}
               maxRounds={state.maxRounds || 5}
               choices={choices}
@@ -328,6 +462,11 @@ export function HostClient({ code }: { code: string }) {
               }}
               availableGames={availableGames}
               showAllGames={showAllGames}
+              onSubmitAnswer={handleSubmitAnswer}
+              onSubmitVote={handleSubmitVote}
+              hasSubmittedAnswer={hasSubmittedAnswer}
+              hasVoted={hasVoted}
+              selectedChoiceId={selectedChoiceId}
             />
           </>
         ) : (

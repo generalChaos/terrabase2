@@ -1,4 +1,5 @@
-import type { Phase } from '@party/types';
+import type { GamePhase } from '@party/types';
+import { getTotalTimeForPhase } from '@/lib/game-timing';
 
 /**
  * Base interface that all game-specific phase managers must implement.
@@ -21,7 +22,7 @@ export interface GamePhaseManagerInterface {
  * Base props that all game phase managers receive
  */
 export interface BaseGamePhaseManagerProps {
-  phase: Phase;
+  phase: GamePhase;
   isHost: boolean;
   roomCode?: string;
   timeLeft?: number;
@@ -56,23 +57,14 @@ export abstract class BaseGamePhaseManager
   /**
    * Common utility method to check if a phase is valid for this game
    */
-  protected isValidPhase(phase: Phase): boolean {
-    return ['lobby', 'prompt', 'choose', 'scoring', 'over'].includes(phase);
+  protected isValidPhase(phase: string): boolean {
+    return ['lobby', 'prompt', 'choose', 'reveal', 'scoring', 'round-end', 'game-over'].includes(phase);
   }
 
   /**
    * Common utility method to get default time for a phase
    */
-  protected getDefaultTimeForPhase(phase: Phase): number {
-    switch (phase) {
-      case 'prompt':
-        return 15;
-      case 'choose':
-        return 20;
-      case 'scoring':
-        return 6;
-      default:
-        return 0;
-    }
+  protected getDefaultTimeForPhase(phase: GamePhase): number {
+    return getTotalTimeForPhase(phase);
   }
 }

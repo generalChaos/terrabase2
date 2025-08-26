@@ -29,48 +29,43 @@ export class TimerService implements OnModuleDestroy {
   startTimer(
     roomCode: string,
     duration: number,
-    callbacks: TimerCallbacks,
+    callbacks: {
+      onTick?: (events: GameEvent[]) => void;
+      onExpire?: () => void;
+    },
   ): void {
-    if (this.timers.has(roomCode)) {
-      this.stopTimer(roomCode);
-    }
-
     // Handle edge cases: zero or negative duration timers should complete immediately
     if (duration <= 0) {
-      if (callbacks.onExpire) {
-        callbacks.onExpire();
-      }
+      console.log(`⏰ Timer for room ${roomCode}: duration ${duration}s, calling onExpire immediately`);
+      callbacks.onExpire?.();
       return;
     }
 
+    console.log(`⏰ Starting timer for room ${roomCode}: ${duration}s`);
+    
+    // Clear any existing timer for this room
+    this.stopTimer(roomCode);
+
     let timeRemaining = duration;
 
+    // Create the timer
     const timer = setInterval(() => {
-      try {
-        timeRemaining--;
-
-        // Call the tick callback every second with remaining time
-        if (callbacks.onTick) {
-          callbacks.onTick([
-            { type: 'timer', data: { timeLeft: timeRemaining }, target: 'all', timestamp: Date.now() },
-          ]);
-        }
-
-        // Call the expire callback when timer reaches 0
-        if (timeRemaining <= 0) {
-          if (callbacks.onExpire) {
-            callbacks.onExpire();
-          }
-          this.stopTimer(roomCode);
-        }
-      } catch (error) {
-        console.error(`❌ Timer tick error for room ${roomCode}:`, error);
-        // Stop the timer on error to prevent cascading failures
+      timeRemaining--;
+      
+      if (timeRemaining <= 0) {
+        console.log(`⏰ Timer expired for room ${roomCode}, calling onExpire`);
         this.stopTimer(roomCode);
+        callbacks.onExpire?.();
+      } else {
+        console.log(`⏰ Timer tick for room ${roomCode}: ${timeRemaining}s remaining`);
+        callbacks.onTick?.([]);
       }
-    }, GameConfig.TIMING.CONVERSIONS.SECONDS_TO_MS); // Tick every second
+    }, 1000);
 
+    // Store the timer
     this.timers.set(roomCode, timer);
+    
+    console.log(`⏰ Timer started successfully for room ${roomCode}: ${duration}s`);
   }
 
   /**

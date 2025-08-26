@@ -3,11 +3,11 @@ import { BluffTriviaPhaseManagerFC } from './games/bluff-trivia';
 import { WordAssociationPhaseManagerFC } from './games/word-association';
 import { FibbingItPhaseManagerFC } from './games/fibbing-it';
 import { LobbyView } from './games/shared/common-phases/lobby-view';
-import type { Phase, Choice } from '@party/types';
+import type { GamePhase, Choice } from '@party/types';
 
 type GamePhaseManagerProps = {
   gameType?: string; // New prop to identify which game to render
-  phase: Phase;
+  phase: GamePhase;
   isHost: boolean;
   roomCode?: string;
   question?: string;

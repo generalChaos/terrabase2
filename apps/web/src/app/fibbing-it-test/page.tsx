@@ -1,16 +1,17 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { SharedPromptView } from '@/components/games/fibbing-it/components';
 import { LobbyView } from '@/components/games/shared/common-phases/lobby-view';
 import { getAllGames } from '@party/config';
+import { getTotalTimeForPhase } from '@/lib/game-timing';
 
-type GamePhase = 'lobby' | 'prompt' | 'choose' | 'reveal' | 'scoring' | 'over';
+type GamePhase = 'lobby' | 'prompt' | 'choose' | 'reveal' | 'scoring' | 'game-over';
 
 export default function FibbingItTestPage() {
   const [currentPhase, setCurrentPhase] = useState<GamePhase>('lobby');
   const [mockState, setMockState] = useState({
-    timeLeft: 30000, // 30 seconds
-    totalTime: 30000,
+    timeLeft: getTotalTimeForPhase('prompt'), // Use centralized timing
+    totalTime: getTotalTimeForPhase('prompt'), // Use centralized timing
     round: 1,
     maxRounds: 5,
     question: "What's the most embarrassing thing that happened to you in school?",
@@ -49,16 +50,78 @@ export default function FibbingItTestPage() {
   });
 
   const selectedGame = getAllGames().find(game => game.id === 'fibbing-it');
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Timer effect - runs countdown when in timed phases
+  useEffect(() => {
+    console.log(`Timer effect triggered for phase: ${currentPhase}`);
+    console.log(`Current mockState:`, mockState);
+    
+    if (currentPhase === 'prompt' || currentPhase === 'choose') {
+      console.log(`Starting timer for phase: ${currentPhase}`);
+      // Start timer countdown
+      timerRef.current = setInterval(() => {
+        console.log('Timer interval running...');
+        setMockState(prev => {
+          console.log(`Timer tick: ${prev.timeLeft}ms remaining`);
+          if (prev.timeLeft <= 0) {
+            // Time's up! Auto-advance to next phase
+            if (currentPhase === 'prompt') {
+              console.log('Time up for prompt, moving to choose');
+              setCurrentPhase('choose');
+              return { ...prev, timeLeft: getTotalTimeForPhase('choose'), totalTime: getTotalTimeForPhase('choose') }; // Use centralized timing
+            } else if (currentPhase === 'choose') {
+              console.log('Time up for choose, moving to reveal');
+              setCurrentPhase('reveal');
+              return { ...prev, timeLeft: getTotalTimeForPhase('reveal'), totalTime: getTotalTimeForPhase('reveal') }; // Use centralized timing
+            }
+            return prev;
+          }
+          return { ...prev, timeLeft: prev.timeLeft - 1000 };
+        });
+      }, 1000);
+    } else {
+      console.log(`Clearing timer for phase: ${currentPhase}`);
+      // Clear timer for non-timed phases
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    }
+
+    // Cleanup timer on unmount or phase change
+    return () => {
+      if (timerRef.current) {
+        console.log('Cleaning up timer');
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, [currentPhase, mockState.timeLeft]);
 
   const handleStartGame = () => {
+    setMockState(prev => ({ ...prev, timeLeft: getTotalTimeForPhase('prompt') })); // Use centralized timing
     setCurrentPhase('prompt');
   };
 
   const handleSubmitAnswer = (answer: string) => {
     console.log('Answer submitted:', answer);
-    setMockState(prev => ({ ...prev, hasSubmittedAnswer: true }));
-    // Simulate moving to voting phase after a delay
-    setTimeout(() => setCurrentPhase('choose'), 2000);
+    console.log('Current phase before submission:', currentPhase);
+    
+    setMockState(prev => {
+      console.log('Updating state with answer submission');
+      return { 
+        ...prev, 
+        hasSubmittedAnswer: true,
+        timeLeft: getTotalTimeForPhase('choose'), // Use centralized timing
+        totalTime: getTotalTimeForPhase('choose') // Use centralized timing
+      };
+    });
+    
+    // Move to voting phase immediately
+    console.log('Moving to choose phase');
+    setCurrentPhase('choose');
+    console.log('Phase change initiated');
   };
 
   const handleSubmitVote = (choiceId: string) => {
@@ -77,7 +140,7 @@ export default function FibbingItTestPage() {
       hasSubmittedAnswer: false,
       hasVoted: false,
       selectedChoiceId: '',
-      timeLeft: 30000,
+      timeLeft: getTotalTimeForPhase('prompt'), // Use centralized timing
     }));
     setCurrentPhase('lobby');
   };
@@ -90,12 +153,13 @@ export default function FibbingItTestPage() {
         hasSubmittedAnswer: false,
         hasVoted: false,
         selectedChoiceId: '',
-        timeLeft: 30000,
+        timeLeft: getTotalTimeForPhase('prompt'), // Use centralized timing
+        totalTime: getTotalTimeForPhase('prompt'), // Use centralized timing
         question: "What's the weirdest food combination you actually enjoy?",
       }));
       setCurrentPhase('prompt');
     } else {
-      setCurrentPhase('over');
+      setCurrentPhase('game-over');
     }
   };
 
@@ -113,6 +177,12 @@ export default function FibbingItTestPage() {
         );
 
       case 'prompt':
+        console.log('Rendering prompt phase:', {
+          timeLeft: mockState.timeLeft,
+          totalTime: mockState.totalTime,
+          hasSubmitted: mockState.hasSubmittedAnswer,
+          state: mockState.hasSubmittedAnswer ? 'waiting' : 'input'
+        });
         return (
           <SharedPromptView
             question={mockState.question}
@@ -120,7 +190,7 @@ export default function FibbingItTestPage() {
             totalTime={mockState.totalTime}
             round={mockState.round}
             maxRounds={mockState.maxRounds}
-            state="input"
+            state={mockState.hasSubmittedAnswer ? 'waiting' : 'input'}
             onSubmitAnswer={handleSubmitAnswer}
             hasSubmitted={mockState.hasSubmittedAnswer}
           />
@@ -170,6 +240,8 @@ export default function FibbingItTestPage() {
             round={mockState.round}
             maxRounds={mockState.maxRounds}
             state="scoring"
+            options={mockState.choices}
+            correctAnswer={mockState.correctAnswer}
             votes={mockState.votes}
             players={mockState.players}
             onSubmitVote={handleSubmitVote}
@@ -177,7 +249,7 @@ export default function FibbingItTestPage() {
           />
         );
 
-      case 'over':
+      case 'game-over':
         return (
           <SharedPromptView
             question={mockState.question}
@@ -185,7 +257,8 @@ export default function FibbingItTestPage() {
             totalTime={mockState.totalTime}
             round={mockState.round}
             maxRounds={mockState.maxRounds}
-            state="over"
+            state="game-over"
+            options={mockState.choices}
             votes={mockState.votes}
             players={mockState.players}
             onPlayAgain={resetGame}
@@ -264,9 +337,9 @@ export default function FibbingItTestPage() {
             Scoring
           </button>
           <button
-            onClick={() => setCurrentPhase('over')}
+            onClick={() => setCurrentPhase('game-over')}
             className={`w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-              currentPhase === 'over' 
+              currentPhase === 'game-over' 
                 ? 'bg-teal-500 text-white' 
                 : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
             }`}
@@ -282,6 +355,19 @@ export default function FibbingItTestPage() {
           >
             Reset Game
           </button>
+          
+          {/* Debug Timer Button */}
+          <button
+            onClick={() => {
+              console.log('Manual timer test clicked');
+              console.log('Current state:', { currentPhase, timeLeft: mockState.timeLeft });
+              setMockState(prev => ({ ...prev, timeLeft: prev.timeLeft - 5000 }));
+            }}
+            className="w-full px-3 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg text-sm font-medium transition-colors mt-2"
+          >
+            Test Timer (-5s)
+          </button>
+          
           {currentPhase === 'choose' && mockState.hasVoted && (
             <button
               onClick={() => setCurrentPhase('scoring')}

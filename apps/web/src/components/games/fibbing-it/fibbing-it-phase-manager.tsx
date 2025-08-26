@@ -4,6 +4,7 @@ import { LobbyView } from '../shared';
 import { BaseGamePhaseManager, BaseGamePhaseManagerProps } from '../shared';
 import type { Choice } from '@party/types';
 import { getGameInfo } from '@party/config';
+import { getTotalTimeForPhase } from '@/lib/game-timing';
 
 type FibbingItPhaseManagerProps = BaseGamePhaseManagerProps & {
   question?: string;
@@ -68,7 +69,7 @@ export class FibbingItPhaseManager extends BaseGamePhaseManager {
             totalTime={totalTime}
             round={round}
             maxRounds={maxRounds}
-            state={isHost ? 'waiting' : 'input'}
+            state={hasSubmittedAnswer ? 'waiting' : 'input'}
             onSubmitAnswer={onSubmitAnswer}
             hasSubmitted={hasSubmittedAnswer}
           />
@@ -102,7 +103,34 @@ export class FibbingItPhaseManager extends BaseGamePhaseManager {
           />
         );
 
-
+      case 'reveal':
+        return (
+          <SharedPromptView
+            question={question || 'Loading question...'}
+            timeLeft={timeLeft}
+            totalTime={totalTime}
+            round={round}
+            maxRounds={maxRounds}
+            state="reveal"
+            options={choices.map((choice, index) => ({
+              id: choice.id,
+              text: choice.text,
+              color: [
+                'from-orange-500 to-orange-600',     // Orange
+                'from-pink-500 to-pink-600',         // Magenta/Deep Pink
+                'from-teal-500 to-teal-600',         // Teal/Blue-Green
+                'from-green-600 to-green-700',       // Dark Green
+              ][index % 4],
+              playerId: choice.by,
+              playerAvatar: `avatar_${(index + 1) % 9 + 1}`
+            }))}
+            correctAnswer={correctAnswer}
+            votes={votes}
+            players={players}
+            onSubmitVote={onSubmitVote}
+            selectedChoiceId={selectedChoiceId}
+          />
+        );
 
       case 'scoring':
         return (
@@ -133,7 +161,7 @@ export class FibbingItPhaseManager extends BaseGamePhaseManager {
           />
         );
 
-      case 'over':
+      case 'game-over':
         return (
           <SharedPromptView
             question="Game Over!"
@@ -141,7 +169,21 @@ export class FibbingItPhaseManager extends BaseGamePhaseManager {
             totalTime={totalTime}
             round={round}
             maxRounds={maxRounds}
-            state="over"
+            state="game-over"
+            options={choices.map((choice, index) => ({
+              id: choice.id,
+              text: choice.text,
+              color: [
+                'from-orange-500 to-orange-600',     // Orange
+                'from-pink-500 to-pink-600',         // Magenta/Deep Pink
+                'from-teal-500 to-teal-600',         // Teal/Blue-Green
+                'from-green-600 to-green-700',       // Dark Green
+              ][index % 4],
+              playerId: choice.by,
+              playerAvatar: `avatar_${(index + 1) % 9 + 1}`
+            }))}
+            votes={votes}
+            players={players}
             onPlayAgain={onPlayAgain}
           />
         );
@@ -149,6 +191,20 @@ export class FibbingItPhaseManager extends BaseGamePhaseManager {
       default:
         return null;
     }
+  }
+
+  /**
+   * Override to include all valid phases for Fibbing It
+   */
+  protected isValidPhase(phase: string): boolean {
+    return ['lobby', 'prompt', 'choose', 'reveal', 'scoring', 'game-over'].includes(phase);
+  }
+
+  /**
+   * Override to provide proper timing for each phase
+   */
+  protected getDefaultTimeForPhase(phase: string): number {
+    return getTotalTimeForPhase(phase);
   }
 }
 

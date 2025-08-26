@@ -209,33 +209,79 @@ export class EventBroadcasterService {
   serializeRoom(roomState: ImmutableRoomState): any {
     // Convert current round data for frontend consumption
     let current = roomState.gameState.currentRound;
-    if (current && current.votes instanceof Map) {
-      // Convert Map to array for frontend
-      const votesArray = Array.from(current.votes.entries()).map((entry) => ({
-        voter: (entry as [string, string])[0],
-        choiceId: (entry as [string, string])[1],
-      }));
-      current = { ...current, votes: votesArray };
-    }
+    
+    if (current) {
+      // Convert new structure to old structure for frontend compatibility
+      
+      // Convert answers Map to bluffs array (old structure)
+      if (current.answers instanceof Map) {
+        const bluffs = Array.from(current.answers.entries()).map((entry: any) => ({
+          id: entry[0],
+          by: entry[1].playerId,
+          text: entry[1].text,
+          isCorrect: false, // Will be determined later
+        }));
+        current = { ...current, bluffs };
+      }
+      
+      // Convert votes Map to votes array (old structure)
+      if (current.votes instanceof Map) {
+        const votesArray = Array.from(current.votes.entries()).map((entry) => ({
+          voter: (entry as [string, string])[0],
+          choiceId: (entry as [string, string])[1],
+        }));
+        current = { ...current, votes: votesArray };
+      }
 
-    // Convert correctAnswerPlayers Set to array for frontend
-    if (current && current.correctAnswerPlayers instanceof Set) {
-      current = {
-        ...current,
-        correctAnswerPlayers: Array.from(current.correctAnswerPlayers),
-      };
+      // Convert correctAnswerPlayers Set to array for frontend
+      if (current.correctAnswerPlayers instanceof Set) {
+        current = {
+          ...current,
+          correctAnswerPlayers: Array.from(current.correctAnswerPlayers),
+        };
+      }
+      
+      // Ensure we have the old structure properties
+      if (!current.bluffs) {
+        current.bluffs = [];
+      }
+      if (!current.votes) {
+        current.votes = [];
+      }
+      if (!current.correctAnswerPlayers) {
+        // For Fibbing It, we don't have correct answers yet - all answers are treated as bluffs initially
+        current.correctAnswerPlayers = [];
+      }
+      
+      // For Fibbing It game type, we need to add the missing fields that the frontend expects
+      if (roomState.gameType === 'fibbing-it') {
+        // Add answer field if it doesn't exist (frontend expects this)
+        if (!current.answer) {
+          current.answer = current.prompt || 'No answer available';
+        }
+        
+        // Ensure we have all required fields for the old structure
+        if (!current.roundNumber) {
+          current.roundNumber = roomState.gameState.round || 1;
+        }
+        if (!current.phase) {
+          current.phase = roomState.gameState.phase || 'prompt';
+        }
+      }
     }
 
     return {
       code: roomState.code,
       gameType: roomState.gameType,
-      phase: roomState.phase,
+      phase: roomState.phase, // No mapping needed - both use 'choose'
       round: roomState.gameState.round,
       maxRounds: roomState.gameState.maxRounds,
       timeLeft: roomState.gameState.timeLeft,
       players: roomState.players.map((p: any) => ({ ...p })),
       current,
       hostId: roomState.hostId,
+      // Generate choices for voting phases
+      choices: this.generateChoices(current),
     };
   }
 
@@ -258,15 +304,28 @@ export class EventBroadcasterService {
     // Create truth choice - show who got it right, or 'system' if no one did
     const truth = {
       id: `TRUE::${round.promptId}`,
-      text: round.answer,
+      text: round.answer || round.prompt, // Handle both old and new structure
       by: correctAnswerPlayers.length > 0 ? correctAnswerPlayers[0] : 'system',
     };
 
-    const bluffChoices = round.bluffs.map((b: any) => ({
-      id: b.id,
-      text: b.text,
-      by: b.by,
-    }));
+    // Handle both new structure (answers Map) and old structure (bluffs array)
+    let bluffChoices: Array<{ id: string; text: string; by: string }> = [];
+    
+    if (round.answers instanceof Map) {
+      // New structure: convert answers Map to choices
+      bluffChoices = Array.from(round.answers.entries()).map((entry: any) => ({
+        id: entry[0],
+        text: entry[1].text,
+        by: entry[1].playerId,
+      }));
+    } else if (round.bluffs && Array.isArray(round.bluffs)) {
+      // Old structure: use bluffs array
+      bluffChoices = round.bluffs.map((b: any) => ({
+        id: b.id,
+        text: b.text,
+        by: b.by,
+      }));
+    }
 
     // Simple shuffle for now
     const allChoices = [truth, ...bluffChoices];

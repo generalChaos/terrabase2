@@ -1,11 +1,7 @@
 'use client';
 import { QuestionMarkAvatar } from '../../shared/ui';
-
-type Option = {
-  id: string;
-  text: string;
-  color: string;
-};
+import { DEFAULT_COLORS, getBorderColor, gameStyles, animationDelays } from '../shared';
+import type { Option } from '../shared';
 
 type VotingOptionsProps = {
   options: Option[];
@@ -16,32 +12,11 @@ type VotingOptionsProps = {
 
 export function VotingOptions({ options, onSubmitVote, selectedChoiceId, showOptions }: VotingOptionsProps) {
   const handleVote = (choiceId: string) => {
-    if (onSubmitVote) {
-      onSubmitVote(choiceId);
-    }
+    onSubmitVote(choiceId);
   };
-
-  // Helper function to get border colors for box-shadow
-  const getBorderColor = (colorClass: string) => {
-    const colorMap: Record<string, string> = {
-      'from-orange-500 to-orange-600': '#ea580c', // orange-600
-      'from-pink-500 to-pink-600': '#db2777', // pink-600
-      'from-teal-500 to-teal-600': '#0d9488', // teal-600
-      'from-green-600 to-green-700': '#059669', // green-600
-    };
-    return colorMap[colorClass] || '#ffffff';
-  };
-
-  // Default color palette based on the reference image
-  const defaultColors = [
-    'from-orange-500 to-orange-600', // Orange
-    'from-pink-500 to-pink-600',     // Magenta/Deep Pink
-    'from-teal-500 to-teal-600',     // Teal/Blue-Green
-    'from-green-600 to-green-700',   // Dark Green
-  ];
 
   return (
-    <div className="w-full max-w-md mx-auto space-y-3 animate-fade-in-up" style={{ animationDelay: '800ms' }}>
+    <div className={`${gameStyles.content.box} ${gameStyles.animation.fadeIn}`} style={{ animationDelay: animationDelays.slowest }}>
       {options.map((option, index) => (
         <button
           key={option.id}
@@ -56,21 +31,20 @@ export function VotingOptions({ options, onSubmitVote, selectedChoiceId, showOpt
             relative overflow-hidden group
           `}
           style={{ 
-            animationDelay: `${900 + index * 100}ms`,
+            animationDelay: animationDelays.list(index),
             transitionDelay: `${index * 100}ms`
           }}
         >
-          {/* Simplified Button with Border Effect */}
-          <div className={`absolute inset-0 rounded-xl bg-gradient-to-r ${option.color || defaultColors[index % defaultColors.length]}`} />
+          {/* Background with Border Effect */}
+          <div className={`${gameStyles.card.option} ${option.color || DEFAULT_COLORS[index % DEFAULT_COLORS.length]}`} />
+          <div 
+            className={gameStyles.card.optionBorder}
+            style={{ boxShadow: `inset 0 0 0 4px ${getBorderColor(option.color || DEFAULT_COLORS[index % DEFAULT_COLORS.length])}` }}
+          />
           
-          {/* Border Effect using box-shadow */}
-          <div className="absolute inset-0 rounded-xl" style={{
-            boxShadow: `inset 0 0 0 4px ${getBorderColor(option.color || defaultColors[index % defaultColors.length])}`
-          }} />
-          
-          {/* Highlight and Shimmer in one layer */}
-          <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-white/40 via-transparent to-transparent" />
-          <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-transparent via-white/60 to-transparent -translate-x-full animate-shimmer" />
+          {/* Highlight and Shimmer */}
+          <div className={gameStyles.card.optionHighlight} />
+          <div className={gameStyles.card.optionShimmer} />
           
           {/* Content */}
           <div className="relative z-10 flex items-center gap-3">
@@ -81,12 +55,12 @@ export function VotingOptions({ options, onSubmitVote, selectedChoiceId, showOpt
             
             {/* Center: Answer Text */}
             <div className="flex-1">
-              <span className="text-white font-bold text-xl">{option.text}</span>
+              <span className={gameStyles.text.headingMedium}>{option.text}</span>
             </div>
             
             {/* Right: Checkmark */}
             {selectedChoiceId === option.id && (
-              <span className="text-white font-bold text-2xl animate-bounce flex-shrink-0">
+              <span className={`text-white font-bold text-2xl ${gameStyles.animation.bounce} flex-shrink-0`}>
                 ✓
               </span>
             )}

@@ -2,6 +2,7 @@
 import { PromptInput } from './prompt-input';
 import { VotingOptions } from './voting-options';
 import { RevealResults } from './reveal-results';
+import type { ComponentState } from '../shared/types';
 
 type Option = {
   id: string;
@@ -12,7 +13,7 @@ type Option = {
 };
 
 type GamePhaseContentProps = {
-  state: 'waiting' | 'input' | 'options' | 'reveal' | 'scoring' | 'over';
+  state: ComponentState;
   options?: Option[];
   correctAnswer?: string;
   votes?: Array<{ voter: string; choiceId: string }>;
@@ -90,18 +91,11 @@ export function GamePhaseContent({
         />
       );
 
-    case 'over':
+    case 'game-over':
       return (
-        <RevealResults
-          options={options}
-          correctAnswer={correctAnswer}
-          votes={votes}
-          players={players}
-          selectedChoiceId={selectedChoiceId}
-          showOptions={showOptions}
-          state="over"
-          onPlayAgain={onPlayAgain}
-        />
+        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+            <h1 className="text-3xl font-bold mb-8">Game Over!</h1>
+        </div>
       );
 
     default:

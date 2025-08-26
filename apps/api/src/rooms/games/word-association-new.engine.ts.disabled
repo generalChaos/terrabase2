@@ -1,22 +1,20 @@
 import {
-  GameEngine,
+  BaseGameEngine,
+  GameResult,
+  GameConfig,
+  GamePhaseConfig,
+  BaseGameState,
   GameAction,
   GameEvent,
-  GameResult,
-  GamePhase,
-  BaseGameState,
   Player,
   WORD_ASSOCIATION_CONFIG,
-  GameConfig,
 } from '@party/types';
 import { prompts } from '../prompts.seed';
 import { uid, shuffle } from '../utils';
 
-// Simplified state that extends BaseGameState
 export interface WordAssociationGameState extends BaseGameState {
-  round: number;
-  maxRounds: number;
-  currentRound?: WordAssociationRound;
+  answers: string[];
+  currentPrompt: string;
   usedPromptIds: Set<string>;
 }
 
@@ -31,15 +29,21 @@ export interface WordAssociationRound {
 
 export interface WordAssociationAction extends GameAction {
   type: 'start' | 'submitAnswer';
-  data: any;
+  data: {
+    answer?: string;
+  };
 }
 
 export interface WordAssociationEvent extends GameEvent {
-  type: 'prompt' | 'words' | 'scores' | 'gameOver' | 'roomUpdate' | 'timer' | 'submitted';
-  data: any;
+  type: 'prompt' | 'answerSubmitted';
+  data: {
+    prompt?: string;
+    answer?: string;
+    playerId?: string;
+  };
 }
 
-export class WordAssociationNewEngine implements GameEngine<WordAssociationGameState, WordAssociationAction, WordAssociationEvent> {
+export class WordAssociationNewEngine extends BaseGameEngine<WordAssociationGameState, WordAssociationAction, WordAssociationEvent> {
   
   // Required methods
   getGameConfig(): GameConfig {
@@ -66,28 +70,33 @@ export class WordAssociationNewEngine implements GameEngine<WordAssociationGameS
   processAction(state: WordAssociationGameState, action: WordAssociationAction): GameResult<WordAssociationGameState, WordAssociationEvent> {
     const currentPhase = this.getCurrentPhase(state);
     
+    // Validate action is allowed in current phase
     if (!currentPhase.allowedActions.includes(action.type)) {
       return {
-        newState: state,
-        events: [],
-        isValid: false,
-        error: `Action ${action.type} not allowed in phase ${state.phase}`,
+        success: false,
+        error: new Error(`Action ${action.type} not allowed in phase ${state.phase}`),
+        state
       };
     }
 
-    switch (action.type) {
-      case 'start':
-        return this.handleStart(state, action);
-      case 'submitAnswer':
-        return this.handleSubmitAnswer(state, action);
-      default:
-        return {
-          newState: state,
-          events: [],
-          isValid: false,
-          error: `Unknown action type: ${action.type}`,
-        };
+    // Check if player can start the game
+    if (currentPhase.allowedActions.includes('start') && action.type === 'start' && action.playerId === state.players[0]?.id) {
+      // Start the game
+      return this.startGame(state);
     }
+
+    // Check if player can submit an answer
+    if (currentPhase.allowedActions.includes('submitAnswer') && action.type === 'submitAnswer' && state.phase === 'prompt') {
+      // Process answer submission
+      return this.processAnswer(state, action);
+    }
+
+    return {
+      newState: state,
+      events: [],
+      isValid: false,
+      error: `Unknown action type: ${action.type}`,
+    };
   }
 
   advancePhase(state: WordAssociationGameState): WordAssociationGameState {
@@ -108,7 +117,7 @@ export class WordAssociationNewEngine implements GameEngine<WordAssociationGameS
     return state;
   }
 
-  getCurrentPhase(state: WordAssociationGameState): GamePhase {
+  getCurrentPhase(state: WordAssociationGameState): GamePhaseConfig {
     const config = this.getGameConfig();
     return config.phases.find((p) => p.name === state.phase) || config.phases[0];
   }
