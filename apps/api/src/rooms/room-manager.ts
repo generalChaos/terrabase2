@@ -51,6 +51,10 @@ export class RoomManager {
     return this.stateManager.getRoomSafe(code);
   }
 
+  getAllRooms(): ImmutableRoomState[] {
+    return this.stateManager.getAllRooms();
+  }
+
   // IMPROVED: Better room deletion with timer cleanup
   deleteRoom(code: string): boolean {
     // Stop timer first

@@ -370,7 +370,7 @@ export interface Bluff {
 
 export interface Vote {
   voter: string;
-  choiceId: string;
+  vote: string;
 }
 
 export interface Choice {
@@ -389,7 +389,7 @@ export interface FibbingItAnswer {
 
 export interface FibbingItVote {
   playerId: string;
-  answerId: string;
+  vote: string;
 }
 
 export interface FibbingItGameState extends BaseGameState {
@@ -404,7 +404,7 @@ export interface FibbingItAction extends GameAction {
   type: 'start' | 'submitAnswer' | 'submitVote' | 'skipPhase' | 'advancePhase';
   data: {
     answer?: string;
-    choiceId?: string;
+    vote?: string;
   };
 }
 
@@ -588,7 +588,7 @@ export interface SubmitAnswerData {
 }
 
 export interface SubmitVoteData {
-  choiceId: string;
+  vote: string;
 }
 
 export interface ScoreData {
@@ -796,7 +796,7 @@ export const FIBBING_IT_CONFIG: GameConfig = {
     },
     {
       name: GAME_PHASES.CHOOSE,
-      duration: 45,
+      duration: 15,
       allowedActions: ['submitVote'],
       autoAdvance: true,
       requiresAllPlayers: true,

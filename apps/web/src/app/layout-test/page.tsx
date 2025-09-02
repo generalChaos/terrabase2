@@ -28,10 +28,10 @@ export default function LayoutTestPage() {
     maxRounds: 5,
     roomCode: 'TEST1',
     votes: [
-      { voter: 'player1', choiceId: '2' },
-      { voter: 'player2', choiceId: '1' },
-      { voter: 'player3', choiceId: '2' },
-      { voter: 'host', choiceId: '2' },
+      { voter: 'player1', vote: '2' },
+      { voter: 'player2', vote: '1' },
+      { voter: 'player3', vote: '2' },
+      { voter: 'host', vote: '2' },
     ],
     players: [
       { id: 'player1', name: 'Alice', avatar: 'avatar_1', score: 1200, connected: true },

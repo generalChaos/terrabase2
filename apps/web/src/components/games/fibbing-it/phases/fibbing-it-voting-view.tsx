@@ -10,7 +10,7 @@ type FibbingItVotingViewProps = {
   round: number;
   maxRounds: number;
   roomCode?: string;
-  votes?: Array<{ voter: string; choiceId: string }>;
+  votes?: Array<{ voter: string; vote: string }>;
   players?: Array<{
     id: string;
     name: string;
@@ -75,7 +75,7 @@ export function FibbingItVotingView({
                   <span className="font-medium">{choice.text}</span>
                   {hasVoted && (
                     <span className="text-teal-400 font-bold font-baloo2">
-                      {votes.filter(v => v.choiceId === choice.id).length} votes
+                      {votes.filter(v => v.vote === choice.id).length} votes
                     </span>
                   )}
                 </div>
@@ -108,7 +108,7 @@ export function FibbingItVotingView({
             >
               <div className="text-xl text-white mb-4">{choice.text}</div>
               <div className="text-sm text-slate-400">
-                Votes: {votes.filter(v => v.choiceId === choice.id).length}
+                Votes: {votes.filter(v => v.vote === choice.id).length}
               </div>
             </div>
           ))}

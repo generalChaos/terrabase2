@@ -251,7 +251,7 @@ export class EventBroadcasterService {
       if (current.votes instanceof Map) {
         const votesArray = Array.from(current.votes.entries()).map((entry) => ({
           voter: (entry as [string, string])[0],
-          choiceId: (entry as [string, string])[1],
+          vote: (entry as [string, string])[1],
         }));
         current = { ...current, votes: votesArray };
       }
@@ -345,7 +345,7 @@ export class EventBroadcasterService {
     // Create truth choice - show the actual correct answer
     const truth = {
       id: `TRUE::${round.promptId}`,
-      text: correctAnswerText || 'Correct Answer',
+      text: (correctAnswerText || 'Correct Answer').toLowerCase(), // Use lowercase for consistency with player answers
       by: correctAnswerPlayers.length > 0 ? correctAnswerPlayers[0] : 'system',
     };
 

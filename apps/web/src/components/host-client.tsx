@@ -176,6 +176,18 @@ export function HostClient({ code }: { code: string }) {
         setChoices(data.choices);
       });
 
+      // Listen for reveal phase data
+      s.on('reveal', (data: { 
+        question: string; 
+        correctAnswer: string; 
+        choices: Choice[]; 
+        votes: Array<{ voter: string; choiceId: string }> 
+      }) => {
+        console.log('🎭 Reveal phase data received:', data);
+        // Store reveal data for the reveal phase component
+        setState(prev => prev ? { ...prev, revealData: data } : null);
+      });
+
       s.on(
         'scores',
         (data: { totals: Array<{ playerId: string; score: number }> }) => {
@@ -253,11 +265,11 @@ export function HostClient({ code }: { code: string }) {
     socketRef.current.emit('submitAnswer', { answer });
   };
 
-  const handleSubmitVote = (choiceId: string) => {
+  const handleSubmitVote = (vote: string) => {
     if (!socketRef.current) return;
-    console.log('🗳️ Host submitting vote:', choiceId);
+    console.log('🗳️ Host submitting vote:', vote);
     // Emit the vote submission event - state will be updated via room updates
-    socketRef.current.emit('submitVote', { choiceId });
+    socketRef.current.emit('submitVote', { vote });
   };
 
   const handleDeleteRoom = async () => {
@@ -364,8 +376,8 @@ export function HostClient({ code }: { code: string }) {
 
   const selectedChoiceId: string | undefined = 
     state?.current?.votes?.find(
-      (vote: { voter: string; choiceId: string }) => vote?.voter === playerId
-    )?.choiceId;
+      (vote: { voter: string; vote: string }) => vote?.voter === playerId
+    )?.vote;
 
   // Debug logging for computed values
   console.log('🏠 HostClient computed values:', {

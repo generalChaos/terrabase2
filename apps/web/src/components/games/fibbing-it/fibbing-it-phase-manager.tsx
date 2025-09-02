@@ -10,7 +10,7 @@ type FibbingItPhaseManagerProps = BaseGamePhaseManagerProps & {
   question?: string;
   correctAnswer?: string;
   choices?: Choice[];
-  votes?: Array<{ voter: string; choiceId: string }>;
+  votes?: Array<{ voter: string; vote: string }>;
   scores?: Array<{ playerId: string; score: number }>;
   current?: Record<string, unknown>; // Current round state including correctAnswerPlayers
   onSubmitAnswer?: (answer: string) => void;

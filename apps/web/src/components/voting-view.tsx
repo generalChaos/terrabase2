@@ -9,7 +9,7 @@ type VotingViewProps = {
   totalTime: number;
   round: number;
   maxRounds: number;
-  votes: Array<{ voter: string; choiceId: string }>;
+  votes: Array<{ voter: string; vote: string }>;
   players: Array<{ id: string; name: string; avatar?: string }>;
 };
 
@@ -24,11 +24,11 @@ export function VotingView({
   players,
 }: VotingViewProps) {
   const getVoteCount = (choiceId: string) => {
-    return votes.filter(v => v.choiceId === choiceId).length;
+    return votes.filter(v => v.vote === choiceId).length;
   };
 
   const getVoterNames = (choiceId: string) => {
-    const voters = votes.filter(v => v.choiceId === choiceId);
+    const voters = votes.filter(v => v.vote === choiceId);
     return voters.map(v => {
       const player = players.find(p => p.id === v.voter);
       return player?.name || 'Unknown';

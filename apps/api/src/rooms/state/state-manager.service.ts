@@ -114,6 +114,13 @@ export class StateManagerService {
   }
 
   /**
+   * Get all rooms (for dashboard/debug purposes)
+   */
+  getAllRooms(): ImmutableRoomState[] {
+    return Array.from(this.rooms.values());
+  }
+
+  /**
    * Delete a room
    */
   deleteRoom(code: string): boolean {

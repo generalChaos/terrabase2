@@ -40,12 +40,12 @@ export function ScoringView({
     return player?.name || 'Unknown';
   };
 
-  const getVoteCount = (choiceId: string) => {
-    return votes.filter(v => v.choiceId === choiceId).length;
+  const getVoteCount = (voteId: string) => {
+    return votes.filter(v => v.vote === voteId).length;
   };
 
-  const getVoterNames = (choiceId: string) => {
-    const voters = votes.filter(v => v.choiceId === choiceId);
+  const getVoterNames = (voteId: string) => {
+    const voters = votes.filter(v => v.vote === voteId);
     return voters.map(v => getPlayerName(v.voter));
   };
 

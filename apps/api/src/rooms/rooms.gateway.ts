@@ -172,7 +172,7 @@ export class RoomsGateway
   @SubscribeMessage('submitVote')
   async onVote(
     @ConnectedSocket() client: Socket,
-    @MessageBody() body: { choiceId: string },
+    @MessageBody() body: { vote: string },
   ) {
     try {
       const roomCode = this.codeFromNs(client);
@@ -197,6 +197,100 @@ export class RoomsGateway
       );
       console.error(`❌ Error in submitVote:`, errorResponse);
       client.emit('error', errorResponse);
+    }
+  }
+
+  @SubscribeMessage('getRooms')
+  async getRooms(@ConnectedSocket() client: Socket) {
+    try {
+      const rooms = this.roomManager.getAllRooms();
+      const roomList = rooms.map(room => ({
+        code: room.code,
+        gameType: room.gameType,
+        phase: room.gameState.phase,
+        players: room.players.map(player => ({
+          id: player.id,
+          name: player.name,
+          isHost: room.hostId === player.id,
+        })),
+        createdAt: room.lastActivity, // Use lastActivity as creation time
+        lastActivity: room.lastActivity,
+      }));
+      
+      client.emit('roomList', roomList);
+      console.log(`📋 Room list sent to dashboard client ${client.id}`);
+    } catch (error) {
+      console.error(`❌ Error getting room list:`, error);
+      client.emit('error', 'Failed to get room list');
+    }
+  }
+
+  @SubscribeMessage('createRoom')
+  async createRoom(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() body: { code: string; gameType: string },
+  ) {
+    try {
+      const { code, gameType } = body;
+      
+      // Validate room code
+      const validationResult = this.errorHandler.validateRoomCode(code, 'createRoom');
+      if (validationResult.isFailure()) {
+        throw new Error(validationResult.error.message);
+      }
+
+      // Check if room already exists
+      if (this.roomManager.getRoom(code)) {
+        throw new Error('Room already exists');
+      }
+
+      // Create the room
+      const room = this.roomManager.createRoom(code, gameType);
+      console.log(`✅ Room ${code} created via dashboard`);
+      
+      // Notify all dashboard clients
+      this.nsp.emit('roomCreated', {
+        code: room.code,
+        gameType: room.gameType,
+        phase: room.gameState.phase,
+        players: room.players.map(player => ({
+          id: player.id,
+          name: player.name,
+          isHost: room.hostId === player.id,
+        })),
+        createdAt: room.lastActivity, // Use lastActivity as creation time
+        lastActivity: room.lastActivity,
+      });
+    } catch (error) {
+      console.error(`❌ Error creating room:`, error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create room';
+      client.emit('error', errorMessage);
+    }
+  }
+
+  @SubscribeMessage('deleteRoom')
+  async deleteRoom(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() body: { roomCode: string },
+  ) {
+    try {
+      const { roomCode } = body;
+      
+      // Check if room exists
+      if (!this.roomManager.getRoom(roomCode)) {
+        throw new Error('Room not found');
+      }
+
+      // Delete the room
+      this.roomManager.deleteRoom(roomCode);
+      console.log(`🗑️ Room ${roomCode} deleted via dashboard`);
+      
+      // Notify all dashboard clients
+      this.nsp.emit('roomDeleted', roomCode);
+    } catch (error) {
+      console.error(`❌ Error deleting room:`, error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete room';
+      client.emit('error', errorMessage);
     }
   }
 

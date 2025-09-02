@@ -154,7 +154,7 @@ export class GameGatewayService {
   async submitVote(
     client: Socket,
     roomCode: string,
-    body: { choiceId: string },
+    body: { vote: string },
   ): Promise<Result<void, any>> {
     try {
       if (!roomCode) {
@@ -163,8 +163,8 @@ export class GameGatewayService {
 
       // Validate input
       const inputValidation = this.errorHandler.validateInput(
-        body.choiceId,
-        'choiceId',
+        body.vote,
+        'vote',
         'submitVote',
       );
       if (inputValidation.isFailure()) {
@@ -188,7 +188,7 @@ export class GameGatewayService {
       const action = {
         type: 'submitVote',
         playerId: client.id,
-        data: { choiceId: body.choiceId },
+        data: { vote: body.vote },
         timestamp: Date.now(),
       };
       

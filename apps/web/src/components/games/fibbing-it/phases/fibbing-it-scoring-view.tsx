@@ -11,7 +11,7 @@ type FibbingItScoringViewProps = {
   round: number;
   maxRounds: number;
   roomCode?: string;
-  votes?: Array<{ voter: string; choiceId: string }>;
+  votes?: Array<{ voter: string; vote: string }>;
   players?: Array<{
     id: string;
     name: string;
@@ -72,7 +72,7 @@ export function FibbingItScoringView({
           {/* Choices and Votes Grid */}
           <div className="grid grid-cols-2 gap-6 mb-8">
             {choices.map(choice => {
-              const voteCount = votes.filter(v => v.choiceId === choice.id).length;
+              const voteCount = votes.filter(v => v.vote === choice.id).length;
               const isCorrect = choice.text === correctAnswer;
 
               return (

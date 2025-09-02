@@ -39,6 +39,6 @@ export function submitAnswer(socket: Socket, answer: string): void {
   emitTyped(socket, 'submitAnswer', { answer });
 }
 
-export function submitVote(socket: Socket, choiceId: string): void {
-  emitTyped(socket, 'submitVote', { choiceId });
+export function submitVote(socket: Socket, vote: string): void {
+  emitTyped(socket, 'submitVote', { vote });
 }

@@ -17,7 +17,7 @@ type GamePhaseManagerProps = {
   round?: number;
   maxRounds?: number;
   choices?: Choice[];
-  votes?: Array<{ voter: string; choiceId: string }>;
+  votes?: Array<{ voter: string; vote: string }>;
   players?: Array<{
     id: string;
     name: string;

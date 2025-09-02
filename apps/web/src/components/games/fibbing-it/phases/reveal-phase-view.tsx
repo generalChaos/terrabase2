@@ -10,7 +10,7 @@ type RevealPhaseViewProps = {
     playerAvatar?: string;
   }>;
   correctAnswer?: string;
-  votes: Array<{ voter: string; choiceId: string }>;
+  votes: Array<{ voter: string; vote: string }>;
   players: Array<{ id: string; name: string; avatar?: string; score: number }>;
   selectedChoiceId?: string;
   showOptions: boolean;

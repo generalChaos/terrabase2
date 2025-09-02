@@ -23,11 +23,11 @@ export default function FibbingItTestPage() {
       { id: '5', text: 'Anonymous confession', color: 'from-indigo-500 to-indigo-600', playerId: 'anonymous', playerAvatar: undefined },
     ],
     votes: [
-      { voter: 'player1', choiceId: '1' },
-      { voter: 'player2', choiceId: '2' },
-      { voter: 'player3', choiceId: '1' },
-      { voter: 'player4', choiceId: '3' },
-      { voter: 'host', choiceId: '4' },
+      { voter: 'player1', vote: '1' },
+      { voter: 'player2', vote: '2' },
+      { voter: 'player3', vote: '1' },
+      { voter: 'player4', vote: '3' },
+      { voter: 'host', vote: '4' },
     ],
     players: [
       { id: 'host', name: 'Host Player', avatar: 'avatar_1', score: 150, connected: true },

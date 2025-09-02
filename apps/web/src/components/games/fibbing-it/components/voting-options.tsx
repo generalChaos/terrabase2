@@ -11,8 +11,8 @@ type VotingOptionsProps = {
 };
 
 export function VotingOptions({ options, onSubmitVote, selectedChoiceId, showOptions }: VotingOptionsProps) {
-  const handleVote = (choiceId: string) => {
-    onSubmitVote(choiceId);
+  const handleVote = (vote: string) => {
+    onSubmitVote(vote);
   };
 
   return (

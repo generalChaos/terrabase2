@@ -171,6 +171,18 @@ export function JoinClient({ code }: { code: string }) {
         setChoices(data.choices);
       });
 
+      // Listen for reveal phase data
+      s.on('reveal', (data: { 
+        question: string; 
+        correctAnswer: string; 
+        choices: Choice[]; 
+        votes: Array<{ voter: string; vote: string }> 
+      }) => {
+        console.log('🎭 Reveal phase data received:', data);
+        // Store reveal data for the reveal phase component
+        setRoomState(prev => prev ? { ...prev, revealData: data } : null);
+      });
+
       s.on(
         'scores',
         (data: { totals: Array<{ playerId: string; score: number }> }) => {
@@ -205,14 +217,14 @@ export function JoinClient({ code }: { code: string }) {
     socketRef.current.emit('submitAnswer', submitData);
   };
 
-  const handleSubmitVote = (choiceId: string) => {
+  const handleSubmitVote = (vote: string) => {
     if (!socketRef.current) return;
-    const submitData: SubmitVoteData = { choiceId };
+    const submitData: SubmitVoteData = { vote };
     console.log('🗳️ Submitting vote:', submitData);
     socketRef.current.emit('submitVote', submitData);
     // Set local state immediately for better UX
     // setHasVoted(true); // This line is removed
-    setSelectedChoiceId(choiceId);
+    setSelectedChoiceId(vote);
   };
 
   // Show player creation form first
@@ -274,8 +286,8 @@ export function JoinClient({ code }: { code: string }) {
 
     const selectedChoiceId: string | undefined = 
       roomState?.current?.votes?.find(
-        (vote: { voter: string; choiceId: string }) => vote?.voter === playerId
-      )?.choiceId;
+        (vote: { voter: string; vote: string }) => vote?.voter === playerId
+      )?.vote;
 
     // Debug logging for computed values
     console.log('🎮 JoinClient computed values:', {

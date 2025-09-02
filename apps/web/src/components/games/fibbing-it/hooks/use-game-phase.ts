@@ -11,7 +11,7 @@ type UseGamePhaseProps = {
     playerAvatar?: string;
   }>;
   correctAnswer?: string;
-  votes?: Array<{ voter: string; choiceId: string }>;
+  votes?: Array<{ voter: string; vote: string }>;
   players?: Array<{ id: string; name: string; avatar?: string; score: number }>;
   onSubmitAnswer?: (answer: string) => void;
   onSubmitVote?: (choiceId: string) => void;

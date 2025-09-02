@@ -27,8 +27,8 @@ export default function GameDemoPage() {
       { id: 'bluff2', text: 'Berlin', by: 'player2' },
     ],
     votes: [
-      { voter: 'player1', choiceId: 'TRUE::1' },
-      { voter: 'player2', choiceId: 'bluff1' },
+      { voter: 'player1', vote: 'TRUE::1' },
+      { voter: 'player2', vote: 'bluff1' },
     ],
     players: [
       {
@@ -67,8 +67,8 @@ export default function GameDemoPage() {
       { id: 'bluff3', text: 'arahinnis othopax', by: 'player3' },
     ],
     votes: [
-      { voter: 'player1', choiceId: 'TRUE::1' },
-      { voter: 'player2', choiceId: 'bluff1' },
+      { voter: 'player1', vote: 'TRUE::1' },
+      { voter: 'player2', vote: 'bluff1' },
     ],
     players: [
       {

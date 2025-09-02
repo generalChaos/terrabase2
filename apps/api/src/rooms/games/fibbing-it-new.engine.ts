@@ -37,7 +37,7 @@ export interface FibbingItAction extends GameAction {
 }
 
 export interface FibbingItEvent extends GameEvent {
-  type: 'prompt' | 'answers' | 'scores' | 'gameOver' | 'roomUpdate' | 'timer' | 'submitted' | 'allVoted';
+  type: 'prompt' | 'answers' | 'scores' | 'gameOver' | 'roomUpdate' | 'timer' | 'submitted' | 'allVoted' | 'reveal';
   data: any;
 }
 
@@ -198,6 +198,28 @@ export class FibbingItNewEngine implements GameEngine<FibbingItGameState, Fibbin
           });
         }
         break;
+      case 'reveal':
+        if (state.currentRound) {
+          // Get the correct answer from the prompt
+          const correctAnswer = this.getPromptById(state.currentRound.promptId).answer;
+          
+          // Generate reveal event with all the data needed for the frontend
+          events.push({
+            type: 'reveal',
+            data: {
+              question: state.currentRound.prompt,
+              correctAnswer: correctAnswer.toLowerCase(), // Use lowercase for consistency
+              choices: this.generateChoicesForReveal(state.currentRound),
+              votes: Array.from(state.currentRound.votes.entries()).map(([voterId, choiceId]) => ({
+                voter: voterId,
+                choiceId,
+              })),
+            },
+            target: 'all',
+            timestamp: now,
+          });
+        }
+        break;
       case 'scoring':
         events.push({
           type: 'scores',
@@ -334,7 +356,7 @@ export class FibbingItNewEngine implements GameEngine<FibbingItGameState, Fibbin
     const updatedAnswers = new Map(currentRound.answers);
     updatedAnswers.set(answerId, {
       playerId: action.playerId,
-      text: answer.trim(),
+      text: answer.trim().toLowerCase(), // Convert to lowercase for consistent processing and comparison
     });
 
     // Create updated round
@@ -352,7 +374,7 @@ export class FibbingItNewEngine implements GameEngine<FibbingItGameState, Fibbin
     let events: FibbingItEvent[] = [
       {
         type: 'submitted',
-        data: { kind: 'answer', answer: answer.trim() },
+        data: { kind: 'answer', answer: answer.trim().toLowerCase() },
         target: 'player',
         playerId: action.playerId,
         timestamp: now,
@@ -467,26 +489,34 @@ export class FibbingItNewEngine implements GameEngine<FibbingItGameState, Fibbin
       };
     }
 
-    // Validate that the vote is for a valid answer
+        // Validate that the vote is for a valid answer (including correct answer)
     const answerIds = Array.from(state.currentRound.answers.keys());
-    if (!answerIds.includes(vote)) {
+    const correctAnswerId = `TRUE::${state.currentRound.promptId}`;
+    const validVoteIds = [correctAnswerId, ...answerIds];
+    
+    if (!validVoteIds.includes(vote)) {
       return {
         newState: state,
         events: [],
         isValid: false,
-        error: 'Invalid vote: must vote for an existing answer',
+        error: 'Invalid vote: must vote for an existing answer or the correct answer',
       };
     }
-
+    
     // Validate that the player isn't voting for their own answer
-    const playerAnswerId = action.playerId;
-    if (vote === playerAnswerId) {
+    const playerAnswer = state.currentRound.answers.get(action.playerId);
+    if (playerAnswer && vote === action.playerId) {
       return {
         newState: state,
         events: [],
         isValid: false,
         error: 'Cannot vote for your own answer',
       };
+    }
+    
+    // Allow voting for the correct answer (always valid)
+    if (vote === correctAnswerId) {
+      // This is always valid - voting for the correct answer
     }
 
     // Add the player's vote
@@ -578,6 +608,40 @@ export class FibbingItNewEngine implements GameEngine<FibbingItGameState, Fibbin
     };
   }
 
+  /**
+   * Generate choices for the reveal phase
+   */
+  private generateChoicesForReveal(round: FibbingItRound): Array<{ id: string; text: string; by: string }> {
+    // Get the correct answer from the prompt
+    const correctAnswer = this.getPromptById(round.promptId).answer.toLowerCase();
+    
+    // Create truth choice
+    const truth = {
+      id: `TRUE::${round.promptId}`,
+      text: correctAnswer,
+      by: 'system',
+    };
+
+    // Convert player answers to choices
+    const playerChoices = Array.from(round.answers.entries()).map((entry) => ({
+      id: entry[0],
+      text: entry[1].text, // Already in lowercase from input phase
+      by: entry[1].playerId,
+    }));
+
+    // Combine and sort: truth first, then player answers
+    const allChoices = [truth, ...playerChoices];
+    
+    // Sort by ID to ensure consistent order
+    allChoices.sort((a, b) => {
+      if (a.id.startsWith('TRUE::')) return -1;
+      if (b.id.startsWith('TRUE::')) return 1;
+      return a.by.localeCompare(b.by);
+    });
+
+    return allChoices;
+  }
+
   // Helper methods for prompt management
   private selectRandomPrompt(usedPromptIds: Set<string>): string {
     const availablePrompts = prompts.filter(p => !usedPromptIds.has(p.id));
@@ -654,9 +718,9 @@ export class FibbingItNewEngine implements GameEngine<FibbingItGameState, Fibbin
     // Calculate scores for this round
     const roundScores = new Map<string, number>();
     
-    // Players get points for correct answers
+    // Players get points for correct answers (case-insensitive comparison)
     for (const [answerId, answerData] of answers.entries()) {
-      if (answerData.text === correctAnswer) {
+      if (answerData.text === correctAnswer.toLowerCase()) {
         roundScores.set(answerData.playerId, 1000); // Base points for correct answer
       }
     }

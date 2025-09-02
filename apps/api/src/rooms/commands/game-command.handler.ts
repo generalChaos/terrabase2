@@ -220,7 +220,7 @@ export class GameCommandHandler {
   async handleSubmitVote(
     roomCode: string,
     playerId: string,
-    choiceId: string,
+    vote: string,
   ): Promise<GameCommandResult> {
     try {
       // Validate room exists
@@ -246,7 +246,7 @@ export class GameCommandHandler {
       const action: GameAction = {
         type: 'submitVote',
         playerId,
-        data: { choiceId },
+        data: { vote },
         timestamp: Date.now(),
       };
 

@@ -28,7 +28,7 @@ export function PlayerScoringView({
   playerId,
 }: PlayerScoringViewProps) {
   const getVoteCount = (choiceId: string) => {
-    return votes.filter(v => v.choiceId === choiceId).length;
+    return votes.filter(v => v.vote === choiceId).length;
   };
 
   const getScoreForPlayer = (id: string) => {
@@ -43,7 +43,7 @@ export function PlayerScoringView({
   const getPlayerChoice = () => {
     const vote = getPlayerVote();
     if (!vote) return null;
-    return choices.find(c => c.id === vote.choiceId);
+    return choices.find(c => c.id === vote.vote);
   };
 
   const calculatePlayerRoundScore = () => {
@@ -53,7 +53,7 @@ export function PlayerScoringView({
     let roundScore = 0;
 
     // Check if player voted for truth (+1000 points)
-    if (vote.choiceId.startsWith('TRUE::')) {
+    if (vote.vote.startsWith('TRUE::')) {
       roundScore += 1000;
     }
 

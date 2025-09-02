@@ -153,8 +153,8 @@ export default function TestPromptPage() {
           maxRounds={5}
           choices={choices}
           votes={[
-            { voter: '1', choiceId: 'TRUE::p1' },
-            { voter: '2', choiceId: 'bluff1' },
+            { voter: '1', vote: 'TRUE::p1' },
+            { voter: '2', vote: 'bluff1' },
           ]}
           players={[
             { id: '1', name: 'Player 1', avatar: '🙂', score: 1500 },

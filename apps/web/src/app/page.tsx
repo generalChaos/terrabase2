@@ -274,6 +274,26 @@ export default function Home() {
                   </Button>
                 </CardContent>
               </Card>
+
+              <Card variant="glass" size="lg">
+                <CardContent className="text-center">
+                  <div className="text-4xl mb-4">🏠</div>
+                  <CardTitle className="text-xl font-semibold text-white mb-2">
+                    Room Management Dashboard
+                  </CardTitle>
+                  <CardDescription className="text-slate-300 mb-4">
+                    Debug tool for managing active game rooms, creating new rooms, and monitoring game state.
+                  </CardDescription>
+                  <Button
+                    variant="game"
+                    size="lg"
+                    onClick={() => router.push('/room-dashboard')}
+                    className="bg-gradient-to-r from-orange-500 to-red-600"
+                  >
+                    🏠 Room Dashboard
+                  </Button>
+                </CardContent>
+              </Card>
             </div>
           </div>
         )}

@@ -12,7 +12,7 @@ type Option = {
 type RevealResultsProps = {
   options: Option[];
   correctAnswer?: string;
-  votes?: Array<{ voter: string; choiceId: string }>;
+  votes?: Array<{ voter: string; vote: string }>;
   players?: Array<{ id: string; name: string; avatar?: string; score: number }>;
   selectedChoiceId?: string;
   showOptions: boolean;
@@ -34,7 +34,7 @@ export function RevealResults({ options, correctAnswer, votes = [], players = []
 
   // Helper function to get voters for a specific choice
   const getVotersForChoice = (choiceId: string) => {
-    return votes.filter(vote => vote.choiceId === choiceId);
+    return votes.filter(vote => vote.vote === choiceId);
   };
 
   // Helper function to get voter avatars
