@@ -1,0 +1,50 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #0f0f23;
+  --foreground: #ffffff;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+}
+
+/* Space-themed header background */
+.header-bg {
+  --space1: #071523;
+  --space2: #0e1724;
+  --space3: #0a0f1a;
+  background: 
+    linear-gradient(180deg, var(--space1) 0%, var(--space2) 45%, var(--space3) 100%),
+    url('/background.png');
+  background-size: cover;
+  background-position: center;
+  background-blend-mode: overlay;
+  min-height: 560px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Optional, ultra-light star sprinkle */
+.header-bg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.25;
+  background-image:
+    radial-gradient(1px 1px at 12% 18%, rgba(170, 210, 255, 0.35), transparent 40%),
+    radial-gradient(1px 1px at 78% 28%, rgba(190, 170, 255, 0.30), transparent 40%),
+    radial-gradient(1px 1px at 42% 66%, rgba(150, 240, 230, 0.30), transparent 40%);
+  background-size: 420px 320px, 480px 360px, 440px 340px;
+}
+
+/* Logo transparency - removes black background */
+.logo-transparent {
+  background: transparent;
+  mix-blend-mode: screen;
+  filter: contrast(1.2) brightness(1.1);
+}

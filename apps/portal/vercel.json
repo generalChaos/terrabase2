@@ -1,0 +1,18 @@
+{
+  "version": 2,
+  "name": "terrabase2-portal",
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/next"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  },
+  "functions": {
+    "apps/portal/src/app/**/*.tsx": {
+      "maxDuration": 10
+    }
+  }
+}
