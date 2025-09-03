@@ -27,6 +27,24 @@ export async function PUT(request: NextRequest) {
       }, { status: 400 });
     }
 
+    // First, let's check if the prompt exists
+    console.log('Checking if prompt exists with ID:', id);
+    const { data: existingPrompt, error: selectError } = await supabase
+      .from('prompts')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    console.log('Existing prompt check:', { existingPrompt, selectError });
+    
+    if (selectError) {
+      console.error('Error selecting prompt:', selectError);
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Prompt not found' 
+      }, { status: 404 });
+    }
+
     // Update the prompt
     console.log('Attempting to update prompt with ID:', id);
     console.log('Update data:', updateData);
@@ -38,6 +56,8 @@ export async function PUT(request: NextRequest) {
       .select();
 
     console.log('Update result:', { data, error });
+    console.log('Data length:', data?.length);
+    console.log('Error details:', error);
 
     if (error) {
       console.error('Error updating prompt:', error);
