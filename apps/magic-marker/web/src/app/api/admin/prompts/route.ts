@@ -28,11 +28,16 @@ export async function PUT(request: NextRequest) {
     }
 
     // Update the prompt
+    console.log('Attempting to update prompt with ID:', id);
+    console.log('Update data:', updateData);
+    
     const { data, error } = await supabase
       .from('prompts')
       .update(updateData)
       .eq('id', id)
       .select();
+
+    console.log('Update result:', { data, error });
 
     if (error) {
       console.error('Error updating prompt:', error);
@@ -43,6 +48,7 @@ export async function PUT(request: NextRequest) {
     }
 
     if (!data || data.length === 0) {
+      console.log('No rows updated - prompt not found with ID:', id);
       return NextResponse.json({ 
         success: false, 
         error: 'Prompt not found' 
@@ -77,6 +83,8 @@ export async function GET(request: NextRequest) {
         error: 'Failed to fetch prompts' 
       }, { status: 500 });
     }
+
+    console.log('Fetched prompts:', data?.map(p => ({ id: p.id, name: p.name })));
 
     return NextResponse.json({
       success: true,
