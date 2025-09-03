@@ -54,7 +54,20 @@ function EditTextarea({ prompt, onSave, onCancel, saving }: {
         rows={8}
         className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
         placeholder="Enter prompt content..."
+        style={{ backgroundColor: 'white', color: 'black', fontSize: '14px' }}
       />
+      
+      {/* Test textarea to see if it's a CSS issue */}
+      <div className="mt-4">
+        <div className="text-xs text-gray-500 mb-2">Test textarea (should show content):</div>
+        <textarea
+          value={content}
+          rows={4}
+          className="w-full px-3 py-2 border border-red-500 rounded-md"
+          style={{ backgroundColor: 'yellow', color: 'black' }}
+          readOnly
+        />
+      </div>
       <div className="flex space-x-3">
         <button
           onClick={() => onSave(content)}
