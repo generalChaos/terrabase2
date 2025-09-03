@@ -7,9 +7,9 @@ interface AnalyticsData {
   prompt_name: string
   total_requests: number
   successful_requests: number
-  success_rate: number
-  avg_response_time_ms: number
-  total_tokens_used: number
+  success_rate: number | null
+  avg_response_time_ms: number | null
+  total_tokens_used: number | null
   last_used: string | null
   first_used: string | null
 }
@@ -152,7 +152,7 @@ export default function AnalyticsPage() {
                     </dt>
                     <dd className="text-lg font-medium text-gray-900">
                       {analytics.length > 0 
-                        ? (analytics.reduce((sum, item) => sum + item.success_rate, 0) / analytics.length).toFixed(1)
+                        ? (analytics.reduce((sum, item) => sum + (item.success_rate || 0), 0) / analytics.length).toFixed(1)
                         : 0
                       }%
                     </dd>
@@ -231,12 +231,12 @@ export default function AnalyticsPage() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="text-sm text-gray-900">
-                          {item.success_rate.toFixed(1)}%
+                          {item.success_rate ? item.success_rate.toFixed(1) : '0.0'}%
                         </div>
                         <div className="ml-2 w-16 bg-gray-200 rounded-full h-2">
                           <div 
                             className="bg-green-600 h-2 rounded-full" 
-                            style={{ width: `${item.success_rate}%` }}
+                            style={{ width: `${item.success_rate || 0}%` }}
                           ></div>
                         </div>
                       </div>
