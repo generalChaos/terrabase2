@@ -1,19 +1,28 @@
 import OpenAI from 'openai';
 import { Question } from './types';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Lazy initialization of OpenAI client
+let openai: OpenAI | null = null;
+
+function getOpenAIClient(): OpenAI {
+  if (!openai) {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error('OpenAI API key not configured');
+    }
+    openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+  }
+  return openai;
+}
 
 export class OpenAIService {
   static async analyzeImage(imageBase64: string): Promise<{ analysis: string; questions: Question[] }> {
     console.log('Analyzing image with OpenAI');
     console.log('Image base64 length:', imageBase64?.length ?? 0);
   
-    // Validate API key
-    if (!process.env.OPENAI_API_KEY) {
-      throw new Error('OpenAI API key not configured');
-    }
+    // Get OpenAI client (validates API key)
+    const openai = getOpenAIClient();
   
     // Validate image payload
     if (!imageBase64 || imageBase64.length < 50) {
@@ -149,10 +158,8 @@ export class OpenAIService {
   
 
   static async generateImage(prompt: string): Promise<string> {
-    // Validate API key
-    if (!process.env.OPENAI_API_KEY) {
-      throw new Error('OpenAI API key not configured');
-    }
+    // Get OpenAI client (validates API key)
+    const openai = getOpenAIClient();
     
     // Validate prompt
     if (!prompt || typeof prompt !== 'string' || prompt.trim().length === 0) {
@@ -205,10 +212,8 @@ export class OpenAIService {
   }
 
   static async createImagePrompt(questions: Question[], answers: string[]): Promise<string> {
-    // Validate API key
-    if (!process.env.OPENAI_API_KEY) {
-      throw new Error('OpenAI API key not configured');
-    }
+    // Get OpenAI client (validates API key)
+    const openai = getOpenAIClient();
     
     // Validate inputs
     if (!Array.isArray(questions) || questions.length === 0) {
