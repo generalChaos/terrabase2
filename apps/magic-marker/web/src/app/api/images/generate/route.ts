@@ -1,18 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
-
-// TODO: Migrate OpenAI service from Express API
-class OpenAIService {
-  static async createImagePrompt(questions: any[], answers: string[]): Promise<string> {
-    // This will be moved from the Express API
-    throw new Error('OpenAI service not yet migrated');
-  }
-
-  static async generateImage(prompt: string): Promise<string> {
-    // This will be moved from the Express API
-    throw new Error('OpenAI service not yet migrated');
-  }
-}
+import { OpenAIService } from '@/lib/openai';
 
 // POST /api/images/generate - Generate new image based on answers
 export async function POST(request: NextRequest) {
@@ -52,17 +40,12 @@ export async function POST(request: NextRequest) {
     try {
       const questions = JSON.parse(imageData.questions);
       
-      // TODO: Migrate OpenAI service
       // Create image prompt from questions and answers
-      // const answerStrings = answers.map(a => a.answer);
-      // const prompt = await OpenAIService.createImagePrompt(questions, answerStrings);
+      const answerStrings = answers.map(a => a.answer);
+      const prompt = await OpenAIService.createImagePrompt(questions, answerStrings);
       
       // Generate new image
-      // const imageUrl = await OpenAIService.generateImage(prompt);
-      
-      // For now, return mock data
-      const prompt = "Mock prompt - OpenAI service needs to be migrated";
-      const imageUrl = "https://via.placeholder.com/1024x1024/000000/FFFFFF?text=Mock+Generated+Image";
+      const imageUrl = await OpenAIService.generateImage(prompt);
       
       // Download and save the generated image to Supabase Storage
       const imageResponse = await fetch(imageUrl);

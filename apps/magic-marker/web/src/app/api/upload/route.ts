@@ -1,14 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '@/lib/supabase';
-
-// OpenAI service (we'll need to move this)
-class OpenAIService {
-  static async analyzeImage(imageBase64: string): Promise<{ analysis: string; questions: any[] }> {
-    // This will be moved from the Express API
-    throw new Error('OpenAI service not yet migrated');
-  }
-}
+import { OpenAIService } from '@/lib/openai';
 
 export async function POST(request: NextRequest) {
   try {
@@ -62,20 +55,8 @@ export async function POST(request: NextRequest) {
     // Convert image to base64 for OpenAI API
     const base64Image = buffer.toString('base64');
 
-    // TODO: Migrate OpenAI service
-    // const { analysis, questions } = await OpenAIService.analyzeImage(base64Image);
-
-    // For now, return mock data
-    const analysis = "Mock analysis - OpenAI service needs to be migrated";
-    const questions = [
-      {
-        id: "q_0",
-        text: "What do you see in this image?",
-        type: "multiple_choice",
-        options: ["Option 1", "Option 2", "Option 3", "Option 4"],
-        required: true
-      }
-    ];
+    // Analyze image with OpenAI
+    const { analysis, questions } = await OpenAIService.analyzeImage(base64Image);
 
     // Store in database
     const { error: insertError } = await supabase
