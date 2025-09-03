@@ -6,7 +6,7 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const { id, content, active } = body;
 
-    console.log('Update request body:', { id, content: content?.substring(0, 50), active });
+
 
     if (!id) {
       return NextResponse.json({ 
@@ -28,19 +28,11 @@ export async function PUT(request: NextRequest) {
     }
 
     // Update the prompt using admin client (bypasses RLS)
-    console.log('Attempting to update prompt with ID:', id);
-    console.log('Update data:', updateData);
-    console.log('Using service role key:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
-    
     const { data, error } = await supabaseAdmin
       .from('prompts')
       .update(updateData)
       .eq('id', id)
       .select();
-
-    console.log('Update result:', { data, error });
-    console.log('Data length:', data?.length);
-    console.log('Error details:', error);
 
     if (error) {
       console.error('Error updating prompt:', error);
@@ -87,7 +79,7 @@ export async function GET(request: NextRequest) {
       }, { status: 500 });
     }
 
-    console.log('Fetched prompts:', data?.map(p => ({ id: p.id, name: p.name })));
+
 
     return NextResponse.json({
       success: true,
