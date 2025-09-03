@@ -1,7 +1,15 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { PromptService, Prompt } from '@/lib/promptService'
+
+interface Prompt {
+  id: string
+  name: string
+  content: string
+  active: boolean
+  created_at: string
+  updated_at: string
+}
 
 export default function PromptManagementPage() {
   const [prompts, setPrompts] = useState<Prompt[]>([])
@@ -19,8 +27,16 @@ export default function PromptManagementPage() {
   const loadPrompts = async () => {
     try {
       setLoading(true)
-      const data = await PromptService.getAllActivePrompts()
-      setPrompts(data)
+      const response = await fetch('/api/admin/prompts')
+      const data = await response.json()
+      
+      console.log('Loaded prompts response:', data)
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to load prompts')
+      }
+      
+      setPrompts(data.prompts || [])
     } catch (err) {
       setError('Failed to load prompts')
       console.error('Error loading prompts:', err)
@@ -30,6 +46,7 @@ export default function PromptManagementPage() {
   }
 
   const startEditing = (prompt: Prompt) => {
+    console.log('Starting to edit prompt:', prompt.name, 'Content:', prompt.content)
     setEditingPrompt(prompt)
     setEditContent(prompt.content)
     setError(null)
