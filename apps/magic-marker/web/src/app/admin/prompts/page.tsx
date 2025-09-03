@@ -31,6 +31,7 @@ export default function PromptManagementPage() {
       const data = await response.json()
       
       console.log('Loaded prompts response:', data)
+      console.log('Setting prompts:', data.prompts)
       
       if (!response.ok) {
         throw new Error(data.error || 'Failed to load prompts')
@@ -46,9 +47,12 @@ export default function PromptManagementPage() {
   }
 
   const startEditing = (prompt: Prompt) => {
-    console.log('Starting to edit prompt:', prompt.name, 'Content:', prompt.content)
+    console.log('Starting to edit prompt:', prompt.name)
+    console.log('Prompt content length:', prompt.content?.length)
+    console.log('Prompt content preview:', prompt.content?.substring(0, 100))
     setEditingPrompt(prompt)
     setEditContent(prompt.content)
+    console.log('Set editContent to:', prompt.content)
     setError(null)
     setSuccess(null)
   }
@@ -216,9 +220,15 @@ export default function PromptManagementPage() {
                     <div className="mt-4">
                       {editingPrompt?.id === prompt.id ? (
                         <div className="space-y-4">
+                          <div className="text-xs text-gray-500">
+                            Debug: editContent length = {editContent?.length || 0}
+                          </div>
                           <textarea
                             value={editContent}
-                            onChange={(e) => setEditContent(e.target.value)}
+                            onChange={(e) => {
+                              console.log('Textarea onChange:', e.target.value.substring(0, 50))
+                              setEditContent(e.target.value)
+                            }}
                             rows={8}
                             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                             placeholder="Enter prompt content..."
