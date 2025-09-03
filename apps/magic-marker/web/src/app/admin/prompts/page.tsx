@@ -36,7 +36,8 @@ function EditTextarea({ prompt, onSave, onCancel, saving }: {
         Content preview: {content?.substring(0, 100)}...
       </div>
       <textarea
-        value={content}
+        key={`textarea-${prompt.id}-${content.length}`}
+        defaultValue={content}
         onChange={(e) => {
           console.log('Textarea onChange:', e.target.value.substring(0, 50))
           setContent(e.target.value)
