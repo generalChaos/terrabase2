@@ -52,11 +52,67 @@ function EditTextarea({ prompt, onSave, onCancel, saving }: {
   )
 }
 
+// Component for creating new prompts
+function CreatePromptForm({ onSave, onCancel, saving }: {
+  onSave: (name: string, content: string) => void
+  onCancel: () => void
+  saving: boolean
+}) {
+  const [name, setName] = useState('')
+  const [content, setContent] = useState('')
+  
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Prompt Name
+        </label>
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
+          placeholder="e.g., image_analysis_v2"
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Prompt Content
+        </label>
+        <textarea
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          rows={8}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
+          placeholder="Enter prompt content..."
+        />
+      </div>
+      <div className="flex space-x-3">
+        <button
+          onClick={() => onSave(name, content)}
+          disabled={saving || !name.trim() || !content.trim()}
+          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
+        >
+          {saving ? 'Creating...' : 'Create Prompt'}
+        </button>
+        <button
+          onClick={onCancel}
+          className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function PromptManagementPage() {
   const [prompts, setPrompts] = useState<Prompt[]>([])
   const [loading, setLoading] = useState(true)
   const [editingPrompt, setEditingPrompt] = useState<Prompt | null>(null)
+  const [creatingPrompt, setCreatingPrompt] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
@@ -91,8 +147,66 @@ export default function PromptManagementPage() {
 
   const cancelEditing = () => {
     setEditingPrompt(null)
+    setCreatingPrompt(false)
     setError(null)
     setSuccess(null)
+  }
+
+  const createPrompt = async (name: string, content: string) => {
+    try {
+      setSaving(true)
+      setError(null)
+      
+      const response = await fetch('/api/admin/prompts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, content, active: true })
+      })
+      
+      const data = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create prompt')
+      }
+      
+      setSuccess('Prompt created successfully')
+      setCreatingPrompt(false)
+      await loadPrompts()
+    } catch (err) {
+      setError('Failed to create prompt')
+      console.error('Error creating prompt:', err)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const deletePrompt = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this prompt? This action cannot be undone.')) {
+      return
+    }
+
+    try {
+      setDeleting(id)
+      setError(null)
+      
+      const response = await fetch(`/api/admin/prompts/${id}`, {
+        method: 'DELETE'
+      })
+      
+      const data = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to delete prompt')
+      }
+      
+      setSuccess('Prompt deleted successfully')
+      await loadPrompts()
+    } catch (err) {
+      setError('Failed to delete prompt')
+      console.error('Error deleting prompt:', err)
+    } finally {
+      setDeleting(null)
+    }
   }
 
   const savePrompt = async (content: string) => {
@@ -182,10 +296,20 @@ export default function PromptManagementPage() {
       <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Prompt Management</h1>
-          <p className="mt-2 text-gray-600">
-            Manage AI prompts and monitor their performance
-          </p>
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Prompt Management</h1>
+              <p className="mt-2 text-gray-600">
+                Manage AI prompts and monitor their performance
+              </p>
+            </div>
+            <button
+              onClick={() => setCreatingPrompt(true)}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+            >
+              + Create New Prompt
+            </button>
+          </div>
         </div>
 
         {/* Status Messages */}
@@ -207,6 +331,22 @@ export default function PromptManagementPage() {
                 <h3 className="text-sm font-medium text-green-800">Success</h3>
                 <div className="mt-2 text-sm text-green-700">{success}</div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Create Prompt Form */}
+        {creatingPrompt && (
+          <div className="mb-6 bg-white shadow rounded-lg">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h2 className="text-lg font-medium text-gray-900">Create New Prompt</h2>
+            </div>
+            <div className="p-6">
+              <CreatePromptForm
+                onSave={createPrompt}
+                onCancel={() => setCreatingPrompt(false)}
+                saving={saving}
+              />
             </div>
           </div>
         )}
@@ -283,6 +423,13 @@ export default function PromptManagementPage() {
                         }`}
                       >
                         {prompt.active ? 'Deactivate' : 'Activate'}
+                      </button>
+                      <button
+                        onClick={() => deletePrompt(prompt.id)}
+                        disabled={deleting === prompt.id}
+                        className="inline-flex items-center px-3 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+                      >
+                        {deleting === prompt.id ? 'Deleting...' : 'Delete'}
                       </button>
                     </div>
                   )}
