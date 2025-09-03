@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabase, supabaseAdmin } from '@/lib/supabase';
 
 export async function PUT(request: NextRequest) {
   try {
@@ -27,29 +27,11 @@ export async function PUT(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // First, let's check if the prompt exists
-    console.log('Checking if prompt exists with ID:', id);
-    const { data: existingPrompt, error: selectError } = await supabase
-      .from('prompts')
-      .select('*')
-      .eq('id', id)
-      .single();
-    
-    console.log('Existing prompt check:', { existingPrompt, selectError });
-    
-    if (selectError) {
-      console.error('Error selecting prompt:', selectError);
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Prompt not found' 
-      }, { status: 404 });
-    }
-
-    // Update the prompt
+    // Update the prompt using admin client (bypasses RLS)
     console.log('Attempting to update prompt with ID:', id);
     console.log('Update data:', updateData);
     
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('prompts')
       .update(updateData)
       .eq('id', id)
@@ -91,7 +73,7 @@ export async function PUT(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('prompts')
       .select('*')
       .order('name');
