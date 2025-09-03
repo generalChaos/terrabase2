@@ -1,6 +1,6 @@
-# Terrabase2
+# Party Game Monorepo
 
-A personal project portfolio showcasing various applications and tools built with modern web technologies. This monorepo demonstrates full-stack development skills across different tech stacks and deployment strategies.
+A modern monorepo showcasing full-stack applications with AI integration, real-time multiplayer gaming, and portfolio management. Built with Next.js, Supabase, and OpenAI.
 
 ## 🚀 **Live Applications**
 
@@ -10,23 +10,26 @@ Modern portfolio website showcasing all projects with responsive design and smoo
 - **Frontend**: Next.js + React + TypeScript
 - **Styling**: Tailwind CSS
 - **Deployment**: Vercel
-- **Status**: ✅ **Staging Ready** with comprehensive test suite
+- **Status**: ✅ **Live** with comprehensive test suite
+
+### 🎨 [Magic Marker](https://magic-marker-web.vercel.app) - AI Image Analysis & Generation
+AI-powered image analysis and generation tool with advanced computer vision capabilities and creative AI features.
+
+- **Frontend**: Next.js + React + TypeScript
+- **Backend**: Next.js API Routes
+- **Database**: Supabase (PostgreSQL)
+- **Storage**: Supabase Storage
+- **AI**: OpenAI GPT-4o + DALL-E 3
+- **Deployment**: Vercel (Full-stack)
+- **Status**: ✅ **Live** with comprehensive error handling
 
 ### 🎮 Party Game - Real-time Multiplayer Game
 Real-time multiplayer party game with WebSocket support, featuring multiple game modes and interactive gameplay experiences.
 
 - **Frontend**: Next.js + React + TypeScript
 - **Backend**: NestJS + WebSocket + Prisma
-- **Database**: PostgreSQL
-- **Deployment**: Vercel (Frontend) + Railway (Backend)
-- **Status**: 🔄 **In Development**
-
-### 🎨 Magic Marker - AI Image Generation Tool
-AI-powered image analysis and generation tool with advanced computer vision capabilities and creative AI features.
-
-- **Frontend**: React + Vite + TypeScript
-- **Backend**: Express + Node.js
-- **Database**: SQLite
+- **Database**: Supabase (PostgreSQL)
+- **Real-time**: Supabase Real-time
 - **Deployment**: Vercel (Frontend) + Railway (Backend)
 - **Status**: 🔄 **In Development**
 
@@ -35,71 +38,89 @@ AI-powered image analysis and generation tool with advanced computer vision capa
 ### Prerequisites
 - **Node.js 18+** - [Download here](https://nodejs.org/)
 - **pnpm 8+** - Install with `npm install -g pnpm`
-- **PostgreSQL 16+** - [Download here](https://www.postgresql.org/download/) (for Party Game)
+- **Supabase Account** - [Sign up here](https://supabase.com/)
+- **OpenAI API Key** - [Get API key](https://platform.openai.com/api-keys) (for Magic Marker)
 - **Git** - [Download here](https://git-scm.com/)
 
 ### Quick Setup
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/generalChaos/terrabase2.git
-cd terrabase2
+git clone https://github.com/yourusername/party-game.git
+cd party-game
 
 # 2. Install dependencies
 pnpm install
 
-# 3. Build shared packages
-pnpm build
-
+# 3. Set up environment variables (see below)
 # 4. Start development servers
 pnpm dev
 ```
 
-### Detailed Setup Instructions
+### Environment Setup
 
-#### **1. Environment Setup**
+#### **1. Supabase Setup**
 
-```bash
-# Verify Node.js version (should be 18+)
-node --version
+1. Create a new Supabase project at [supabase.com](https://supabase.com/)
+2. Get your project URL and anon key from Settings > API
+3. Create the required tables (see Database Setup below)
 
-# Verify pnpm installation
-pnpm --version
-
-# If pnpm is not installed:
-npm install -g pnpm
-```
-
-#### **2. Database Setup (Party Game)**
-
-```bash
-# Start PostgreSQL service (macOS with Homebrew)
-brew services start postgresql
-
-# Create database
-createdb party
-
-# Or using psql
-psql -U postgres
-CREATE DATABASE party;
-\q
-```
-
-#### **3. Environment Variables**
+#### **2. Environment Variables**
 
 Create environment files for each application:
 
 ```bash
-# Portal app (optional - uses defaults)
+# Magic Marker Web App
+touch apps/magic-marker/web/.env.local
+```
+
+Add to `apps/magic-marker/web/.env.local`:
+```env
+# Supabase Configuration
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+
+# OpenAI API Configuration (for server-side API routes)
+OPENAI_API_KEY=sk-proj-your-openai-api-key
+```
+
+```bash
+# Portal App (optional - uses defaults)
 touch apps/portal/.env.local
 
 # Party Game API
 touch apps/party-game/api/.env
-# Add: DATABASE_URL="postgresql://username:password@localhost:5432/party"
+# Add: DATABASE_URL="postgresql://postgres:password@db.your-project.supabase.co:5432/postgres"
+```
 
-# Magic Marker API
-touch apps/magic-marker/api/.env
-# Add: OPENAI_API_KEY="your-openai-api-key"
+#### **3. Database Setup**
+
+**Magic Marker (Supabase):**
+```sql
+-- Create images table
+CREATE TABLE IF NOT EXISTS images (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  original_image_path TEXT NOT NULL,
+  analysis_result TEXT,
+  questions JSONB,
+  answers JSONB,
+  final_image_path TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Enable Row Level Security
+ALTER TABLE images ENABLE ROW LEVEL SECURITY;
+
+-- Create policy for public access (adjust as needed)
+CREATE POLICY "Allow public access" ON images FOR ALL USING (true);
+```
+
+**Party Game (Supabase):**
+```bash
+# Run Prisma migrations
+cd apps/party-game/api
+pnpm prisma migrate deploy
 ```
 
 #### **4. First-Time Setup**
@@ -108,32 +129,26 @@ touch apps/magic-marker/api/.env
 # Install all dependencies
 pnpm install
 
-# Build shared packages
+# Build shared packages (if any)
 pnpm build
 
-# Run database migrations (Party Game)
-pnpm migrate:party-game
-
-# Seed database (Party Game)
-pnpm seed:party-game
+# Start development servers
+pnpm dev
 ```
 
 #### **5. Verify Setup**
 
 ```bash
-# Test Portal app
-pnpm dev:portal
+# Test Magic Marker
+# Should open at http://localhost:3002
+# Upload an image to test the full flow
+
+# Test Portal
 # Should open at http://localhost:3000
 
 # Test Party Game
-pnpm dev:party-game
 # API: http://localhost:3001
 # Web: http://localhost:3002
-
-# Test Magic Marker
-pnpm dev:magic-marker
-# API: http://localhost:3003
-# Web: http://localhost:3004
 ```
 
 ### Development
@@ -145,74 +160,29 @@ pnpm dev
 # Run specific project
 pnpm dev:portal          # Portal only (localhost:3000)
 pnpm dev:party-game      # Party Game (API + Web)
-pnpm dev:magic-marker    # Magic Marker (API + Web)
+pnpm dev:magic-marker    # Magic Marker (localhost:3002)
 ```
 
 ### Testing
 
 ```bash
+# Run Magic Marker E2E tests
+cd apps/magic-marker/web
+pnpm test:e2e
+
+# Run Portal tests
+cd apps/portal
+pnpm test
+pnpm test:e2e
+
 # Run all tests
 pnpm test
-
-# Run tests for specific app
-cd apps/portal && pnpm test
-cd apps/portal && pnpm test:e2e
-
-# Run tests with coverage
-pnpm test:coverage
-```
-
-### Database Setup (Party Game)
-
-```bash
-# Run migrations
-pnpm migrate:party-game
-
-# Seed database
-pnpm seed:party-game
-```
-
-### Troubleshooting
-
-#### **Common Issues**
-
-**Port already in use:**
-```bash
-# Kill processes on specific ports
-lsof -ti:3000 | xargs kill -9
-lsof -ti:3001 | xargs kill -9
-```
-
-**Database connection issues:**
-```bash
-# Check PostgreSQL status
-brew services list | grep postgresql
-
-# Restart PostgreSQL
-brew services restart postgresql
-```
-
-**pnpm install fails:**
-```bash
-# Clear pnpm cache
-pnpm store prune
-
-# Delete node_modules and reinstall
-rm -rf node_modules
-pnpm install
-```
-
-**Build errors:**
-```bash
-# Clean and rebuild
-pnpm clean
-pnpm build
 ```
 
 ## 📁 **Project Structure**
 
 ```
-terrabase2/
+party-game/
 ├── apps/
 │   ├── portal/                    # Portfolio landing page
 │   │   ├── src/
@@ -221,7 +191,6 @@ terrabase2/
 │   │   │   └── __tests__/        # Unit tests
 │   │   ├── tests/
 │   │   │   └── e2e/              # End-to-end tests
-│   │   ├── public/               # Static assets
 │   │   └── vercel.json           # Vercel deployment config
 │   ├── party-game/
 │   │   ├── api/                  # NestJS backend
@@ -232,22 +201,16 @@ terrabase2/
 │   │       ├── src/
 │   │       └── vercel.json       # Vercel deployment config
 │   └── magic-marker/
-│       ├── api/                  # Express backend
-│       │   ├── src/
-│       │   └── railway.json      # Railway deployment config
-│       └── web/                  # Vite/React frontend
-│           └── src/
-├── packages/
-│   ├── shared-types/             # Common TypeScript types
-│   ├── shared-config/            # Shared configuration
-│   ├── shared-ui/                # Shared UI components
-│   └── magic-marker-shared/      # Magic Marker specific types
+│       └── web/                  # Next.js full-stack app
+│           ├── src/
+│           │   ├── app/
+│           │   │   ├── api/      # Next.js API routes
+│           │   │   └── page.tsx  # Main page
+│           │   ├── lib/          # Utilities and services
+│           │   └── components/   # React components
+│           ├── e2e/              # Playwright E2E tests
+│           └── vercel.json       # Vercel deployment config
 ├── docs/                         # Project documentation
-│   ├── app/                      # Application documentation
-│   ├── api/                      # API documentation
-│   └── architecture/             # Architecture documentation
-├── infrastructure/               # Infrastructure as Code
-│   └── terraform/                # Terraform configurations
 └── scripts/                      # Development scripts
 ```
 
@@ -255,18 +218,25 @@ terrabase2/
 
 ### **Current Deployment Strategy**
 
-**Frontend Applications (Vercel):**
+**Vercel (Frontend + Magic Marker Full-stack):**
 - **Portal**: `https://terrabase2.vercel.app` ✅ **Live**
-- **Party Game Web**: `https://party-game-web.vercel.app` 🔄 **In Development**
-- **Magic Marker Web**: `https://magic-marker-web.vercel.app` 🔄 **In Development**
+- **Magic Marker**: `https://magic-marker-web.vercel.app` ✅ **Live**
 
-**Backend Applications (Railway):**
+**Railway (Backend):**
 - **Party Game API**: `https://party-game.railway.app` 🔄 **In Development**
-- **Magic Marker API**: `https://magic-marker.railway.app` 🔄 **In Development**
+
+**Supabase (Database + Storage + Real-time):**
+- **Database**: PostgreSQL with Row Level Security
+- **Storage**: File storage for images
+- **Real-time**: WebSocket subscriptions (Party Game)
 
 ### **Deployment Commands**
 
 ```bash
+# Deploy Magic Marker to Vercel
+cd apps/magic-marker/web
+vercel --prod
+
 # Deploy Portal to Vercel
 cd apps/portal
 vercel --prod
@@ -274,21 +244,14 @@ vercel --prod
 # Deploy Party Game API to Railway
 cd apps/party-game/api
 railway up
-
-# Deploy Magic Marker API to Railway
-cd apps/magic-marker/api
-railway up
-
-# Deploy all applications
-pnpm deploy:all
 ```
 
 ### **Environment Configuration**
 
 The applications automatically detect their deployment environment:
 - **Development**: Uses localhost URLs
-- **Vercel**: Uses Railway API URLs
-- **Future AWS**: Uses custom domain URLs
+- **Vercel**: Uses Supabase URLs
+- **Production**: Uses production Supabase URLs
 
 ## 🛠️ **Tech Stack**
 
@@ -297,35 +260,43 @@ The applications automatically detect their deployment environment:
 - **React 19** - UI library
 - **TypeScript** - Type safety
 - **Tailwind CSS** - Utility-first CSS
-- **Vite** - Fast build tool (Magic Marker)
 - **Lucide React** - Icon library
 
 ### **Backend Technologies**
+- **Next.js API Routes** - Serverless functions (Magic Marker)
 - **NestJS** - Node.js framework (Party Game)
-- **Express** - Web framework (Magic Marker)
 - **Prisma** - Database ORM (Party Game)
-- **SQLite** - Embedded database (Magic Marker)
-- **PostgreSQL** - Relational database (Party Game)
-- **WebSocket** - Real-time communication (Party Game)
+- **Supabase** - Backend as a Service
+  - PostgreSQL database
+  - Real-time subscriptions
+  - File storage
+  - Row Level Security
+
+### **AI & External Services**
+- **OpenAI API** - GPT-4o for image analysis, DALL-E 3 for image generation
+- **Supabase** - Database, storage, and real-time features
 
 ### **Development & Deployment**
 - **Turborepo** - Monorepo build system
 - **pnpm** - Package manager
 - **Jest** - Unit testing
 - **Playwright** - E2E testing
-- **Vercel** - Frontend hosting
-- **Railway** - Backend hosting
-- **Docker** - Containerization
-- **Terraform** - Infrastructure as Code
-
-### **AI & External Services**
-- **OpenAI API** - AI image generation (Magic Marker)
-- **Socket.io** - WebSocket implementation
+- **Vercel** - Frontend and full-stack hosting
+- **Railway** - Backend hosting (Party Game)
 
 ## 🧪 **Testing**
 
 ### **Test Coverage**
-- **Portal App**: ✅ **Comprehensive test suite**
+
+**Magic Marker:**
+- ✅ **E2E Tests**: Playwright test suite
+  - Upload functionality tests
+  - API endpoint tests
+  - Full integration tests
+  - Error handling tests
+
+**Portal:**
+- ✅ **Comprehensive test suite**
   - Unit Tests: 9/9 passing
   - Component Tests: 6/6 passing
   - E2E Tests: 1/1 passing
@@ -333,68 +304,118 @@ The applications automatically detect their deployment environment:
 
 ### **Testing Commands**
 ```bash
-# Run all tests
+# Run Magic Marker E2E tests
+cd apps/magic-marker/web
+pnpm test:e2e          # Run all tests
+pnpm test:e2e:ui       # Run with UI mode
+pnpm test:e2e:headed   # Run with browser visible
+pnpm test:e2e:debug    # Run in debug mode
+
+# Run Portal tests
+cd apps/portal
 pnpm test
-
-# Run tests for specific app
-cd apps/portal && pnpm test
-cd apps/portal && pnpm test:e2e
-
-# Run tests with coverage
-pnpm test:coverage
-
-# Run E2E tests with UI
-pnpm test:e2e:ui
+pnpm test:e2e
 ```
 
 ### **Testing Strategy**
 - **Unit Tests**: Jest + React Testing Library
-- **E2E Tests**: Playwright (Chrome, Firefox, Safari)
-- **Coverage**: 60% threshold for personal projects
+- **E2E Tests**: Playwright (Chrome, Firefox, Safari, Mobile)
+- **API Tests**: Direct API endpoint testing
+- **Error Handling**: Comprehensive error scenario testing
 - **CI/CD Ready**: Automated testing on deployment
 
 ## 📚 **Documentation**
 
 ### **Application Documentation**
-- [App Overview](docs/app/README.md) - Complete application documentation
-- [Development Log](docs/app/dev-log.md) - Project history and decisions
-- [Architecture](docs/app/architecture.md) - System architecture overview
-- [Deployment Guide](docs/app/deployment.md) - Deployment strategies and guides
+- [Magic Marker Setup Guide](docs/magic-marker-setup.md) - Complete setup and usage guide
+- [Supabase Integration Guide](docs/supabase-integration.md) - Database and storage setup
+- [Deployment Guide](docs/deployment-guide.md) - Deployment strategies and guides
 
 ### **API Documentation**
-- [API Overview](docs/app/api/README.md) - Backend API documentation
-- [Party Game API](docs/app/api/party-game.md) - Party Game API reference
-- [Magic Marker API](docs/app/api/magic-marker.md) - Magic Marker API reference
+- [Magic Marker API](docs/magic-marker-api.md) - API routes and endpoints
+- [Party Game API](docs/party-game-api.md) - WebSocket and REST API reference
 
-### **Frontend Documentation**
-- [Frontend Overview](docs/app/frontend/README.md) - Frontend applications guide
-- [Portal App](docs/app/frontend/portal.md) - Portfolio landing page
-- [Portal Testing Strategy](docs/app/frontend/portal-testing-strategy.md) - Testing approach
-- [Portal Testing Implementation](docs/app/frontend/portal-testing-implementation.md) - Test implementation details
-- [Party Game Web](docs/app/frontend/party-game-web.md) - Game interface
-- [Magic Marker Web](docs/app/frontend/magic-marker-web.md) - AI tool interface
+### **Development Documentation**
+- [Development Setup](docs/development-setup.md) - Local development guide
+- [Testing Guide](docs/testing-guide.md) - Testing strategies and implementation
+- [Error Handling](docs/error-handling.md) - Error handling patterns and best practices
 
-### **Deployment Documentation**
-- [Staging Deployment Guide](docs/app/deployment/staging-deployment-guide.md) - Complete staging deployment process
-- [Vercel Deployment Guide](docs/app/deployment/vercel-deployment-guide.md) - Frontend deployment
-- [Railway Deployment Guide](docs/app/deployment/railway-deployment-guide.md) - Backend deployment
+## 🔧 **Troubleshooting**
 
-### **Infrastructure Documentation**
-- [Infrastructure Overview](docs/app/infrastructure/README.md) - Infrastructure components
-- [Docker Guide](docs/app/infrastructure/docker.md) - Containerization
-- [Terraform Guide](docs/app/infrastructure/terraform.md) - Infrastructure as Code
-- [Monitoring Guide](docs/app/infrastructure/monitoring.md) - Observability
+### **Common Issues**
 
-### **Legacy Documentation**
-- [API Documentation](docs/api/README.md)
-- [Architecture Overview](docs/architecture/overview.md)
-- [Development Guide](docs/development/contributing.md)
-- [Game Logic](docs/games/fibbing-it-game-flow.md)
+**Port already in use:**
+```bash
+# Kill processes on specific ports
+lsof -ti:3000 | xargs kill -9
+lsof -ti:3001 | xargs kill -9
+lsof -ti:3002 | xargs kill -9
+```
 
-## Contributing
+**Supabase connection issues:**
+```bash
+# Check environment variables
+cat apps/magic-marker/web/.env.local
+
+# Verify Supabase project is active
+# Check Supabase dashboard for project status
+```
+
+**OpenAI API issues:**
+```bash
+# Check API key is set
+echo $OPENAI_API_KEY
+
+# Test API key with curl
+curl -H "Authorization: Bearer $OPENAI_API_KEY" https://api.openai.com/v1/models
+```
+
+**Build errors:**
+```bash
+# Clean and rebuild
+rm -rf node_modules
+pnpm install
+pnpm build
+```
+
+**Magic Marker specific issues:**
+```bash
+# Check if dev server is running
+curl http://localhost:3002
+
+# Test API endpoints
+curl http://localhost:3002/api/test-openai
+curl http://localhost:3002/api/test-errors
+```
+
+## 🎯 **Features**
+
+### **Magic Marker**
+- ✅ **Image Upload**: Drag & drop or click to upload
+- ✅ **AI Analysis**: GPT-4o analyzes images and generates questions
+- ✅ **Interactive Questions**: 10 multiple-choice questions per image
+- ✅ **AI Image Generation**: DALL-E 3 creates images based on answers
+- ✅ **Supabase Storage**: Secure image storage and retrieval
+- ✅ **Error Handling**: Comprehensive error handling and user feedback
+- ✅ **Responsive Design**: Works on desktop and mobile
+- ✅ **E2E Testing**: Full test coverage with Playwright
+
+### **Portal**
+- ✅ **Portfolio Showcase**: Modern, responsive design
+- ✅ **Project Links**: Direct links to all applications
+- ✅ **Comprehensive Testing**: Unit, component, and E2E tests
+- ✅ **Performance Optimized**: Fast loading and smooth animations
+
+### **Party Game** (In Development)
+- 🔄 **Real-time Multiplayer**: WebSocket-based gameplay
+- 🔄 **Multiple Game Modes**: Various party game types
+- 🔄 **Room Management**: Create and join game rooms
+- 🔄 **Supabase Integration**: Real-time subscriptions and data persistence
+
+## 🤝 **Contributing**
 
 This is a personal portfolio project, but feel free to explore the code and learn from the implementations.
 
-## License
+## 📄 **License**
 
 Private project - All rights reserved.

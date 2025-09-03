@@ -72,7 +72,6 @@ export class OpenAIService {
         ],
         response_format: { type: "json_object" }, // <- forces valid JSON
         max_completion_tokens: 2000,
-        timeout: 30000, // 30 second timeout
         // seed: 1, // uncomment for reproducible debugging
       });
     } catch (error: any) {
@@ -177,10 +176,9 @@ export class OpenAIService {
         n: 1,
         size: "1024x1024",
         quality: "standard",
-        timeout: 60000, // 60 second timeout for image generation
       });
 
-      const imageUrl = response.data[0]?.url;
+      const imageUrl = response.data?.[0]?.url;
       if (!imageUrl) {
         console.error('No image URL in OpenAI response:', response);
         throw new Error('No image generated - empty response from OpenAI');
@@ -247,7 +245,6 @@ export class OpenAIService {
           }
         ],
         max_tokens: 300,
-        timeout: 30000, // 30 second timeout
       });
 
       const prompt = response.choices[0]?.message?.content;

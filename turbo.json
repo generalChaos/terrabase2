@@ -31,5 +31,6 @@
       "cache": false,
       "outputs": []
     }
-  }
+  },
+  "globalDependencies": ["**/.env*"]
 }

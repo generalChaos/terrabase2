@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { OpenAIService } from '@/lib/openai';
+import { QuestionAnswer } from '@/lib/types';
 
 // POST /api/images/generate - Generate new image based on answers
 export async function POST(request: NextRequest) {
@@ -41,7 +42,7 @@ export async function POST(request: NextRequest) {
       const questions = JSON.parse(imageData.questions);
       
       // Create image prompt from questions and answers
-      const answerStrings = answers.map(a => a.answer);
+      const answerStrings = (answers as QuestionAnswer[]).map(a => a.answer);
       const prompt = await OpenAIService.createImagePrompt(questions, answerStrings);
       
       // Generate new image

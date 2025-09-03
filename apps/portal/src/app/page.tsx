@@ -1,6 +1,7 @@
 import { ExternalLink, Github, Code, Zap } from "lucide-react";
 import Image from "next/image";
 import config from "@/lib/config";
+import SupabaseTest from "@/components/supabase-test";
 
 export default function Home() {
   return (
@@ -111,6 +112,11 @@ export default function Home() {
               <span className="px-2 py-1 bg-orange-500/20 text-orange-300 text-sm rounded">Vite</span>
             </div>
           </div>
+        </div>
+
+        {/* Supabase Test */}
+        <div className="max-w-2xl mx-auto mt-16">
+          <SupabaseTest />
         </div>
 
         {/* Footer */}

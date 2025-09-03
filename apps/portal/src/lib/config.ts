@@ -5,23 +5,31 @@ const isVercel = process.env.VERCEL === '1';
 export const config = {
   // Base URLs for different environments
   urls: {
-    partyGame: isDevelopment 
-      ? 'http://localhost:3001'  // Party Game dev port
-      : isVercel 
-        ? 'https://party-game.railway.app'  // Railway API deployment
-        : 'https://party-game.terrabase2.com',  // Future AWS deployment
-    
-    magicMarker: isDevelopment 
-      ? 'http://localhost:3002'  // Magic Marker dev port
-      : isVercel 
-        ? 'https://magic-marker.railway.app'  // Railway API deployment
-        : 'https://magic-marker.terrabase2.com',  // Future AWS deployment
-    
-    portal: isDevelopment 
+    // Frontend applications
+    partyGame: isDevelopment
+      ? 'http://localhost:3003'  // Party Game web app dev port
+      : 'https://party-game.terrabase2.com',  // Party Game web app (when deployed)
+
+    magicMarker: isDevelopment
+      ? 'http://localhost:3002'  // Magic Marker web app dev port
+      : 'https://terrabase2-magic-marker.vercel.app',  // Magic Marker web app (deployed)
+
+    portal: isDevelopment
       ? 'http://localhost:3000'  // Portal dev port
-      : isVercel 
-        ? 'https://terrabase2.vercel.app'  // Vercel deployment
+      : isVercel
+        ? 'https://portal-clean-dun.vercel.app'  // Vercel deployment
         : 'https://terrabase2.com',  // Future AWS deployment
+  },
+
+  // API endpoints (for backend functionality)
+  api: {
+    partyGame: isDevelopment
+      ? 'http://localhost:3004'  // Party Game API dev port
+      : 'https://party-game-api.railway.app',  // Party Game API (when deployed)
+
+    magicMarker: isDevelopment
+      ? 'http://localhost:3001'  // Magic Marker API dev port
+      : 'https://magic-marker-api.railway.app',  // Magic Marker API (when deployed)
   },
   
   // GitHub repository URLs
