@@ -1,8 +1,12 @@
 import OpenAI from 'openai';
 import { Question } from './types';
+import { PromptService } from './promptService';
 
 // Lazy initialization of OpenAI client
 let openai: OpenAI | null = null;
+
+// Feature flag for database prompts (set to false to use hardcoded prompts)
+const USE_DATABASE_PROMPTS = process.env.USE_DATABASE_PROMPTS === 'true' || false;
 
 function getOpenAIClient(): OpenAI {
   if (!openai) {
@@ -20,6 +24,7 @@ export class OpenAIService {
   static async analyzeImage(imageBase64: string): Promise<{ analysis: string; questions: Question[] }> {
     console.log('Analyzing image with OpenAI');
     console.log('Image base64 length:', imageBase64?.length ?? 0);
+    console.log('Using database prompts:', USE_DATABASE_PROMPTS);
   
     // Get OpenAI client (validates API key)
     const openai = getOpenAIClient();
@@ -35,8 +40,30 @@ export class OpenAIService {
     } catch (error) {
       throw new Error('Invalid base64 image format');
     }
+
+    // Get prompt from database or use hardcoded fallback
+    let promptText: string;
+    let promptId: string | null = null;
+    
+    if (USE_DATABASE_PROMPTS) {
+      const prompt = await PromptService.getPrompt('image_analysis');
+      if (prompt) {
+        promptText = prompt.content;
+        promptId = prompt.id;
+        console.log('Using database prompt for image analysis');
+      } else {
+        console.warn('Database prompt not found, falling back to hardcoded prompt');
+        promptText = this.getHardcodedImageAnalysisPrompt();
+      }
+    } else {
+      promptText = this.getHardcodedImageAnalysisPrompt();
+      console.log('Using hardcoded prompt for image analysis');
+    }
   
+    const startTime = Date.now();
     let response;
+    let tokensUsed: number | undefined;
+    
     try {
       response = await openai.chat.completions.create({
         model: "gpt-4o", // Using gpt-4o instead of gpt-5 for better availability
@@ -46,22 +73,7 @@ export class OpenAIService {
             content: [
               {
                 type: "text",
-                text:
-    `Analyze this image and return ONLY JSON with this exact schema:
-    
-    {
-      "analysis": "2–3 sentences describing what you see.",
-      "questions": [
-        {"text": "question text", "options": ["option1", "option2", "option3", "option4"], "required": true},
-        ... exactly 10 items total ...
-      ]
-    }
-    
-    Rules:
-    - questions MUST be exactly 10 items.
-    - Each question must have exactly 4 multiple choice options.
-    - required is always true.
-    - No extra keys. No preamble. No markdown. Only JSON.`
+                text: promptText
               },
               {
                 type: "image_url",
@@ -74,6 +86,8 @@ export class OpenAIService {
         max_completion_tokens: 2000,
         // seed: 1, // uncomment for reproducible debugging
       });
+      
+      tokensUsed = response.usage?.total_tokens;
     } catch (error: any) {
       console.error('OpenAI API error:', error);
       
@@ -98,10 +112,40 @@ export class OpenAIService {
     }
 
     console.log('Response from OpenAI:', response.choices);
+    
+    const responseTime = Date.now() - startTime;
+    
+    // Log the conversation if we have a prompt ID
+    if (promptId) {
+      await PromptService.logConversation({
+        prompt_id: promptId,
+        input_data: { image_base64_length: imageBase64.length },
+        output_data: response.choices[0]?.message?.content,
+        response_time_ms: responseTime,
+        tokens_used: tokensUsed,
+        model_used: 'gpt-4o',
+        success: true
+      });
+    }
   
     const raw = response.choices[0]?.message?.content;
     if (!raw) {
       console.error('No response content from OpenAI');
+      
+      // Log the error if we have a prompt ID
+      if (promptId) {
+        await PromptService.logConversation({
+          prompt_id: promptId,
+          input_data: { image_base64_length: imageBase64.length },
+          output_data: null,
+          response_time_ms: responseTime,
+          tokens_used: tokensUsed,
+          model_used: 'gpt-4o',
+          success: false,
+          error_message: 'No response content from OpenAI'
+        });
+      }
+      
       throw new Error('No response from OpenAI');
     }
   
@@ -225,6 +269,37 @@ export class OpenAIService {
     if (questions.length !== answers.length) {
       throw new Error(`Mismatch between questions (${questions.length}) and answers (${answers.length}) count`);
     }
+
+    // Get prompts from database or use hardcoded fallback
+    let systemPrompt: string;
+    let userPrompt: string;
+    let promptId: string | null = null;
+    
+    if (USE_DATABASE_PROMPTS) {
+      const systemPromptData = await PromptService.getPrompt('image_prompt_creation_system');
+      const userPromptData = await PromptService.getPrompt('image_prompt_creation_user');
+      
+      if (systemPromptData && userPromptData) {
+        systemPrompt = systemPromptData.content;
+        userPrompt = PromptService.replaceTemplateVariables(
+          userPromptData.content,
+          { questions_and_answers: questions.map((q, i) => `${q.text}: ${answers[i]}`).join('\n') }
+        );
+        promptId = systemPromptData.id; // Use system prompt ID for logging
+        console.log('Using database prompts for image prompt creation');
+      } else {
+        console.warn('Database prompts not found, falling back to hardcoded prompts');
+        systemPrompt = this.getHardcodedSystemPrompt();
+        userPrompt = this.getHardcodedUserPrompt(questions, answers);
+      }
+    } else {
+      systemPrompt = this.getHardcodedSystemPrompt();
+      userPrompt = this.getHardcodedUserPrompt(questions, answers);
+      console.log('Using hardcoded prompts for image prompt creation');
+    }
+    
+    const startTime = Date.now();
+    let tokensUsed: number | undefined;
     
     try {
       const response = await openai.chat.completions.create({
@@ -232,22 +307,34 @@ export class OpenAIService {
         messages: [
           {
             role: "system",
-            content: "You are a creative AI that generates image prompts. Create a detailed, artistic prompt based on the questions and answers provided."
+            content: systemPrompt
           },
           {
             role: "user",
-            content: `Based on these questions and answers, create a detailed image generation prompt for DALL-E 3:
-            
-            Questions and Answers:
-            ${questions.map((q, i) => `${q.text}: ${answers[i]}`).join('\n')}
-            
-            Generate a creative, detailed prompt that incorporates all the answers. Focus on visual elements, style, mood, and composition. Make it specific and artistic.`
+            content: userPrompt
           }
         ],
         max_tokens: 300,
       });
+      
+      tokensUsed = response.usage?.total_tokens;
 
       const prompt = response.choices[0]?.message?.content;
+      const responseTime = Date.now() - startTime;
+      
+      // Log the conversation if we have a prompt ID
+      if (promptId) {
+        await PromptService.logConversation({
+          prompt_id: promptId,
+          input_data: { questions_count: questions.length, answers_count: answers.length },
+          output_data: prompt,
+          response_time_ms: responseTime,
+          tokens_used: tokensUsed,
+          model_used: 'gpt-4o',
+          success: true
+        });
+      }
+      
       if (!prompt || prompt.trim().length === 0) {
         console.warn('Empty prompt from OpenAI, using fallback');
         return 'A creative image based on the provided answers';
@@ -274,5 +361,45 @@ export class OpenAIService {
         return 'A creative image based on the provided answers';
       }
     }
+  }
+
+  /**
+   * Get the hardcoded image analysis prompt (fallback)
+   */
+  private static getHardcodedImageAnalysisPrompt(): string {
+    return `Analyze this image and return ONLY JSON with this exact schema:
+    
+    {
+      "analysis": "2–3 sentences describing what you see.",
+      "questions": [
+        {"text": "question text", "options": ["option1", "option2", "option3", "option4"], "required": true},
+        ... exactly 10 items total ...
+      ]
+    }
+    
+    Rules:
+    - questions MUST be exactly 10 items.
+    - Each question must have exactly 4 multiple choice options.
+    - required is always true.
+    - No extra keys. No preamble. No markdown. Only JSON.`;
+  }
+
+  /**
+   * Get the hardcoded system prompt for image prompt creation (fallback)
+   */
+  private static getHardcodedSystemPrompt(): string {
+    return "You are a creative AI that generates image prompts. Create a detailed, artistic prompt based on the questions and answers provided.";
+  }
+
+  /**
+   * Get the hardcoded user prompt for image prompt creation (fallback)
+   */
+  private static getHardcodedUserPrompt(questions: Question[], answers: string[]): string {
+    return `Based on these questions and answers, create a detailed image generation prompt for DALL-E 3:
+            
+            Questions and Answers:
+            ${questions.map((q, i) => `${q.text}: ${answers[i]}`).join('\n')}
+            
+            Generate a creative, detailed prompt that incorporates all the answers. Focus on visual elements, style, mood, and composition. Make it specific and artistic.`;
   }
 }
