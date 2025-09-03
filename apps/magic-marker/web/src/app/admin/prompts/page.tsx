@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 
 interface Prompt {
   id: string
@@ -19,55 +19,20 @@ function EditTextarea({ prompt, onSave, onCancel, saving }: {
   saving: boolean
 }) {
   const [content, setContent] = useState('')
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
   
   useEffect(() => {
-    console.log('EditTextarea useEffect: Setting content for', prompt.name)
-    console.log('Prompt content:', prompt.content)
     setContent(prompt.content)
-    
-    // Also set the textarea value directly
-    if (textareaRef.current) {
-      textareaRef.current.value = prompt.content
-      console.log('Set textarea value directly:', prompt.content.substring(0, 50))
-    }
   }, [prompt])
   
   return (
     <div className="space-y-4">
-      <div className="text-xs text-gray-500">
-        Debug: content length = {content?.length || 0}
-        <br />
-        Prompt content length = {prompt.content?.length || 0}
-        <br />
-        Content preview: {content?.substring(0, 100)}...
-        <br />
-        Textarea value: {textareaRef.current?.value?.substring(0, 50)}...
-      </div>
       <textarea
-        ref={textareaRef}
         value={content}
-        onChange={(e) => {
-          console.log('Textarea onChange:', e.target.value.substring(0, 50))
-          setContent(e.target.value)
-        }}
+        onChange={(e) => setContent(e.target.value)}
         rows={8}
         className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
         placeholder="Enter prompt content..."
-        style={{ backgroundColor: 'white', color: 'black', fontSize: '14px' }}
       />
-      
-      {/* Test textarea to see if it's a CSS issue */}
-      <div className="mt-4">
-        <div className="text-xs text-gray-500 mb-2">Test textarea (should show content):</div>
-        <textarea
-          value={content}
-          rows={4}
-          className="w-full px-3 py-2 border border-red-500 rounded-md"
-          style={{ backgroundColor: 'yellow', color: 'black' }}
-          readOnly
-        />
-      </div>
       <div className="flex space-x-3">
         <button
           onClick={() => onSave(content)}
@@ -105,9 +70,6 @@ export default function PromptManagementPage() {
       const response = await fetch('/api/admin/prompts')
       const data = await response.json()
       
-      console.log('Loaded prompts response:', data)
-      console.log('Setting prompts:', data.prompts)
-      
       if (!response.ok) {
         throw new Error(data.error || 'Failed to load prompts')
       }
@@ -122,9 +84,6 @@ export default function PromptManagementPage() {
   }
 
   const startEditing = (prompt: Prompt) => {
-    console.log('Starting to edit prompt:', prompt.name)
-    console.log('Prompt content length:', prompt.content?.length)
-    console.log('Prompt content preview:', prompt.content?.substring(0, 100))
     setEditingPrompt(prompt)
     setError(null)
     setSuccess(null)
