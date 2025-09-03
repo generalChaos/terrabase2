@@ -24,6 +24,14 @@ export default function PromptManagementPage() {
     loadPrompts()
   }, [])
 
+  // Effect to set edit content when editing prompt changes
+  useEffect(() => {
+    if (editingPrompt) {
+      console.log('useEffect: Setting editContent for prompt:', editingPrompt.name)
+      setEditContent(editingPrompt.content)
+    }
+  }, [editingPrompt])
+
   const loadPrompts = async () => {
     try {
       setLoading(true)
@@ -51,8 +59,6 @@ export default function PromptManagementPage() {
     console.log('Prompt content length:', prompt.content?.length)
     console.log('Prompt content preview:', prompt.content?.substring(0, 100))
     setEditingPrompt(prompt)
-    setEditContent(prompt.content)
-    console.log('Set editContent to:', prompt.content)
     setError(null)
     setSuccess(null)
   }
@@ -224,6 +230,7 @@ export default function PromptManagementPage() {
                             Debug: editContent length = {editContent?.length || 0}
                           </div>
                           <textarea
+                            key={`edit-${editingPrompt.id}`}
                             value={editContent}
                             onChange={(e) => {
                               console.log('Textarea onChange:', e.target.value.substring(0, 50))
