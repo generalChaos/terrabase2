@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 interface Prompt {
   id: string
@@ -19,11 +19,18 @@ function EditTextarea({ prompt, onSave, onCancel, saving }: {
   saving: boolean
 }) {
   const [content, setContent] = useState('')
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
   
   useEffect(() => {
     console.log('EditTextarea useEffect: Setting content for', prompt.name)
     console.log('Prompt content:', prompt.content)
     setContent(prompt.content)
+    
+    // Also set the textarea value directly
+    if (textareaRef.current) {
+      textareaRef.current.value = prompt.content
+      console.log('Set textarea value directly:', prompt.content.substring(0, 50))
+    }
   }, [prompt])
   
   return (
@@ -34,10 +41,12 @@ function EditTextarea({ prompt, onSave, onCancel, saving }: {
         Prompt content length = {prompt.content?.length || 0}
         <br />
         Content preview: {content?.substring(0, 100)}...
+        <br />
+        Textarea value: {textareaRef.current?.value?.substring(0, 50)}...
       </div>
       <textarea
-        key={`textarea-${prompt.id}-${content.length}`}
-        defaultValue={content}
+        ref={textareaRef}
+        value={content}
         onChange={(e) => {
           console.log('Textarea onChange:', e.target.value.substring(0, 50))
           setContent(e.target.value)
