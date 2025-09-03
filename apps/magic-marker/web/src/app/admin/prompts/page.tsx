@@ -18,10 +18,11 @@ function EditTextarea({ prompt, onSave, onCancel, saving }: {
   onCancel: () => void
   saving: boolean
 }) {
-  const [content, setContent] = useState(prompt.content)
+  const [content, setContent] = useState('')
   
   useEffect(() => {
     console.log('EditTextarea useEffect: Setting content for', prompt.name)
+    console.log('Prompt content:', prompt.content)
     setContent(prompt.content)
   }, [prompt])
   
@@ -29,6 +30,10 @@ function EditTextarea({ prompt, onSave, onCancel, saving }: {
     <div className="space-y-4">
       <div className="text-xs text-gray-500">
         Debug: content length = {content?.length || 0}
+        <br />
+        Prompt content length = {prompt.content?.length || 0}
+        <br />
+        Content preview: {content?.substring(0, 100)}...
       </div>
       <textarea
         value={content}
