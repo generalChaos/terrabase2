@@ -5,8 +5,17 @@ import { OpenAIService } from '@/lib/openai';
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('Upload API called');
+    console.log('Environment check:', {
+      hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+      hasSupabaseKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      hasOpenAIKey: !!process.env.OPENAI_API_KEY,
+    });
+
     // Validate request content type
     const contentType = request.headers.get('content-type');
+    console.log('Content-Type:', contentType);
+    
     if (!contentType || !contentType.includes('multipart/form-data')) {
       return NextResponse.json({ 
         success: false, 
@@ -59,6 +68,7 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(arrayBuffer);
     
     // Upload image to Supabase Storage
+    console.log('Uploading to Supabase storage:', fileName);
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('images')
       .upload(fileName, buffer, {
@@ -69,6 +79,10 @@ export async function POST(request: NextRequest) {
 
     if (uploadError) {
       console.error('Supabase storage error:', uploadError);
+      console.error('Supabase error details:', {
+        message: uploadError.message,
+        name: uploadError.name
+      });
       
       // Handle specific Supabase errors
       if (uploadError.message.includes('File size exceeds maximum')) {
