@@ -11,11 +11,58 @@ interface Prompt {
   updated_at: string
 }
 
+// Separate component for the editing textarea
+function EditTextarea({ prompt, onSave, onCancel, saving }: {
+  prompt: Prompt
+  onSave: (content: string) => void
+  onCancel: () => void
+  saving: boolean
+}) {
+  const [content, setContent] = useState(prompt.content)
+  
+  useEffect(() => {
+    console.log('EditTextarea useEffect: Setting content for', prompt.name)
+    setContent(prompt.content)
+  }, [prompt])
+  
+  return (
+    <div className="space-y-4">
+      <div className="text-xs text-gray-500">
+        Debug: content length = {content?.length || 0}
+      </div>
+      <textarea
+        value={content}
+        onChange={(e) => {
+          console.log('Textarea onChange:', e.target.value.substring(0, 50))
+          setContent(e.target.value)
+        }}
+        rows={8}
+        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+        placeholder="Enter prompt content..."
+      />
+      <div className="flex space-x-3">
+        <button
+          onClick={() => onSave(content)}
+          disabled={saving}
+          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+        >
+          {saving ? 'Saving...' : 'Save Changes'}
+        </button>
+        <button
+          onClick={onCancel}
+          className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function PromptManagementPage() {
   const [prompts, setPrompts] = useState<Prompt[]>([])
   const [loading, setLoading] = useState(true)
   const [editingPrompt, setEditingPrompt] = useState<Prompt | null>(null)
-  const [editContent, setEditContent] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
@@ -23,14 +70,6 @@ export default function PromptManagementPage() {
   useEffect(() => {
     loadPrompts()
   }, [])
-
-  // Effect to set edit content when editing prompt changes
-  useEffect(() => {
-    if (editingPrompt) {
-      console.log('useEffect: Setting editContent for prompt:', editingPrompt.name)
-      setEditContent(editingPrompt.content)
-    }
-  }, [editingPrompt])
 
   const loadPrompts = async () => {
     try {
@@ -65,12 +104,11 @@ export default function PromptManagementPage() {
 
   const cancelEditing = () => {
     setEditingPrompt(null)
-    setEditContent('')
     setError(null)
     setSuccess(null)
   }
 
-  const savePrompt = async () => {
+  const savePrompt = async (content: string) => {
     if (!editingPrompt) return
 
     try {
@@ -85,7 +123,7 @@ export default function PromptManagementPage() {
         },
         body: JSON.stringify({
           id: editingPrompt.id,
-          content: editContent,
+          content: content,
         }),
       })
 
@@ -96,13 +134,12 @@ export default function PromptManagementPage() {
       // Update local state
       setPrompts(prev => prev.map(p => 
         p.id === editingPrompt.id 
-          ? { ...p, content: editContent, updated_at: new Date().toISOString() }
+          ? { ...p, content: content, updated_at: new Date().toISOString() }
           : p
       ))
 
       setSuccess('Prompt updated successfully!')
       setEditingPrompt(null)
-      setEditContent('')
     } catch (err) {
       setError('Failed to save prompt')
       console.error('Error saving prompt:', err)
@@ -225,37 +262,12 @@ export default function PromptManagementPage() {
                     {/* Prompt Content */}
                     <div className="mt-4">
                       {editingPrompt?.id === prompt.id ? (
-                        <div className="space-y-4">
-                          <div className="text-xs text-gray-500">
-                            Debug: editContent length = {editContent?.length || 0}
-                          </div>
-                          <textarea
-                            key={`edit-${editingPrompt.id}`}
-                            value={editContent}
-                            onChange={(e) => {
-                              console.log('Textarea onChange:', e.target.value.substring(0, 50))
-                              setEditContent(e.target.value)
-                            }}
-                            rows={8}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                            placeholder="Enter prompt content..."
-                          />
-                          <div className="flex space-x-3">
-                            <button
-                              onClick={savePrompt}
-                              disabled={saving}
-                              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-                            >
-                              {saving ? 'Saving...' : 'Save Changes'}
-                            </button>
-                            <button
-                              onClick={cancelEditing}
-                              className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        </div>
+                        <EditTextarea
+                          prompt={prompt}
+                          onSave={savePrompt}
+                          onCancel={cancelEditing}
+                          saving={saving}
+                        />
                       ) : (
                         <div className="bg-gray-50 rounded-md p-4">
                           <pre className="text-sm text-gray-700 whitespace-pre-wrap font-mono">
