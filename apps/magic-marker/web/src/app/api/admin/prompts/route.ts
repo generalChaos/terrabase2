@@ -30,6 +30,7 @@ export async function PUT(request: NextRequest) {
     // Update the prompt using admin client (bypasses RLS)
     console.log('Attempting to update prompt with ID:', id);
     console.log('Update data:', updateData);
+    console.log('Using service role key:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
     
     const { data, error } = await supabaseAdmin
       .from('prompts')
