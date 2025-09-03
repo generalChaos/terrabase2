@@ -30,7 +30,7 @@ function EditTextarea({ prompt, onSave, onCancel, saving }: {
         value={content}
         onChange={(e) => setContent(e.target.value)}
         rows={8}
-        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
         placeholder="Enter prompt content..."
       />
       <div className="flex space-x-3">

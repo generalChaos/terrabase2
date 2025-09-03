@@ -6,6 +6,8 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const { id, content, active } = body;
 
+    console.log('Update request body:', { id, content: content?.substring(0, 50), active });
+
     if (!id) {
       return NextResponse.json({ 
         success: false, 
@@ -30,8 +32,7 @@ export async function PUT(request: NextRequest) {
       .from('prompts')
       .update(updateData)
       .eq('id', id)
-      .select()
-      .single();
+      .select();
 
     if (error) {
       console.error('Error updating prompt:', error);
@@ -41,7 +42,7 @@ export async function PUT(request: NextRequest) {
       }, { status: 500 });
     }
 
-    if (!data) {
+    if (!data || data.length === 0) {
       return NextResponse.json({ 
         success: false, 
         error: 'Prompt not found' 
@@ -50,7 +51,7 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      prompt: data
+      prompt: data[0]
     });
 
   } catch (error: any) {
