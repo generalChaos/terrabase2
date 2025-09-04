@@ -4,13 +4,15 @@ import { supabase } from '@/lib/supabase';
 import { OpenAIService } from '@/lib/openai';
 
 export async function POST(request: NextRequest) {
+  const requestId = Math.random().toString(36).substring(7)
+  console.log(`🚀 [${requestId}] Upload API called`);
+  console.log(`🔧 [${requestId}] Environment check:`, {
+    hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+    hasSupabaseKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    hasOpenAIKey: !!process.env.OPENAI_API_KEY,
+  });
+
   try {
-    console.log('Upload API called');
-    console.log('Environment check:', {
-      hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
-      hasSupabaseKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-      hasOpenAIKey: !!process.env.OPENAI_API_KEY,
-    });
 
     // Validate request content type
     const contentType = request.headers.get('content-type');
@@ -26,7 +28,14 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const file = formData.get('image') as File;
     
+    console.log(`📁 [${requestId}] File received:`, {
+      name: file?.name,
+      size: file?.size,
+      type: file?.type
+    });
+    
     if (!file) {
+      console.log(`❌ [${requestId}] No file provided`);
       return NextResponse.json({ 
         success: false, 
         error: 'No image file provided. Please select an image to upload.' 
@@ -35,7 +44,9 @@ export async function POST(request: NextRequest) {
 
     // Validate file type
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    console.log(`🔍 [${requestId}] Validating file type:`, file.type);
     if (!file.type || !allowedTypes.includes(file.type.toLowerCase())) {
+      console.log(`❌ [${requestId}] Invalid file type:`, file.type);
       return NextResponse.json({ 
         success: false, 
         error: `Invalid file type. Allowed types: ${allowedTypes.join(', ')}` 
@@ -44,7 +55,9 @@ export async function POST(request: NextRequest) {
 
     // Validate file size (10MB limit)
     const maxSize = 10 * 1024 * 1024; // 10MB
+    console.log(`📏 [${requestId}] Validating file size:`, file.size, 'bytes');
     if (file.size > maxSize) {
+      console.log(`❌ [${requestId}] File too large:`, file.size, 'bytes');
       return NextResponse.json({ 
         success: false, 
         error: `File too large. Maximum size is ${Math.round(maxSize / (1024 * 1024))}MB` 
@@ -53,6 +66,7 @@ export async function POST(request: NextRequest) {
 
     // Validate file size (minimum 1KB)
     if (file.size < 1024) {
+      console.log(`❌ [${requestId}] File too small:`, file.size, 'bytes');
       return NextResponse.json({ 
         success: false, 
         error: 'File too small. Please upload a valid image file.' 
@@ -63,12 +77,16 @@ export async function POST(request: NextRequest) {
     const fileExtension = file.name.split('.').pop() || 'jpg';
     const fileName = `${imageId}.${fileExtension}`;
     
+    console.log(`🆔 [${requestId}] Generated image ID:`, imageId);
+    console.log(`📄 [${requestId}] Generated filename:`, fileName);
+    
     // Convert file to buffer
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
     
     // Upload image to Supabase Storage
-    console.log('Uploading to Supabase storage:', fileName);
+    console.log(`☁️ [${requestId}] Uploading to Supabase storage:`, fileName);
+    console.log(`📊 [${requestId}] Buffer size:`, buffer.length, 'bytes');
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('images')
       .upload(fileName, buffer, {
@@ -78,8 +96,8 @@ export async function POST(request: NextRequest) {
       });
 
     if (uploadError) {
-      console.error('Supabase storage error:', uploadError);
-      console.error('Supabase error details:', {
+      console.error(`❌ [${requestId}] Supabase storage error:`, uploadError);
+      console.error(`❌ [${requestId}] Supabase error details:`, {
         message: uploadError.message,
         name: uploadError.name
       });
@@ -112,14 +130,24 @@ export async function POST(request: NextRequest) {
     const { data: { publicUrl } } = supabase.storage
       .from('images')
       .getPublicUrl(fileName);
+      
+    console.log(`🔗 [${requestId}] Generated public URL:`, publicUrl);
 
     // Convert image to base64 for OpenAI API
     const base64Image = buffer.toString('base64');
+    console.log(`🔄 [${requestId}] Converted to base64, length:`, base64Image.length);
 
     // Analyze image with OpenAI
+    console.log(`🤖 [${requestId}] Starting OpenAI analysis...`);
+    const startTime = Date.now();
     const { analysis, questions } = await OpenAIService.analyzeImage(base64Image);
+    const analysisTime = Date.now() - startTime;
+    console.log(`✅ [${requestId}] OpenAI analysis completed in ${analysisTime}ms`);
+    console.log(`📝 [${requestId}] Analysis length:`, analysis?.length || 0);
+    console.log(`❓ [${requestId}] Questions count:`, questions?.length || 0);
 
     // Store in database
+    console.log(`💾 [${requestId}] Storing in database...`);
     const { error: insertError } = await supabase
       .from('images')
       .insert({
@@ -130,7 +158,7 @@ export async function POST(request: NextRequest) {
       });
 
     if (insertError) {
-      console.error('Supabase database error:', insertError);
+      console.error(`❌ [${requestId}] Supabase database error:`, insertError);
       
       // Handle specific database errors
       if (insertError.message.includes('duplicate key')) {
@@ -156,14 +184,16 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    console.log(`🎉 [${requestId}] Upload completed successfully!`);
     return NextResponse.json({
       success: true,
       imageAnalysisId: imageId,
+      originalImagePath: publicUrl,
       questions
     });
 
   } catch (error) {
-    console.error('Upload error:', error);
+    console.error(`💥 [${requestId}] Upload error:`, error);
     
     let errorMessage = 'Upload failed';
     let statusCode = 500;

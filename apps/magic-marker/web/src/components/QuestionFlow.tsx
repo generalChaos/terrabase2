@@ -3,6 +3,7 @@ import { Question, QuestionAnswer } from '@/lib/types'
 
 interface QuestionFlowProps {
   questions: Question[]
+  originalImagePath?: string
   onSubmit: (answers: QuestionAnswer[]) => void
   onReset: () => void
   isLoading: boolean
@@ -10,6 +11,7 @@ interface QuestionFlowProps {
 
 const QuestionFlow: React.FC<QuestionFlowProps> = ({
   questions,
+  originalImagePath,
   onSubmit,
   onReset,
   isLoading
@@ -79,6 +81,22 @@ const QuestionFlow: React.FC<QuestionFlowProps> = ({
           Start Over
         </button>
       </div>
+
+      {/* Original Image */}
+      {originalImagePath && (
+        <div className="mb-6">
+          <h3 className="text-lg font-medium text-white mb-3 drop-shadow-lg">
+            Original Image
+          </h3>
+          <div className="flex justify-center">
+            <img
+              src={originalImagePath}
+              alt="Original image for analysis"
+              className="max-w-full max-h-64 rounded-lg shadow-lg border-2 border-white/20"
+            />
+          </div>
+        </div>
+      )}
 
       {/* Progress Bar */}
       <div className="mb-8">
