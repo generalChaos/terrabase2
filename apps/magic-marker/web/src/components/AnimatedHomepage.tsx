@@ -17,21 +17,21 @@ export default function AnimatedHomepage({ onStartUpload }: AnimatedHomepageProp
   const steps = [
     {
       id: 1,
-      image: '/ChatGPT Image Sep 3, 2025, 02_28_03 PM.png',
+      image: '/step-1-upload.png',
       title: 'Upload Your Image',
       description: 'Drag and drop or click to upload any image',
       hint: 'Scroll down to continue'
     },
     {
       id: 2,
-      image: '/ChatGPT Image Sep 3, 2025, 02_28_11 PM.png',
+      image: '/step-2-questions.png',
       title: 'Answer Questions',
       description: 'AI analyzes your image and asks relevant questions',
       hint: 'Keep scrolling'
     },
     {
       id: 3,
-      image: '/ChatGPT Image Sep 3, 2025, 02_28_16 PM.png',
+      image: '/step-3-result.png',
       title: 'Get Your Result',
       description: 'Receive a new AI-generated image based on your answers',
       hint: 'Tap to start'
@@ -110,7 +110,11 @@ export default function AnimatedHomepage({ onStartUpload }: AnimatedHomepageProp
                   ? 'opacity-0 scale-95 -translate-y-full' 
                   : 'opacity-0 scale-105 translate-y-full'
             }`}
-            style={{ zIndex: steps.length - index }}
+            style={{ 
+              zIndex: steps.length - index,
+              width: '100vw',
+              height: '100vh'
+            }}
           >
             <div className="relative w-full h-full">
               <Image
@@ -119,6 +123,7 @@ export default function AnimatedHomepage({ onStartUpload }: AnimatedHomepageProp
                 fill
                 className="object-cover"
                 priority={index === 0}
+                sizes="100vw"
               />
               
               {/* Overlay with content */}
@@ -130,19 +135,6 @@ export default function AnimatedHomepage({ onStartUpload }: AnimatedHomepageProp
                   <p className="text-lg drop-shadow-md">
                     {step.description}
                   </p>
-                  
-                  {/* Progress indicator */}
-                  <div className="flex space-x-2">
-                    {steps.map((_, i) => (
-                      <div
-                        key={i}
-                        className={`h-2 rounded-full transition-all duration-300 ${
-                          i <= currentStep ? 'bg-white' : 'bg-white/30'
-                        }`}
-                        style={{ width: `${100 / steps.length}%` }}
-                      />
-                    ))}
-                  </div>
                   
                   {/* Hint or action button */}
                   {index === steps.length - 1 ? (
@@ -157,7 +149,7 @@ export default function AnimatedHomepage({ onStartUpload }: AnimatedHomepageProp
                       <p className="text-sm opacity-80 animate-bounce">
                         {step.hint}
                       </p>
-                      {/* Subtle arrow hint */}
+                      {/* Down arrow hint */}
                       <div className="flex justify-center">
                         <div className="w-6 h-6 border-r-2 border-b-2 border-white/60 rotate-45 animate-pulse"></div>
                       </div>
