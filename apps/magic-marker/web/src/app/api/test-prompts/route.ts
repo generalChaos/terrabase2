@@ -1,65 +1,91 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PromptService } from '@/lib/promptService';
+import { supabase } from '@/lib/supabase';
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('Test prompts endpoint called');
+    console.log('Test new prompt system endpoint called');
     
-    // Test fetching all prompts
-    const allPrompts = await PromptService.getAllActivePrompts();
-    console.log('All active prompts:', allPrompts.length);
+    // Test fetching all prompt definitions
+    const { data: allPrompts, error: promptsError } = await supabase
+      .from('prompt_definitions')
+      .select('*')
+      .order('created_at', { ascending: true });
+
+    if (promptsError) {
+      throw new Error(`Failed to fetch prompts: ${promptsError.message}`);
+    }
+
+    console.log('All prompt definitions:', allPrompts?.length || 0);
     
     // Test fetching specific prompts
-    const imageAnalysisPrompt = await PromptService.getPrompt('image_analysis');
-    const systemPrompt = await PromptService.getPrompt('image_prompt_creation_system');
-    const userPrompt = await PromptService.getPrompt('image_prompt_creation_user');
+    const { data: imageAnalysisPrompt } = await supabase
+      .from('prompt_definitions')
+      .select('*')
+      .eq('name', 'image_analysis')
+      .single();
+
+    const { data: questionsPrompt } = await supabase
+      .from('prompt_definitions')
+      .select('*')
+      .eq('name', 'questions_generation')
+      .single();
+
+    const { data: imagePromptCreation } = await supabase
+      .from('prompt_definitions')
+      .select('*')
+      .eq('name', 'image_prompt_creation')
+      .single();
     
-    // Test template variable replacement
-    const testTemplate = "Hello {name}, you have {count} messages.";
-    const replaced = PromptService.replaceTemplateVariables(testTemplate, {
-      name: "John",
-      count: 5
-    });
+    // Test prompt system functionality
+    const testResults = {
+      total_prompts: allPrompts?.length || 0,
+      active_prompts: allPrompts?.filter(p => p.active).length || 0,
+      prompt_types: [...new Set(allPrompts?.map(p => p.type) || [])],
+      prompts: allPrompts?.map(p => ({
+        id: p.id,
+        name: p.name,
+        type: p.type,
+        active: p.active,
+        prompt_text_length: p.prompt_text.length,
+        has_input_schema: !!p.input_schema,
+        has_output_schema: !!p.output_schema,
+        has_return_schema: !!p.return_schema,
+        created_at: p.created_at
+      })) || [],
+      specific_prompts: {
+        image_analysis: imageAnalysisPrompt ? {
+          id: imageAnalysisPrompt.id,
+          type: imageAnalysisPrompt.type,
+          active: imageAnalysisPrompt.active,
+          prompt_text_length: imageAnalysisPrompt.prompt_text.length,
+          found: true
+        } : { found: false },
+        questions_generation: questionsPrompt ? {
+          id: questionsPrompt.id,
+          type: questionsPrompt.type,
+          active: questionsPrompt.active,
+          prompt_text_length: questionsPrompt.prompt_text.length,
+          found: true
+        } : { found: false },
+        image_prompt_creation: imagePromptCreation ? {
+          id: imagePromptCreation.id,
+          type: imagePromptCreation.type,
+          active: imagePromptCreation.active,
+          prompt_text_length: imagePromptCreation.prompt_text.length,
+          found: true
+        } : { found: false }
+      }
+    };
     
     return NextResponse.json({
       success: true,
       timestamp: new Date().toISOString(),
-      results: {
-        total_prompts: allPrompts.length,
-        prompts: allPrompts.map(p => ({
-          id: p.id,
-          name: p.name,
-          content_length: p.content.length,
-          active: p.active,
-          created_at: p.created_at
-        })),
-        specific_prompts: {
-          image_analysis: imageAnalysisPrompt ? {
-            id: imageAnalysisPrompt.id,
-            content_length: imageAnalysisPrompt.content.length,
-            found: true
-          } : { found: false },
-          system_prompt: systemPrompt ? {
-            id: systemPrompt.id,
-            content_length: systemPrompt.content.length,
-            found: true
-          } : { found: false },
-          user_prompt: userPrompt ? {
-            id: userPrompt.id,
-            content_length: userPrompt.content.length,
-            found: true
-          } : { found: false }
-        },
-        template_test: {
-          original: testTemplate,
-          replaced: replaced,
-          success: replaced.includes("John") && replaced.includes("5")
-        }
-      }
+      message: 'New prompt system test completed successfully',
+      results: testResults
     });
 
   } catch (error: unknown) {
-    console.error('Test prompts error:', error);
+    console.error('Test new prompt system error:', error);
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',
