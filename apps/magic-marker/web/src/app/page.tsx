@@ -8,11 +8,12 @@ import ImageUpload from '@/components/ImageUpload'
 import QuestionFlow from '@/components/QuestionFlow'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import DebugPanel from '@/components/DebugPanel'
+import AnimatedHomepage from '@/components/AnimatedHomepage'
 
 const API_BASE = '/api'
 
 export default function HomePage() {
-  const [currentStep, setCurrentStep] = useState<'upload' | 'questions' | 'generating'>('upload')
+  const [currentStep, setCurrentStep] = useState<'homepage' | 'upload' | 'questions' | 'generating'>('homepage')
   const [currentImageAnalysis, setCurrentImageAnalysis] = useState<ImageAnalysis | null>(null)
   const [errors, setErrors] = useState<string[]>([])
   const [logs, setLogs] = useState<string[]>([])
@@ -24,6 +25,10 @@ export default function HomePage() {
 
   const addLog = (log: string) => {
     setLogs(prev => [...prev, `${new Date().toLocaleTimeString()}: ${log}`])
+  }
+
+  const handleStartUpload = () => {
+    setCurrentStep('upload')
   }
 
   const clearDebug = () => {
@@ -134,8 +139,9 @@ export default function HomePage() {
   }
 
   const handleReset = () => {
-    setCurrentStep('upload')
+    setCurrentStep('homepage')
     setCurrentImageAnalysis(null)
+    clearDebug()
   }
 
   if (imagesLoading) {
@@ -144,18 +150,27 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen">
-      <div className="container mx-auto px-4 py-8">
-        <header className="text-center mb-8">
-          <div className="flex flex-col items-center">
-            <img 
-              src="/image.png" 
-              alt="MagicMarker Logo" 
-              className="w-full max-w-4xl h-auto drop-shadow-lg"
-            />
-          </div>
-        </header>
+      {currentStep !== 'homepage' && (
+        <div className="container mx-auto px-4 py-8">
+          <header className="text-center mb-8">
+            <div className="flex flex-col items-center">
+              <img 
+                src="/image.png" 
+                alt="MagicMarker Logo" 
+                className="w-full max-w-4xl h-auto drop-shadow-lg"
+              />
+            </div>
+          </header>
+        </div>
+      )}
+      
+      <div className={currentStep === 'homepage' ? '' : 'container mx-auto px-4 py-8'}>
 
         <main className="max-w-4xl mx-auto">
+          {currentStep === 'homepage' && (
+            <AnimatedHomepage onStartUpload={handleStartUpload} />
+          )}
+
           {currentStep === 'upload' && (
             <div className="space-y-6">
               <ImageUpload onUpload={handleImageUpload} isLoading={uploadMutation.isLoading} />
