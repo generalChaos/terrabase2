@@ -3,17 +3,17 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
 import axios from 'axios'
-import { ImageAnalysis, Question, QuestionAnswer } from '@/lib/types'
+import { ImageAnalysis, QuestionAnswer } from '@/lib/types'
 import ImageUpload from '@/components/ImageUpload'
 import QuestionFlow from '@/components/QuestionFlow'
-import ImageGallery from '@/components/ImageGallery'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import DebugPanel from '@/components/DebugPanel'
+import AnimatedHomepage from '@/components/AnimatedHomepage'
 
 const API_BASE = '/api'
 
 export default function HomePage() {
-  const [currentStep, setCurrentStep] = useState<'upload' | 'questions' | 'generating'>('upload')
+  const [currentStep, setCurrentStep] = useState<'homepage' | 'upload' | 'questions' | 'generating'>('homepage')
   const [currentImageAnalysis, setCurrentImageAnalysis] = useState<ImageAnalysis | null>(null)
   const [errors, setErrors] = useState<string[]>([])
   const [logs, setLogs] = useState<string[]>([])
@@ -27,18 +27,31 @@ export default function HomePage() {
     setLogs(prev => [...prev, `${new Date().toLocaleTimeString()}: ${log}`])
   }
 
+  const handleStartUpload = () => {
+    setCurrentStep('upload')
+  }
+
   const clearDebug = () => {
     setErrors([])
     setLogs([])
   }
 
   // Fetch existing images
-  const { data: images, isLoading: imagesLoading } = useQuery<ImageAnalysis[]>(
+  const { isLoading: imagesLoading } = useQuery<ImageAnalysis[]>(
     'images',
     async () => {
       const response = await axios.get(`${API_BASE}/images`)
       // Transform snake_case API response to camelCase frontend types
-      return response.data.map((item: any) => ({
+      return response.data.map((item: {
+        id: string;
+        original_image_path: string;
+        analysis_result: string;
+        questions: string;
+        answers?: string;
+        final_image_path?: string;
+        created_at: string;
+        updated_at: string;
+      }) => ({
         id: item.id,
         originalImagePath: item.original_image_path,
         analysisResult: item.analysis_result,
@@ -69,7 +82,7 @@ export default function HomePage() {
         addLog(`Image analysis completed. Generated ${data.questions.length} questions`)
         setCurrentImageAnalysis({
           id: data.imageAnalysisId,
-          originalImagePath: '',
+          originalImagePath: data.originalImagePath,
           analysisResult: '',
           questions: data.questions,
           createdAt: new Date(),
@@ -78,15 +91,24 @@ export default function HomePage() {
         setCurrentStep('questions')
         queryClient.invalidateQueries('images')
       },
-      onError: (error: any) => {
-        console.error('Upload failed:', error)
-        const errorMessage = error.response?.data?.error || error.message || 'Unknown error occurred'
+      onError: (error: Error) => {
+        console.error('🚨 Upload failed:', error)
+        const errorObj = error as { response?: { status?: number; statusText?: string; data?: { error?: string } }; code?: string }
+        console.error('🚨 Error details:', {
+          status: errorObj.response?.status,
+          statusText: errorObj.response?.statusText,
+          data: JSON.stringify(errorObj.response?.data),
+          message: error.message,
+          code: errorObj.code
+        })
+        
+        const errorMessage = errorObj.response?.data?.error || error.message || 'Unknown error occurred'
         addError(`Upload failed: ${errorMessage}`)
         
         // Show user-friendly error
-        if (error.response?.status === 413) {
+        if (errorObj.response?.status === 413) {
           alert('File too large. Please select an image smaller than 10MB.')
-        } else if (error.response?.status === 400) {
+        } else if (errorObj.response?.status === 400) {
           alert('Invalid file type. Please select a valid image file.')
         } else {
           alert(`Upload failed: ${errorMessage}`)
@@ -112,11 +134,21 @@ export default function HomePage() {
         setCurrentStep('upload')
         setCurrentImageAnalysis(null)
         queryClient.invalidateQueries('images')
-        alert('Image generated successfully!')
+        // Redirect to result page
+        window.location.href = `/result?id=${currentImageAnalysis?.id}`
       },
-      onError: (error: any) => {
-        console.error('Generation failed:', error)
-        const errorMessage = error.response?.data?.error || error.message || 'Unknown error occurred'
+      onError: (error: Error) => {
+        console.error('🚨 Generation failed:', error)
+        const errorObj = error as { response?: { status?: number; statusText?: string; data?: { error?: string } }; code?: string }
+        console.error('🚨 Generation error details:', {
+          status: errorObj.response?.status,
+          statusText: errorObj.response?.statusText,
+          data: JSON.stringify(errorObj.response?.data),
+          message: error.message,
+          code: errorObj.code
+        })
+        
+        const errorMessage = errorObj.response?.data?.error || error.message || 'Unknown error occurred'
         addError(`Image generation failed: ${errorMessage}`)
         alert(`Failed to generate image: ${errorMessage}`)
         setCurrentStep('questions')
@@ -134,8 +166,9 @@ export default function HomePage() {
   }
 
   const handleReset = () => {
-    setCurrentStep('upload')
+    setCurrentStep('homepage')
     setCurrentImageAnalysis(null)
+    clearDebug()
   }
 
   if (imagesLoading) {
@@ -144,30 +177,29 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen">
-      <div className="container mx-auto px-4 py-8">
-        <header className="text-center mb-8">
-          <div className="flex flex-col items-center">
-            <img 
-              src="/image.png" 
-              alt="MagicMarker Logo" 
-              className="w-full max-w-4xl h-auto drop-shadow-lg"
-            />
-          </div>
-        </header>
+      
+      {currentStep === 'homepage' && (
+        <div className="">
+          <main className="max-w-4xl mx-auto">
+            <AnimatedHomepage onStartUpload={handleStartUpload} />
+          </main>
+        </div>
+      )}
 
-        <main className="max-w-4xl mx-auto">
-          {currentStep === 'upload' && (
-            <div className="space-y-6">
-              <ImageUpload onUpload={handleImageUpload} isLoading={uploadMutation.isLoading} />
-              {images && images.length > 0 && (
-                <ImageGallery images={images} />
-              )}
-            </div>
-          )}
+      {currentStep === 'upload' && (
+        <div className="min-h-screen flex items-center justify-center p-4">
+          <ImageUpload onUpload={handleImageUpload} isLoading={uploadMutation.isLoading} />
+        </div>
+      )}
+
+      {currentStep !== 'homepage' && currentStep !== 'upload' && (
+        <div className="container mx-auto px-4 py-8">
+          <main className="max-w-4xl mx-auto">
 
           {currentStep === 'questions' && currentImageAnalysis && (
             <QuestionFlow
               questions={currentImageAnalysis.questions}
+              originalImagePath={currentImageAnalysis.originalImagePath}
               onSubmit={handleQuestionsSubmit}
               onReset={handleReset}
               isLoading={generateMutation.isLoading}
@@ -186,14 +218,15 @@ export default function HomePage() {
             </div>
           )}
 
-          {/* Debug Panel */}
-          <DebugPanel 
-            errors={errors} 
-            logs={logs} 
-            onClear={clearDebug} 
-          />
-        </main>
-      </div>
+            {/* Debug Panel */}
+            <DebugPanel 
+              errors={errors} 
+              logs={logs} 
+              onClear={clearDebug} 
+            />
+          </main>
+        </div>
+      )}
     </div>
   )
 }

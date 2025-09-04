@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     console.log('Environment check:', envCheck);
 
     // Test Supabase connection
-    let supabaseTest: { connected: boolean; error: string | null } = { connected: false, error: null };
+    const supabaseTest: { connected: boolean; error: string | null } = { connected: false, error: null };
     try {
       const { data, error } = await supabase
         .from('images')
@@ -26,28 +26,28 @@ export async function GET(request: NextRequest) {
         .limit(1);
       
       if (error) {
-        supabaseTest.error = error.message;
+        supabaseTest.error = error instanceof Error ? error.message : 'Unknown error';
       } else {
         supabaseTest.connected = true;
       }
-    } catch (error: any) {
-      supabaseTest.error = error.message;
+    } catch (error: unknown) {
+      supabaseTest.error = error instanceof Error ? error.message : 'Unknown error';
     }
 
     // Test Supabase storage
-    let storageTest: { accessible: boolean; error: string | null } = { accessible: false, error: null };
+    const storageTest: { accessible: boolean; error: string | null } = { accessible: false, error: null };
     try {
       const { data, error } = await supabase.storage
         .from('images')
         .list('', { limit: 1 });
       
       if (error) {
-        storageTest.error = error.message;
+        storageTest.error = error instanceof Error ? error.message : 'Unknown error';
       } else {
         storageTest.accessible = true;
       }
-    } catch (error: any) {
-      storageTest.error = error.message;
+    } catch (error: unknown) {
+      storageTest.error = error instanceof Error ? error.message : 'Unknown error';
     }
 
     return NextResponse.json({
@@ -63,11 +63,11 @@ export async function GET(request: NextRequest) {
       }
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Test deployment error:', error);
     return NextResponse.json({
       success: false,
-      error: error.message,
+      error: error instanceof Error ? error.message : 'Unknown error',
       timestamp: new Date().toISOString(),
     }, { status: 500 });
   }

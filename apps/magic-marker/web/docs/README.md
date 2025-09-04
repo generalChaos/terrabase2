@@ -31,11 +31,19 @@ Magic Marker is a full-stack Next.js application that combines AI image analysis
 ### **Core Features**
 - ✅ **Drag & Drop Upload**: Intuitive image upload interface
 - ✅ **AI Image Analysis**: GPT-4o vision model analyzes image content
-- ✅ **Dynamic Question Generation**: 10 contextually relevant questions per image
+- ✅ **Dynamic Question Generation**: Flexible number of contextually relevant questions per image
 - ✅ **Interactive Question Flow**: Multiple-choice questions with validation
 - ✅ **AI Image Generation**: DALL-E 3 creates images based on answers
-- ✅ **Image Gallery**: Browse and manage uploaded images
+- ✅ **Result Display**: Beautiful page showing original and generated images
 - ✅ **Responsive Design**: Works seamlessly on desktop and mobile
+
+### **Admin Features**
+- ✅ **Admin Dashboard**: Centralized management interface
+- ✅ **Prompt Management**: Create, edit, and reorder AI prompts
+- ✅ **Image Gallery**: Browse and manage all generated images with statistics
+- ✅ **Analytics Dashboard**: Performance metrics and usage statistics
+- ✅ **System Status**: Health monitoring and configuration validation
+- ✅ **Database Prompts**: Dynamic prompt system with fallback support
 
 ### **Technical Features**
 - ✅ **Next.js API Routes**: Serverless backend functions
@@ -52,23 +60,36 @@ Magic Marker is a full-stack Next.js application that combines AI image analysis
 ```
 src/
 ├── app/
-│   ├── api/                    # API routes
-│   │   ├── upload/            # Image upload endpoint
-│   │   ├── images/            # Image management endpoints
-│   │   ├── test-openai/       # OpenAI testing endpoint
-│   │   └── test-errors/       # Error testing endpoint
-│   ├── page.tsx               # Main application page
-│   └── layout.tsx             # Root layout
-├── components/                 # React components
-│   ├── ImageUpload.tsx        # Upload interface
-│   ├── QuestionFlow.tsx       # Question answering flow
-│   ├── ImageGallery.tsx       # Image browsing
-│   └── LoadingSpinner.tsx     # Loading states
-└── lib/                       # Utilities and services
-    ├── openai.ts              # OpenAI service
-    ├── supabase.ts            # Supabase client
-    ├── types.ts               # TypeScript types
-    └── error-handler.ts       # Error handling utilities
+│   ├── admin/                 # Admin interface
+│   │   ├── page.tsx          # Admin dashboard
+│   │   ├── prompts/          # Prompt management
+│   │   ├── images/           # Image gallery
+│   │   ├── analytics/        # Analytics dashboard
+│   │   └── status/           # System status
+│   ├── api/                   # API routes
+│   │   ├── admin/            # Admin API endpoints
+│   │   │   ├── prompts/      # Prompt management API
+│   │   │   ├── analytics/    # Analytics API
+│   │   │   └── status/       # System status API
+│   │   ├── upload/           # Image upload endpoint
+│   │   ├── images/           # Image management endpoints
+│   │   ├── test-openai/      # OpenAI testing endpoint
+│   │   └── test-errors/      # Error testing endpoint
+│   ├── result/               # Result display page
+│   ├── page.tsx              # Main application page
+│   └── layout.tsx            # Root layout
+├── components/                # React components
+│   ├── AdminLayout.tsx       # Admin navigation layout
+│   ├── ImageUpload.tsx       # Upload interface
+│   ├── QuestionFlow.tsx      # Question answering flow
+│   ├── ImageGallery.tsx      # Image browsing
+│   └── LoadingSpinner.tsx    # Loading states
+└── lib/                      # Utilities and services
+    ├── openai.ts             # OpenAI service
+    ├── supabase.ts           # Supabase client
+    ├── promptService.ts      # Prompt management service
+    ├── types.ts              # TypeScript types
+    └── error-handler.ts      # Error handling utilities
 ```
 
 ### **Backend (Next.js API Routes)**
@@ -76,11 +97,15 @@ src/
 - **`/api/images`**: Lists all uploaded images
 - **`/api/images/[id]`**: Retrieves specific image data
 - **`/api/images/generate`**: Generates new images based on answers
+- **`/api/admin/prompts`**: CRUD operations for prompt management
+- **`/api/admin/analytics`**: Returns prompt performance analytics
+- **`/api/admin/status`**: System health and configuration status
 - **`/api/test-openai`**: Tests OpenAI API connectivity
 - **`/api/test-errors`**: Tests error handling scenarios
 
 ### **Database Schema (Supabase)**
 ```sql
+-- Images table for storing uploaded and generated images
 CREATE TABLE images (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   original_image_path TEXT NOT NULL,
@@ -90,6 +115,31 @@ CREATE TABLE images (
   final_image_path TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Prompts table for dynamic prompt management
+CREATE TABLE prompts (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT UNIQUE NOT NULL,
+  content TEXT NOT NULL,
+  active BOOLEAN DEFAULT true,
+  sort_order INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- AI conversations table for analytics tracking
+CREATE TABLE ai_conversations (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  prompt_id UUID REFERENCES prompts(id),
+  input_data JSONB,
+  output_data JSONB,
+  response_time_ms INTEGER,
+  tokens_used INTEGER,
+  model_used TEXT,
+  success BOOLEAN,
+  error_message TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 ```
 
@@ -170,6 +220,40 @@ pnpm dev
 
 # The app will be available at http://localhost:3002
 ```
+
+## 🎛️ **Admin Interface**
+
+The admin interface provides comprehensive management tools for the Magic Marker application:
+
+### **Admin Dashboard (`/admin`)**
+- **Overview**: System status and quick actions
+- **Navigation**: Access to all admin functions
+- **Quick Actions**: Test prompts and run diagnostics
+
+### **Prompt Management (`/admin/prompts`)**
+- **Create Prompts**: Add new AI prompts with custom content
+- **Edit Prompts**: Modify existing prompt content and settings
+- **Reorder Prompts**: Drag and drop to change prompt priority
+- **Toggle Active**: Enable/disable prompts for A/B testing
+- **Database Integration**: Dynamic prompt system with fallback support
+
+### **Image Gallery (`/admin/images`)**
+- **Browse Images**: View all uploaded and generated images
+- **Statistics**: Total, completed, and in-progress image counts
+- **Image Details**: View original and generated images side by side
+- **Management**: Organize and manage image collections
+
+### **Analytics Dashboard (`/admin/analytics`)**
+- **Performance Metrics**: Success rates, response times, token usage
+- **Usage Statistics**: Request counts and prompt popularity
+- **Visual Charts**: Progress bars and performance indicators
+- **Historical Data**: Track performance over time
+
+### **System Status (`/admin/status`)**
+- **Health Monitoring**: Database, OpenAI, and Supabase connectivity
+- **Configuration Validation**: Environment variables and setup
+- **Storage Status**: File upload and storage availability
+- **Quick Diagnostics**: Test system components and troubleshoot issues
 
 ## 📚 **API Reference**
 
