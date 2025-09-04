@@ -95,26 +95,27 @@ export class OpenAIService {
       tokensUsed = response.usage?.total_tokens;
       console.log(`✅ [${requestId}] OpenAI API call successful`);
       console.log(`🔢 [${requestId}] Tokens used:`, tokensUsed);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(`❌ [${requestId}] OpenAI API error:`, error);
       
       // Handle specific OpenAI errors
-      if (error.code === 'rate_limit_exceeded') {
+      const errorObj = error as { code?: string; message?: string; status?: number };
+      if (errorObj.code === 'rate_limit_exceeded') {
         throw new Error('OpenAI rate limit exceeded. Please try again in a moment.');
-      } else if (error.code === 'insufficient_quota') {
+      } else if (errorObj.code === 'insufficient_quota') {
         throw new Error('OpenAI quota exceeded. Please check your account billing.');
-      } else if (error.code === 'model_not_found') {
+      } else if (errorObj.code === 'model_not_found') {
         throw new Error('OpenAI model not available. Please try again later.');
-      } else if (error.code === 'timeout') {
+      } else if (errorObj.code === 'timeout') {
         throw new Error('OpenAI request timed out. Please try again.');
-      } else if (error.status === 401) {
+      } else if (errorObj.status === 401) {
         throw new Error('OpenAI API key is invalid or expired.');
-      } else if (error.status === 429) {
+      } else if (errorObj.status === 429) {
         throw new Error('Too many requests to OpenAI. Please wait and try again.');
-      } else if (error.status >= 500) {
+      } else if (errorObj.status && errorObj.status >= 500) {
         throw new Error('OpenAI service is temporarily unavailable. Please try again later.');
       } else {
-        throw new Error(`OpenAI API error: ${error.message || 'Unknown error'}`);
+        throw new Error(`OpenAI API error: ${errorObj.message || 'Unknown error'}`);
       }
     }
 
@@ -266,26 +267,27 @@ export class OpenAIService {
       }
 
       return imageUrl;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('OpenAI image generation error:', error);
       
       // Handle specific OpenAI errors
-      if (error.code === 'rate_limit_exceeded') {
+      const errorObj = error as { code?: string; message?: string; status?: number };
+      if (errorObj.code === 'rate_limit_exceeded') {
         throw new Error('OpenAI rate limit exceeded. Please try again in a moment.');
-      } else if (error.code === 'insufficient_quota') {
+      } else if (errorObj.code === 'insufficient_quota') {
         throw new Error('OpenAI quota exceeded. Please check your account billing.');
-      } else if (error.code === 'content_policy_violation') {
+      } else if (errorObj.code === 'content_policy_violation') {
         throw new Error('Image generation blocked due to content policy. Please try different answers.');
-      } else if (error.code === 'timeout') {
+      } else if (errorObj.code === 'timeout') {
         throw new Error('Image generation timed out. Please try again.');
-      } else if (error.status === 401) {
+      } else if (errorObj.status === 401) {
         throw new Error('OpenAI API key is invalid or expired.');
-      } else if (error.status === 429) {
+      } else if (errorObj.status === 429) {
         throw new Error('Too many requests to OpenAI. Please wait and try again.');
-      } else if (error.status >= 500) {
+      } else if (errorObj.status && errorObj.status >= 500) {
         throw new Error('OpenAI service is temporarily unavailable. Please try again later.');
       } else {
-        throw new Error(`Image generation failed: ${error.message || 'Unknown error'}`);
+        throw new Error(`Image generation failed: ${errorObj.message || 'Unknown error'}`);
       }
     }
   }
@@ -378,23 +380,24 @@ export class OpenAIService {
       }
 
       return prompt.trim();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('OpenAI prompt creation error:', error);
       
       // Handle specific OpenAI errors
-      if (error.code === 'rate_limit_exceeded') {
+      const errorObj = error as { code?: string; message?: string; status?: number };
+      if (errorObj.code === 'rate_limit_exceeded') {
         throw new Error('OpenAI rate limit exceeded. Please try again in a moment.');
-      } else if (error.code === 'insufficient_quota') {
+      } else if (errorObj.code === 'insufficient_quota') {
         throw new Error('OpenAI quota exceeded. Please check your account billing.');
-      } else if (error.status === 401) {
+      } else if (errorObj.status === 401) {
         throw new Error('OpenAI API key is invalid or expired.');
-      } else if (error.status === 429) {
+      } else if (errorObj.status === 429) {
         throw new Error('Too many requests to OpenAI. Please wait and try again.');
-      } else if (error.status >= 500) {
+      } else if (errorObj.status && errorObj.status >= 500) {
         throw new Error('OpenAI service is temporarily unavailable. Please try again later.');
       } else {
         // For prompt creation, we can fall back to a default prompt
-        console.warn('OpenAI prompt creation failed, using fallback:', error.message);
+        console.warn('OpenAI prompt creation failed, using fallback:', errorObj.message);
         return 'A creative image based on the provided answers';
       }
     }

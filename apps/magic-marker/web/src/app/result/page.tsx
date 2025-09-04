@@ -1,18 +1,18 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import LoadingSpinner from '@/components/LoadingSpinner'
 
-export default function ResultPage() {
+function ResultContent() {
   const searchParams = useSearchParams()
   const [imageData, setImageData] = useState<{
     originalImagePath: string
     finalImagePath: string
     analysisResult: string
-    questions: any[]
-    answers: any[]
+    questions: { text: string }[]
+    answers: (string | { answer: string })[]
   } | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -84,9 +84,9 @@ export default function ResultPage() {
           <h1 className="text-4xl font-bold text-white drop-shadow-lg mb-4">
             Your Generated Image
           </h1>
-          <p className="text-white/90 text-lg drop-shadow-md">
-            Here's your AI-generated image based on your answers
-          </p>
+                      <p className="text-white/90 text-lg drop-shadow-md">
+              Here&apos;s your AI-generated image based on your answers
+            </p>
         </div>
 
         {/* Main Content */}
@@ -139,7 +139,7 @@ export default function ResultPage() {
               Your Answers
             </h2>
             <div className="space-y-4">
-              {imageData.questions.map((question: any, index: number) => {
+              {imageData.questions.map((question: { text: string }, index: number) => {
                 const answer = imageData.answers[index]
                 return (
                   <div key={index} className="bg-white/5 rounded-lg p-4 border border-white/10">
@@ -167,5 +167,13 @@ export default function ResultPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function ResultPage() {
+  return (
+    <Suspense fallback={<LoadingSpinner />}>
+      <ResultContent />
+    </Suspense>
   )
 }

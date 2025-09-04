@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase, supabaseAdmin } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
+
+interface UpdatePromptData {
+  content?: string;
+  active?: boolean;
+}
 
 export async function PUT(request: NextRequest) {
   try {
@@ -16,7 +21,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Build update object
-    const updateData: any = {};
+    const updateData: UpdatePromptData = {};
     if (content !== undefined) updateData.content = content;
     if (active !== undefined) updateData.active = active;
 
@@ -55,7 +60,7 @@ export async function PUT(request: NextRequest) {
       prompt: data[0]
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in prompt update API:', error);
     return NextResponse.json({
       success: false,
@@ -107,7 +112,7 @@ export async function POST(request: NextRequest) {
       prompt: data
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in prompt creation API:', error);
     return NextResponse.json({
       success: false,
@@ -258,7 +263,7 @@ export async function PATCH(request: NextRequest) {
       message: 'Prompts reordered successfully'
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in prompt reorder API:', error);
     return NextResponse.json({
       success: false,
@@ -287,7 +292,7 @@ export async function GET(request: NextRequest) {
       prompts: data || []
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in prompt fetch API:', error);
     return NextResponse.json({
       success: false,

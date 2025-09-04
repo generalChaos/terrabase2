@@ -11,8 +11,8 @@ export interface Prompt {
 
 export interface ConversationLog {
   prompt_id: string;
-  input_data: any;
-  output_data: any;
+  input_data: unknown;
+  output_data: unknown;
   response_time_ms: number;
   tokens_used?: number;
   model_used: string;
@@ -147,7 +147,7 @@ export class PromptService {
    * Replace template variables in prompt content
    * Simple template replacement for {variable_name} patterns
    */
-  static replaceTemplateVariables(content: string, variables: Record<string, any>): string {
+  static replaceTemplateVariables(content: string, variables: Record<string, unknown>): string {
     let result = content;
     
     for (const [key, value] of Object.entries(variables)) {

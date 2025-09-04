@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // Get analytics from the view we created
     const { data, error } = await supabase
@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
       analytics: data || []
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in analytics API:', error);
     return NextResponse.json({
       success: false,

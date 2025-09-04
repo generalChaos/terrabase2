@@ -11,91 +11,93 @@ export class ErrorHandler {
     return `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
-  static handleOpenAIError(error: any): { message: string; statusCode: number } {
+  static handleOpenAIError(error: unknown): { message: string; statusCode: number } {
     console.error('OpenAI error:', error);
 
-    if (error.code === 'rate_limit_exceeded') {
+    const errorObj = error as { code?: string; status?: number; message?: string };
+    if (errorObj.code === 'rate_limit_exceeded') {
       return {
         message: 'AI service is busy. Please wait a moment and try again.',
         statusCode: 429
       };
-    } else if (error.code === 'insufficient_quota') {
+    } else if (errorObj.code === 'insufficient_quota') {
       return {
         message: 'AI service quota exceeded. Please try again later.',
         statusCode: 402
       };
-    } else if (error.code === 'model_not_found') {
+    } else if (errorObj.code === 'model_not_found') {
       return {
         message: 'AI model not available. Please try again later.',
         statusCode: 503
       };
-    } else if (error.code === 'timeout') {
+    } else if (errorObj.code === 'timeout') {
       return {
         message: 'Request timed out. Please try again.',
         statusCode: 408
       };
-    } else if (error.code === 'content_policy_violation') {
+    } else if (errorObj.code === 'content_policy_violation') {
       return {
         message: 'Content not allowed. Please try different input.',
         statusCode: 400
       };
-    } else if (error.status === 401) {
+    } else if (errorObj.status === 401) {
       return {
         message: 'AI service authentication failed. Please contact support.',
         statusCode: 503
       };
-    } else if (error.status === 429) {
+    } else if (errorObj.status === 429) {
       return {
         message: 'Too many requests. Please wait and try again.',
         statusCode: 429
       };
-    } else if (error.status >= 500) {
+    } else if (errorObj.status && errorObj.status >= 500) {
       return {
         message: 'AI service is temporarily unavailable. Please try again later.',
         statusCode: 503
       };
     } else {
       return {
-        message: `AI service error: ${error.message || 'Unknown error'}`,
+        message: `AI service error: ${errorObj.message || 'Unknown error'}`,
         statusCode: 500
       };
     }
   }
 
-  static handleSupabaseError(error: any): { message: string; statusCode: number } {
+  static handleSupabaseError(error: unknown): { message: string; statusCode: number } {
     console.error('Supabase error:', error);
 
-    if (error.message.includes('File size exceeds maximum')) {
+    const errorObj = error as { message?: string };
+    if (errorObj.message?.includes('File size exceeds maximum')) {
       return {
         message: 'File too large for storage. Please try a smaller file.',
         statusCode: 413
       };
-    } else if (error.message.includes('already exists')) {
+    } else if (errorObj.message?.includes('already exists')) {
       return {
         message: 'File with this name already exists. Please try again.',
         statusCode: 409
       };
-    } else if (error.message.includes('quota')) {
+    } else if (errorObj.message?.includes('quota')) {
       return {
         message: 'Storage quota exceeded. Please contact support.',
         statusCode: 507
       };
-    } else if (error.message.includes('duplicate key')) {
+    } else if (errorObj.message?.includes('duplicate key')) {
       return {
         message: 'Record already exists. Please try again.',
         statusCode: 409
       };
-    } else if (error.message.includes('foreign key')) {
+    } else if (errorObj.message?.includes('foreign key')) {
       return {
         message: 'Database constraint violation. Please try again.',
         statusCode: 400
       };
-    } else if (error.message.includes('permission')) {
+    } else if (errorObj.message?.includes('permission')) {
       return {
         message: 'Database permission denied. Please contact support.',
         statusCode: 403
       };
-    } else if (error.message.includes('not found')) {
+    } else if (errorObj.message?.includes('not found')) {
       return {
         message: 'Requested resource not found.',
         statusCode: 404

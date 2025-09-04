@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useQuery } from 'react-query'
 import axios from 'axios'
 import Link from 'next/link'
@@ -10,6 +10,17 @@ import LoadingSpinner from '@/components/LoadingSpinner'
 import AdminLayout from '@/components/AdminLayout'
 
 const API_BASE = '/api'
+
+interface ApiImageResponse {
+  id: string
+  original_image_path: string
+  analysis_result: string
+  questions: string
+  answers?: string
+  final_image_path?: string
+  created_at: string
+  updated_at: string
+}
 
 export default function AdminImagesPage() {
   const [errors, setErrors] = useState<string[]>([])
@@ -24,7 +35,7 @@ export default function AdminImagesPage() {
     async () => {
       const response = await axios.get(`${API_BASE}/images`)
       // Transform snake_case API response to camelCase frontend types
-      return response.data.map((item: any) => ({
+      return response.data.map((item: ApiImageResponse) => ({
         id: item.id,
         originalImagePath: item.original_image_path,
         analysisResult: item.analysis_result,
@@ -36,9 +47,9 @@ export default function AdminImagesPage() {
       }))
     },
     {
-      onError: (error: any) => {
+      onError: (error: unknown) => {
         console.error('Failed to load images:', error)
-        addError(`Failed to load images: ${error.message}`)
+        addError(`Failed to load images: ${error instanceof Error ? error.message : 'Unknown error'}`)
       }
     }
   )

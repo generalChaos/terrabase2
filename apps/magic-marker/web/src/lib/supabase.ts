@@ -19,7 +19,7 @@ export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey || sup
 export interface Question {
   id: string
   text: string
-  options?: any
+  options?: string[]
   correct_answer?: number
   created_at: string
 }

@@ -1,12 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import fs from 'fs'
+import path from 'path'
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const environment = process.env.NODE_ENV || 'development'
     
     // Check database connection
-    let databaseStatus = { connected: false, error: undefined as string | undefined }
+    const databaseStatus = { connected: false, error: undefined as string | undefined }
     try {
       const { data, error } = await supabaseAdmin.from('prompts').select('count').limit(1)
       if (error) {
@@ -19,7 +21,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Check OpenAI configuration
-    let openaiStatus = { configured: false, error: undefined as string | undefined }
+    const openaiStatus = { configured: false, error: undefined as string | undefined }
     try {
       const apiKey = process.env.OPENAI_API_KEY
       if (!apiKey) {
@@ -34,7 +36,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Check Supabase configuration
-    let supabaseStatus = { configured: false, error: undefined as string | undefined }
+    const supabaseStatus = { configured: false, error: undefined as string | undefined }
     try {
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
       const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -51,11 +53,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Check storage availability
-    let storageStatus = { uploads_available: false, error: undefined as string | undefined }
+    const storageStatus = { uploads_available: false, error: undefined as string | undefined }
     try {
       // Check if uploads directory exists and is writable
-      const fs = require('fs')
-      const path = require('path')
       const uploadsDir = path.join(process.cwd(), 'uploads')
       
       if (!fs.existsSync(uploadsDir)) {
@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get prompts information
-    let promptsInfo = { database_enabled: false, total_prompts: 0, active_prompts: 0 }
+    const promptsInfo = { database_enabled: false, total_prompts: 0, active_prompts: 0 }
     try {
       const useDatabasePrompts = process.env.USE_DATABASE_PROMPTS === 'true'
       promptsInfo.database_enabled = useDatabasePrompts

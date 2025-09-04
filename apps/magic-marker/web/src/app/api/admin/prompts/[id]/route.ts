@@ -3,10 +3,10 @@ import { supabaseAdmin } from '@/lib/supabase';
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await context.params;
 
     if (!id) {
       return NextResponse.json({ 
@@ -42,7 +42,7 @@ export async function DELETE(
       message: 'Prompt deleted successfully'
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in prompt deletion API:', error);
     return NextResponse.json({
       success: false,

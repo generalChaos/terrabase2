@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
     const { data: { publicUrl } } = supabase.storage
       .from('images')
       .getPublicUrl(fileName);
-    
+      
     console.log(`🔗 [${requestId}] Generated public URL:`, publicUrl);
 
     // Convert image to base64 for OpenAI API

@@ -51,8 +51,8 @@
   },
   "lint-staged": {
     "apps/**/*.{ts,tsx}": [
-      "turbo run lint --filter=./{dir}",
-      "turbo run type-check --filter=./{dir}"
+      "turbo run lint --filter=./apps/magic-marker/web",
+      "turbo run type-check --filter=./apps/magic-marker/web"
     ],
     "apps/**/*.{js,jsx,ts,tsx,json,css,md}": [
       "prettier --write"
