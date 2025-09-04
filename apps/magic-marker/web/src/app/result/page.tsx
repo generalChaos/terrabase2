@@ -112,6 +112,8 @@ function ResultContent() {
                     alt="Original image"
                     fill
                     className="object-contain rounded-lg shadow-lg border-2 border-white/20"
+                    unoptimized={imageData.originalImagePath.includes('supabase')}
+                    loader={({ src }) => src}
                     onError={(e) => {
                       console.error('Original image failed to load:', imageData.originalImagePath);
                       console.error('Image error:', e);
@@ -143,6 +145,8 @@ function ResultContent() {
                     alt="Generated image"
                     fill
                     className="object-contain rounded-lg shadow-lg border-2 border-white/20"
+                    unoptimized={imageData.finalImagePath.includes('supabase')}
+                    loader={({ src }) => src}
                     onError={(e) => {
                       console.error('Generated image failed to load:', imageData.finalImagePath);
                       console.error('Image error:', e);
