@@ -168,8 +168,24 @@ export class OpenAIService {
       throw new Error('Invalid questions from OpenAI - questions must be an array');
     }
     
-    if (parsed.questions.length !== 10) {
-      throw new Error(`Invalid questions from OpenAI - expected 10 questions, got ${parsed.questions.length}`);
+    // Validate question count - warn if 0, error if no fallback available
+    console.log(`OpenAI returned ${parsed.questions.length} questions`);
+    
+    if (parsed.questions.length === 0) {
+      console.warn('OpenAI returned 0 questions - this may indicate a prompt issue');
+      if (!USE_DATABASE_PROMPTS) {
+        throw new Error('OpenAI returned 0 questions and no database fallback available');
+      }
+      // If using database prompts, we could potentially retry with a different prompt
+      throw new Error('OpenAI returned 0 questions - please check the prompt configuration');
+    }
+    
+    if (parsed.questions.length < 3) {
+      console.warn(`OpenAI returned only ${parsed.questions.length} questions - this may be insufficient`);
+    }
+    
+    if (parsed.questions.length > 15) {
+      console.warn(`OpenAI returned ${parsed.questions.length} questions - this may be too many for good UX`);
     }
     
     // Validate each question
@@ -178,8 +194,12 @@ export class OpenAIService {
       if (!q.text || typeof q.text !== 'string' || q.text.trim().length === 0) {
         throw new Error(`Invalid question ${i + 1} - text is missing or empty`);
       }
-      if (!Array.isArray(q.options) || q.options.length !== 4) {
-        throw new Error(`Invalid question ${i + 1} - must have exactly 4 options`);
+      if (!Array.isArray(q.options) || q.options.length < 2) {
+        throw new Error(`Invalid question ${i + 1} - must have at least 2 options, got ${q.options?.length || 0}`);
+      }
+      
+      if (q.options.length > 6) {
+        console.warn(`Question ${i + 1} has ${q.options.length} options - this may be too many for good UX`);
       }
       for (let j = 0; j < q.options.length; j++) {
         if (!q.options[j] || typeof q.options[j] !== 'string' || q.options[j].trim().length === 0) {

@@ -7,6 +7,7 @@ interface Prompt {
   name: string
   content: string
   active: boolean
+  sort_order: number
   created_at: string
   updated_at: string
 }
@@ -209,6 +210,30 @@ export default function PromptManagementPage() {
     }
   }
 
+  const reorderPrompt = async (promptId: string, direction: 'up' | 'down') => {
+    try {
+      setError(null)
+      
+      const response = await fetch('/api/admin/prompts', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ promptId, direction })
+      })
+      
+      const data = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to reorder prompt')
+      }
+      
+      setSuccess('Prompt reordered successfully')
+      await loadPrompts()
+    } catch (err) {
+      setError('Failed to reorder prompt')
+      console.error('Error reordering prompt:', err)
+    }
+  }
+
   const savePrompt = async (content: string) => {
     if (!editingPrompt) return
 
@@ -360,54 +385,75 @@ export default function PromptManagementPage() {
           <div className="divide-y divide-gray-200">
             {prompts.map((prompt) => (
               <div key={prompt.id} className="p-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-3">
-                      <h3 className="text-lg font-medium text-gray-900">
-                        {prompt.name}
-                      </h3>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        prompt.active 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-red-100 text-red-800'
-                      }`}>
-                        {prompt.active ? 'Active' : 'Inactive'}
-                      </span>
-                    </div>
-                    
-                    <div className="mt-2">
-                      <p className="text-sm text-gray-500">
-                        Created: {new Date(prompt.created_at).toLocaleDateString()}
-                        {prompt.updated_at !== prompt.created_at && (
-                          <span className="ml-2">
-                            • Updated: {new Date(prompt.updated_at).toLocaleDateString()}
-                          </span>
-                        )}
-                      </p>
-                    </div>
-
-                    {/* Prompt Content */}
-                    <div className="mt-4">
-                      {editingPrompt?.id === prompt.id ? (
-                        <EditTextarea
-                          prompt={prompt}
-                          onSave={savePrompt}
-                          onCancel={cancelEditing}
-                          saving={saving}
-                        />
-                      ) : (
-                        <div className="bg-gray-50 rounded-md p-4">
-                          <pre className="text-sm text-gray-700 whitespace-pre-wrap font-mono">
-                            {prompt.content}
-                          </pre>
-                        </div>
+                <div>
+                  <div className="flex items-center space-x-3">
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      #{prompt.sort_order}
+                    </span>
+                    <h3 className="text-lg font-medium text-gray-900">
+                      {prompt.name}
+                    </h3>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      prompt.active 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-red-100 text-red-800'
+                    }`}>
+                      {prompt.active ? 'Active' : 'Inactive'}
+                    </span>
+                  </div>
+                  
+                  <div className="mt-2">
+                    <p className="text-sm text-gray-500">
+                      Created: {new Date(prompt.created_at).toLocaleDateString()}
+                      {prompt.updated_at !== prompt.created_at && (
+                        <span className="ml-2">
+                          • Updated: {new Date(prompt.updated_at).toLocaleDateString()}
+                        </span>
                       )}
-                    </div>
+                    </p>
+                  </div>
+
+                  {/* Prompt Content */}
+                  <div className="mt-4">
+                    {editingPrompt?.id === prompt.id ? (
+                      <EditTextarea
+                        prompt={prompt}
+                        onSave={savePrompt}
+                        onCancel={cancelEditing}
+                        saving={saving}
+                      />
+                    ) : (
+                      <div className="bg-gray-50 rounded-md p-4">
+                        <pre className="text-sm text-gray-700 whitespace-pre-wrap font-mono">
+                          {prompt.content}
+                        </pre>
+                      </div>
+                    )}
                   </div>
 
                   {/* Actions */}
                   {editingPrompt?.id !== prompt.id && (
-                    <div className="ml-4 flex space-x-2">
+                    <div className="mt-4 flex items-center space-x-3">
+                      {/* Order Controls */}
+                      <div className="flex space-x-1">
+                        <button
+                          onClick={() => reorderPrompt(prompt.id, 'up')}
+                          disabled={prompts.findIndex(p => p.id === prompt.id) === 0}
+                          className="inline-flex items-center px-2 py-1 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Move up"
+                        >
+                          ↑
+                        </button>
+                        <button
+                          onClick={() => reorderPrompt(prompt.id, 'down')}
+                          disabled={prompts.findIndex(p => p.id === prompt.id) === prompts.length - 1}
+                          className="inline-flex items-center px-2 py-1 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Move down"
+                        >
+                          ↓
+                        </button>
+                      </div>
+                      
                       <button
                         onClick={() => startEditing(prompt)}
                         className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"

@@ -69,7 +69,7 @@ export default function HomePage() {
         addLog(`Image analysis completed. Generated ${data.questions.length} questions`)
         setCurrentImageAnalysis({
           id: data.imageAnalysisId,
-          originalImagePath: '',
+          originalImagePath: data.originalImagePath,
           analysisResult: '',
           questions: data.questions,
           createdAt: new Date(),
@@ -168,6 +168,7 @@ export default function HomePage() {
           {currentStep === 'questions' && currentImageAnalysis && (
             <QuestionFlow
               questions={currentImageAnalysis.questions}
+              originalImagePath={currentImageAnalysis.originalImagePath}
               onSubmit={handleQuestionsSubmit}
               onReset={handleReset}
               isLoading={generateMutation.isLoading}
