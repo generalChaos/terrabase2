@@ -10,7 +10,7 @@ export async function GET() {
     // Check database connection
     const databaseStatus = { connected: false, error: undefined as string | undefined }
     try {
-      const { data, error } = await supabaseAdmin.from('prompts').select('count').limit(1)
+      const { data, error } = await supabaseAdmin.from('prompt_definitions').select('count').limit(1)
       if (error) {
         databaseStatus.error = error.message
       } else {
@@ -71,21 +71,30 @@ export async function GET() {
       storageStatus.error = error instanceof Error ? error.message : 'Storage not accessible'
     }
 
-    // Get prompts information
-    const promptsInfo = { database_enabled: false, total_prompts: 0, active_prompts: 0 }
+    // Get prompt definitions information
+    const promptsInfo = { 
+      database_enabled: true, 
+      total_prompts: 0, 
+      active_prompts: 0,
+      prompt_types: 0,
+      legacy_prompts: 0
+    }
     try {
-      const useDatabasePrompts = process.env.USE_DATABASE_PROMPTS === 'true'
-      promptsInfo.database_enabled = useDatabasePrompts
-
       if (databaseStatus.connected) {
-        const { data: allPrompts } = await supabaseAdmin.from('prompts').select('id, active')
-        const { data: activePrompts } = await supabaseAdmin.from('prompts').select('id').eq('active', true)
+        // New prompt definitions
+        const { data: allPromptDefs } = await supabaseAdmin.from('prompt_definitions').select('id, active, type')
+        const { data: activePromptDefs } = await supabaseAdmin.from('prompt_definitions').select('id').eq('active', true)
         
-        promptsInfo.total_prompts = allPrompts?.length || 0
-        promptsInfo.active_prompts = activePrompts?.length || 0
+        // Legacy prompts (for comparison)
+        const { data: legacyPrompts } = await supabaseAdmin.from('prompts').select('id, active')
+        
+        promptsInfo.total_prompts = allPromptDefs?.length || 0
+        promptsInfo.active_prompts = activePromptDefs?.length || 0
+        promptsInfo.prompt_types = new Set(allPromptDefs?.map(p => p.type) || []).size
+        promptsInfo.legacy_prompts = legacyPrompts?.length || 0
       }
     } catch (error) {
-      console.error('Error getting prompts info:', error)
+      console.error('Error getting prompt definitions info:', error)
     }
 
     const systemStatus = {

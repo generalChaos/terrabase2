@@ -6,8 +6,7 @@ import { StepService } from './stepService';
 // Lazy initialization of OpenAI client
 let openai: OpenAI | null = null;
 
-// Feature flag for database prompts (set to false to use hardcoded prompts)
-const USE_DATABASE_PROMPTS = process.env.USE_DATABASE_PROMPTS === 'true' || false;
+// All prompts are now required to be in the database
 
 function getOpenAIClient(): OpenAI {
   if (!openai) {
@@ -25,8 +24,7 @@ export class OpenAIService {
   static async analyzeImage(imageBase64: string, imageId?: string): Promise<{ analysis: string }> {
     const requestId = Math.random().toString(36).substring(7);
     console.log(`🤖 [${requestId}] Analyzing image with OpenAI`);
-    console.log(`📊 [${requestId}] Image base64 length:`, imageBase64?.length ?? 0);
-    console.log(`🔧 [${requestId}] Using database prompts:`, USE_DATABASE_PROMPTS);
+    console.log(`🔧 [${requestId}] Using database prompts: true`);
   
     // Get OpenAI client (validates API key)
     const openai = getOpenAIClient();
@@ -43,27 +41,20 @@ export class OpenAIService {
       throw new Error('Invalid base64 image format');
     }
 
-    // Get analysis prompt from database or use hardcoded fallback
-    let promptText: string;
-    let promptId: string | null = null;
-    
-    if (USE_DATABASE_PROMPTS) {
-      console.log(`🔍 [${requestId}] Retrieving analysis prompt from database...`);
-      const prompt = await PromptService.getPrompt('image_analysis');
-      if (prompt) {
-        promptText = prompt.content;
-        promptId = prompt.id;
-        console.log(`✅ [${requestId}] Using database prompt for image analysis`);
-        console.log(`📝 [${requestId}] Prompt ID:`, promptId);
-        console.log(`📏 [${requestId}] Prompt length:`, promptText.length);
-      } else {
-        console.warn(`⚠️ [${requestId}] Database prompt not found, falling back to hardcoded prompt`);
-        promptText = this.getHardcodedImageAnalysisPrompt();
-      }
-    } else {
-      promptText = this.getHardcodedImageAnalysisPrompt();
-      console.log(`🔧 [${requestId}] Using hardcoded prompt for image analysis`);
+    // Get analysis prompt from database - REQUIRED
+    console.log(`🔍 [${requestId}] Retrieving analysis prompt from database...`);
+    const prompt = await PromptService.getPrompt('image_analysis');
+    if (!prompt) {
+      console.error(`❌ [${requestId}] Image analysis prompt not found in database`);
+      throw new Error('Image analysis prompt not configured. Please add the "image_analysis" prompt to the database.');
     }
+    
+    const promptText = prompt.content;
+    const promptId = prompt.id;
+    console.log(`✅ [${requestId}] Using database prompt for image analysis`);
+    console.log(`📝 [${requestId}] Prompt ID:`, promptId);
+    console.log(`📏 [${requestId}] Prompt length:`, promptText.length);
+    console.log(`📄 [${requestId}] PROMPT CONTENT:`, promptText);
   
     const startTime = Date.now();
     let response;
@@ -98,6 +89,8 @@ export class OpenAIService {
       tokensUsed = response.usage?.total_tokens;
       const rawResponse = response.choices[0]?.message?.content;
       console.log(`📄 [${requestId}] RESPONSE:`, rawResponse);
+      console.log(`🔢 [${requestId}] Tokens used:`, tokensUsed);
+      console.log(`📊 [${requestId}] Response choices count:`, response.choices?.length || 0);
     } catch (error: unknown) {
       console.error(`❌ [${requestId}] OpenAI API error:`, error);
       
@@ -161,11 +154,12 @@ export class OpenAIService {
       throw new Error('No response from OpenAI');
     }
   
-    let parsed: { analysis: string; questions: Array<{ text: string; options: string[]; required: boolean }> };
+    let parsed: { analysis: string };
     try {
       console.log(`🔍 [${requestId}] Parsing JSON response...`);
       parsed = JSON.parse(raw);
       console.log(`✅ [${requestId}] JSON parsing successful`);
+      console.log(`📋 [${requestId}] Parsed analysis:`, parsed.analysis);
     } catch (parseError) {
       // Helpful debug log; don't throw the raw content to clients
       console.error(`❌ [${requestId}] Failed to JSON.parse model output:`, raw);
@@ -180,80 +174,9 @@ export class OpenAIService {
       throw new Error('Invalid analysis from OpenAI - analysis is missing or empty');
     }
     
-    if (!Array.isArray(parsed.questions)) {
-      console.error(`❌ [${requestId}] Invalid questions from OpenAI - questions must be an array`);
-      throw new Error('Invalid questions from OpenAI - questions must be an array');
-    }
-    
-    // Validate question count - warn if 0, error if no fallback available
-    console.log(`❓ [${requestId}] OpenAI returned ${parsed.questions.length} questions`);
-    
-    if (parsed.questions.length === 0) {
-      console.warn('OpenAI returned 0 questions - this may indicate a prompt issue');
-      if (!USE_DATABASE_PROMPTS) {
-        throw new Error('OpenAI returned 0 questions and no database fallback available');
-      }
-      // If using database prompts, we could potentially retry with a different prompt
-      throw new Error('OpenAI returned 0 questions - please check the prompt configuration');
-    }
-    
-    if (parsed.questions.length < 3) {
-      console.warn(`OpenAI returned only ${parsed.questions.length} questions - this may be insufficient`);
-    }
-    
-    if (parsed.questions.length > 15) {
-      console.warn(`OpenAI returned ${parsed.questions.length} questions - this may be too many for good UX`);
-    }
-    
-    // Validate each question
-    for (let i = 0; i < parsed.questions.length; i++) {
-      const q = parsed.questions[i];
-      if (!q.text || typeof q.text !== 'string' || q.text.trim().length === 0) {
-        throw new Error(`Invalid question ${i + 1} - text is missing or empty`);
-      }
-      if (!Array.isArray(q.options) || q.options.length < 2) {
-        throw new Error(`Invalid question ${i + 1} - must have at least 2 options, got ${q.options?.length || 0}`);
-      }
-      
-      if (q.options.length > 6) {
-        console.warn(`Question ${i + 1} has ${q.options.length} options - this may be too many for good UX`);
-      }
-      for (let j = 0; j < q.options.length; j++) {
-        if (!q.options[j] || typeof q.options[j] !== 'string' || q.options[j].trim().length === 0) {
-          throw new Error(`Invalid question ${i + 1}, option ${j + 1} - option text is missing or empty`);
-        }
-      }
-    }
-  
-    const questions: Question[] = parsed.questions.map((q, i) => ({
-      id: `q_${i}`,
-      text: q.text.trim(),
-      type: 'multiple_choice' as const,
-      options: q.options.map(opt => opt.trim()),
-      required: true,
-    }));
-  
+    console.log(`✅ [${requestId}] Analysis validation successful`);
     console.log(`🎉 [${requestId}] Analysis completed successfully!`);
     console.log(`📊 [${requestId}] Final analysis length:`, parsed.analysis.trim().length);
-    console.log(`❓ [${requestId}] Final questions count:`, questions.length);
-    
-    // Log questions generation step if imageId is provided
-    if (imageId) {
-      console.log(`📊 [${requestId}] Logging questions generation step...`);
-      await StepService.logStep({
-        image_id: imageId,
-        step_type: 'questions',
-        step_order: 2,
-        prompt_id: promptId || undefined,
-        prompt_content: promptText,
-        input_data: { analysis: parsed.analysis.trim() },
-        output_data: { questions },
-        response_time_ms: responseTime,
-        tokens_used: tokensUsed,
-        model_used: 'gpt-4o',
-        success: true
-      });
-    }
     
     return { analysis: parsed.analysis.trim() };
   }
@@ -290,28 +213,20 @@ export class OpenAIService {
     // Get OpenAI client (validates API key)
     const openai = getOpenAIClient();
     
-    // Get conversational prompt from database
-    let promptText: string;
-    let promptId: string | null = null;
-    
-    if (USE_DATABASE_PROMPTS) {
-      console.log(`🔍 [${requestId}] Retrieving conversational prompt from database...`);
-      const prompt = await PromptService.getPrompt('conversational_questions');
-      if (prompt) {
-        promptText = prompt.content;
-        promptId = prompt.id;
-        console.log(`✅ [${requestId}] Using database prompt for conversational questions`, {
-          promptId: promptId.substring(0, 8) + '...',
-          promptLength: promptText.length
-        });
-      } else {
-        console.error(`❌ [${requestId}] Conversational questions prompt not found in database`);
-        throw new Error('Conversational questions prompt not found in database');
-      }
-    } else {
-      console.error(`❌ [${requestId}] Database prompts must be enabled for conversational questions`);
-      throw new Error('Database prompts must be enabled for conversational questions');
+    // Get conversational prompt from database - REQUIRED
+    console.log(`🔍 [${requestId}] Retrieving conversational prompt from database...`);
+    const prompt = await PromptService.getPrompt('conversational_questions');
+    if (!prompt) {
+      console.error(`❌ [${requestId}] Conversational questions prompt not found in database`);
+      throw new Error('Conversational questions prompt not configured. Please add the "conversational_questions" prompt to the database.');
     }
+    
+    const promptText = prompt.content;
+    const promptId = prompt.id;
+    console.log(`✅ [${requestId}] Using database prompt for conversational questions`, {
+      promptId: promptId.substring(0, 8) + '...',
+      promptLength: promptText.length
+    });
 
     // Build comprehensive context for the prompt
     let contextInfo = '';
@@ -491,31 +406,17 @@ export class OpenAIService {
     // Get OpenAI client (validates API key)
     const openai = getOpenAIClient();
     
-    // Get prompt from database or use hardcoded fallback
-    let promptText: string;
-    let promptId: string | null = null;
-    
-    if (USE_DATABASE_PROMPTS) {
-      console.log(`🔍 [${requestId}] Retrieving questions prompt from database...`);
-      const prompt = await PromptService.getPrompt('questions_generation');
-      if (prompt) {
-        promptText = prompt.content;
-        promptId = prompt.id;
-        console.log(`✅ [${requestId}] Using database prompt for questions generation`);
-      } else {
-        console.warn(`⚠️ [${requestId}] Questions prompt not found, using analysis prompt`);
-        const analysisPrompt = await PromptService.getPrompt('image_analysis');
-        if (analysisPrompt) {
-          promptText = analysisPrompt.content;
-          promptId = analysisPrompt.id;
-        } else {
-          promptText = this.getHardcodedQuestionsPrompt();
-        }
-      }
-    } else {
-      promptText = this.getHardcodedQuestionsPrompt();
-      console.log(`🔧 [${requestId}] Using hardcoded prompt for questions generation`);
+    // Get questions prompt from database - REQUIRED
+    console.log(`🔍 [${requestId}] Retrieving questions prompt from database...`);
+    const prompt = await PromptService.getPrompt('questions_generation');
+    if (!prompt) {
+      console.error(`❌ [${requestId}] Questions generation prompt not found in database`);
+      throw new Error('Questions generation prompt not configured. Please add the "questions_generation" prompt to the database.');
     }
+    
+    const promptText = prompt.content;
+    const promptId = prompt.id;
+    console.log(`✅ [${requestId}] Using database prompt for questions generation`);
 
     const startTime = Date.now();
     let response;
@@ -587,9 +488,7 @@ export class OpenAIService {
     // Validate questions count
     if (parsed.questions.length === 0) {
       console.warn('OpenAI returned 0 questions - this may indicate an issue');
-      if (USE_DATABASE_PROMPTS) {
-        throw new Error('No questions generated and no fallback available');
-      }
+      throw new Error('No questions generated - please check the prompt configuration');
     } else if (parsed.questions.length < 3) {
       console.warn(`OpenAI returned only ${parsed.questions.length} questions - this may be too few for good UX`);
     } else if (parsed.questions.length > 15) {
@@ -720,33 +619,25 @@ export class OpenAIService {
       throw new Error(`Mismatch between questions (${questions.length}) and answers (${answers.length}) count`);
     }
 
-    // Get prompts from database or use hardcoded fallback
-    let systemPrompt: string;
-    let userPrompt: string;
-    let promptId: string | null = null;
+    // Get prompts from database - REQUIRED
+    const systemPromptData = await PromptService.getPrompt('image_prompt_creation_system');
+    const userPromptData = await PromptService.getPrompt('image_prompt_creation_user');
     
-    if (USE_DATABASE_PROMPTS) {
-      const systemPromptData = await PromptService.getPrompt('image_prompt_creation_system');
-      const userPromptData = await PromptService.getPrompt('image_prompt_creation_user');
-      
-      if (systemPromptData && userPromptData) {
-        systemPrompt = systemPromptData.content;
-        userPrompt = PromptService.replaceTemplateVariables(
-          userPromptData.content,
-          { questions_and_answers: questions.map((q, i) => `${q.text}: ${answers[i]}`).join('\n') }
-        );
-        promptId = systemPromptData.id; // Use system prompt ID for logging
-        console.log('Using database prompts for image prompt creation');
-      } else {
-        console.warn('Database prompts not found, falling back to hardcoded prompts');
-        systemPrompt = this.getHardcodedSystemPrompt();
-        userPrompt = this.getHardcodedUserPrompt(questions, answers);
-      }
-    } else {
-      systemPrompt = this.getHardcodedSystemPrompt();
-      userPrompt = this.getHardcodedUserPrompt(questions, answers);
-      console.log('Using hardcoded prompts for image prompt creation');
+    if (!systemPromptData) {
+      throw new Error('Image prompt creation system prompt not configured. Please add the "image_prompt_creation_system" prompt to the database.');
     }
+    
+    if (!userPromptData) {
+      throw new Error('Image prompt creation user prompt not configured. Please add the "image_prompt_creation_user" prompt to the database.');
+    }
+    
+    const systemPrompt = systemPromptData.content;
+    const userPrompt = PromptService.replaceTemplateVariables(
+      userPromptData.content,
+      { questions_and_answers: questions.map((q, i) => `${q.text}: ${answers[i]}`).join('\n') }
+    );
+    const promptId = systemPromptData.id; // Use system prompt ID for logging
+    console.log('Using database prompts for image prompt creation');
     
     const startTime = Date.now();
     let tokensUsed: number | undefined;
@@ -771,6 +662,7 @@ export class OpenAIService {
         max_tokens: 300,
       });
       
+      const responseTime = Date.now() - startTime;
       tokensUsed = response.usage?.total_tokens;
       const prompt = response.choices[0]?.message?.content;
       console.log(`📄 [ImageGen] RESPONSE:`, prompt);
@@ -835,63 +727,6 @@ export class OpenAIService {
     }
   }
 
-  /**
-   * Get the hardcoded image analysis prompt (fallback)
-   */
-  private static getHardcodedImageAnalysisPrompt(): string {
-    return `Analyze this image and return ONLY JSON with this exact schema:
-    
-    {
-      "analysis": "2–3 sentences describing what you see."
-    }
-    
-    Rules:
-    - No extra keys. No preamble. No markdown. Only JSON.`;
-  }
 
-  /**
-   * Get the hardcoded questions generation prompt (fallback)
-   */
-  private static getHardcodedQuestionsPrompt(): string {
-    return `Based on the image analysis provided, generate exactly 8 creative questions that will help create an artistic image prompt. Return ONLY JSON with this exact schema:
 
-{
-  "questions": [
-    {"text": "question text", "options": ["option1", "option2", "option3", "option4"], "required": true},
-    {"text": "question text", "options": ["option1", "option2", "option3", "option4"], "required": true},
-    {"text": "question text", "options": ["option1", "option2", "option3", "option4"], "required": true},
-    {"text": "question text", "options": ["option1", "option2", "option3", "option4"], "required": true},
-    {"text": "question text", "options": ["option1", "option2", "option3", "option4"], "required": true},
-    {"text": "question text", "options": ["option1", "option2", "option3", "option4"], "required": true},
-    {"text": "question text", "options": ["option1", "option2", "option3", "option4"], "required": true},
-    {"text": "question text", "options": ["option1", "option2", "option3", "option4"], "required": true}
-  ]
-}
-
-Rules:
-- Generate exactly 8 questions
-- Each question must have exactly 4 multiple choice options
-- Questions should be about artistic style, mood, composition, colors, etc.
-- required is always true
-    - No extra keys. No preamble. No markdown. Only JSON.`;
-  }
-
-  /**
-   * Get the hardcoded system prompt for image prompt creation (fallback)
-   */
-  private static getHardcodedSystemPrompt(): string {
-    return "You are a creative AI that generates image prompts. Create a detailed, artistic prompt based on the questions and answers provided.";
-  }
-
-  /**
-   * Get the hardcoded user prompt for image prompt creation (fallback)
-   */
-  private static getHardcodedUserPrompt(questions: Question[], answers: string[]): string {
-    return `Based on these questions and answers, create a detailed image generation prompt for DALL-E 3:
-            
-            Questions and Answers:
-            ${questions.map((q, i) => `${q.text}: ${answers[i]}`).join('\n')}
-            
-            Generate a creative, detailed prompt that incorporates all the answers. Focus on visual elements, style, mood, and composition. Make it specific and artistic.`;
-  }
 }

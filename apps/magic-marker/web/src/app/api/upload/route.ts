@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '@/lib/supabase';
-import { OpenAIService } from '@/lib/openai';
+import { OpenAIService } from '@/lib/openaiNew';
 import { StepService } from '@/lib/stepService';
 
 export async function POST(request: NextRequest) {
@@ -138,43 +138,38 @@ export async function POST(request: NextRequest) {
     const base64Image = buffer.toString('base64');
     console.log(`🔄 [${requestId}] Converted to base64, length:`, base64Image.length);
 
-    // Step 1: Analyze image with OpenAI
-    console.log(`🤖 [${requestId}] Starting OpenAI analysis...`);
+    // Step 1: Analyze image with OpenAI using new prompt system
+    console.log(`🤖 [${requestId}] Starting OpenAI analysis with new prompt system...`);
     const analysisStartTime = Date.now();
-    const { analysis } = await OpenAIService.analyzeImage(base64Image, imageId);
+    const analysisResult = await OpenAIService.analyzeImage(
+      base64Image, 
+      imageId,
+      'User uploaded image for analysis',
+      'general',
+      ['composition', 'colors', 'style', 'mood'],
+      'Focus on artistic elements and creative potential'
+    );
     const analysisTime = Date.now() - analysisStartTime;
     console.log(`✅ [${requestId}] OpenAI analysis completed in ${analysisTime}ms`);
-    console.log(`📝 [${requestId}] Analysis length:`, analysis?.length || 0);
+    console.log(`📝 [${requestId}] Analysis length:`, analysisResult.analysis?.length || 0);
+    console.log(`🎯 [${requestId}] Analysis confidence:`, analysisResult.confidence_score);
 
-    // Log analysis step
-    console.log(`📊 [${requestId}] Logging analysis step...`);
-    await StepService.logStep({
-      image_id: imageId,
-      step_type: 'analysis',
-      step_order: 1,
-      input_data: { image_base64_length: base64Image.length },
-      output_data: { analysis },
-      response_time_ms: analysisTime,
-      model_used: 'gpt-4o',
-      success: true
-    });
-
-    // Step 2: Generate questions from analysis
-    console.log(`❓ [${requestId}] Starting questions generation...`);
+    // Step 2: Generate questions from analysis using new prompt system
+    console.log(`❓ [${requestId}] Starting questions generation with new prompt system...`);
     const questionsStartTime = Date.now();
-    const questions = await OpenAIService.generateQuestions(analysis); // Remove imageId to prevent step logging
+    const questions = await OpenAIService.generateQuestions(analysisResult.analysis, imageId);
     const questionsTime = Date.now() - questionsStartTime;
     console.log(`✅ [${requestId}] Questions generation completed in ${questionsTime}ms`);
     console.log(`❓ [${requestId}] Questions count:`, questions?.length || 0);
 
-    // Store in database
+    // Store in database FIRST
     console.log(`💾 [${requestId}] Storing in database...`);
     const { error: insertError } = await supabase
       .from('images')
       .insert({
         id: imageId,
         original_image_path: publicUrl,
-        analysis_result: analysis,
+        analysis_result: analysisResult.analysis,
         questions: JSON.stringify(questions)
       });
 
@@ -205,13 +200,25 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Now that the image is inserted, log the questions generation step
+    // Now that the image is inserted, log both steps
+    console.log(`📊 [${requestId}] Logging analysis step...`);
+    await StepService.logStep({
+      image_id: imageId,
+      step_type: 'analysis',
+      step_order: 1,
+      input_data: { image_base64_length: base64Image.length },
+      output_data: { analysis: analysisResult.analysis },
+      response_time_ms: analysisTime,
+      model_used: 'gpt-4o',
+      success: true
+    });
+
     console.log(`📊 [${requestId}] Logging questions generation step...`);
     await StepService.logStep({
       image_id: imageId,
       step_type: 'questions',
       step_order: 2,
-      input_data: { analysis: analysis.trim() },
+      input_data: { analysis: analysisResult.analysis.trim() },
       output_data: { questions },
       response_time_ms: questionsTime,
       model_used: 'gpt-4o',
@@ -223,6 +230,13 @@ export async function POST(request: NextRequest) {
       success: true,
       imageAnalysisId: imageId,
       originalImagePath: publicUrl,
+      analysis: analysisResult.analysis,
+      analysisMetadata: {
+        confidence_score: analysisResult.confidence_score,
+        identified_elements: analysisResult.identified_elements,
+        artistic_notes: analysisResult.artistic_notes,
+        technical_notes: analysisResult.technical_notes
+      },
       questions
     });
 

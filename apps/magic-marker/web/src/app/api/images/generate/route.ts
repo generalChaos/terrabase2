@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
-import { OpenAIService } from '@/lib/openai';
+import { OpenAIService } from '@/lib/openaiNew';
 import { QuestionAnswer } from '@/lib/types';
 import { StepService } from '@/lib/stepService';
 
@@ -62,8 +62,8 @@ export async function POST(request: NextRequest) {
       // Create image prompt from questions and answers
       const prompt = await OpenAIService.createImagePrompt(questions, answerStrings, imageAnalysisId);
       
-      // Generate new image
-      const imageUrl = await OpenAIService.generateImage(prompt);
+      // Generate new image with proper step logging
+      const imageUrl = await OpenAIService.generateImage(prompt, imageAnalysisId);
       
       // Download and save the generated image to Supabase Storage
       const imageResponse = await fetch(imageUrl);
