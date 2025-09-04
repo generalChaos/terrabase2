@@ -87,6 +87,56 @@ export default function AdminDashboard() {
             </div>
           </Link>
 
+          {/* Conversations */}
+          <Link href="/admin/conversations" className="group">
+            <div className="bg-white overflow-hidden shadow rounded-lg hover:shadow-lg transition-shadow duration-200">
+              <div className="p-6">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0">
+                    <div className="w-12 h-12 bg-cyan-500 rounded-lg flex items-center justify-center group-hover:bg-cyan-600 transition-colors duration-200">
+                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div className="ml-4">
+                    <h3 className="text-lg font-medium text-gray-900 group-hover:text-cyan-600 transition-colors duration-200">
+                      Conversations
+                    </h3>
+                    <p className="text-sm text-gray-500">
+                      View conversational question flows
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Link>
+
+          {/* Processing Steps */}
+          <Link href="/admin/steps" className="group">
+            <div className="bg-white overflow-hidden shadow rounded-lg hover:shadow-lg transition-shadow duration-200">
+              <div className="p-6">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0">
+                    <div className="w-12 h-12 bg-purple-500 rounded-lg flex items-center justify-center group-hover:bg-purple-600 transition-colors duration-200">
+                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div className="ml-4">
+                    <h3 className="text-lg font-medium text-gray-900 group-hover:text-purple-600 transition-colors duration-200">
+                      Processing Steps
+                    </h3>
+                    <p className="text-sm text-gray-500">
+                      Track AI processing pipeline steps
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Link>
+
           {/* System Status */}
           <Link href="/admin/status" className="group">
             <div className="bg-white overflow-hidden shadow rounded-lg hover:shadow-lg transition-shadow duration-200">

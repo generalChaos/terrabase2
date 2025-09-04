@@ -14,6 +14,8 @@ export default function AdminLayout({ children, title, description }: AdminLayou
     { name: 'Dashboard', href: '/admin', icon: '🏠' },
     { name: 'Prompts', href: '/admin/prompts', icon: '✏️' },
     { name: 'Images', href: '/admin/images', icon: '🖼️' },
+    { name: 'Conversations', href: '/admin/conversations', icon: '💬' },
+    { name: 'Steps', href: '/admin/steps', icon: '⚡' },
     { name: 'Analytics', href: '/admin/analytics', icon: '📊' },
     { name: 'Status', href: '/admin/status', icon: '🔧' },
   ]

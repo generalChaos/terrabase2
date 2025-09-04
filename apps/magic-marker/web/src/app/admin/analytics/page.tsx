@@ -6,6 +6,7 @@ import AdminLayout from '@/components/AdminLayout'
 interface AnalyticsData {
   prompt_id: string
   prompt_name: string
+  step_type: string
   total_requests: number
   successful_requests: number
   success_rate: number | null
@@ -193,6 +194,9 @@ export default function AnalyticsPage() {
                     Prompt Name
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Step Type
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Requests
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -216,6 +220,17 @@ export default function AnalyticsPage() {
                       <div className="text-sm font-medium text-gray-900">
                         {item.prompt_name}
                       </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                        item.step_type === 'analysis' ? 'bg-blue-100 text-blue-800' :
+                        item.step_type === 'questions' ? 'bg-green-100 text-green-800' :
+                        item.step_type === 'answer_analysis' ? 'bg-yellow-100 text-yellow-800' :
+                        item.step_type === 'image_generation' ? 'bg-purple-100 text-purple-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {item.step_type.replace('_', ' ')}
+                      </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">

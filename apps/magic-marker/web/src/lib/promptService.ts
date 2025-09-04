@@ -30,12 +30,17 @@ export class PromptService {
    */
   static async getPrompt(name: string): Promise<Prompt | null> {
     try {
+      console.log(`🔍 [PromptService] Fetching prompt: ${name}`);
+      
       // Check cache first
       const cached = this.getCachedPrompt(name);
       if (cached) {
+        console.log(`✅ [PromptService] Using cached prompt: ${name}`);
+        console.log(`📝 [PromptService] Cached prompt content length: ${cached.content.length}`);
         return cached;
       }
 
+      console.log(`🗄️ [PromptService] Fetching prompt from database: ${name}`);
       // Fetch from database
       const { data, error } = await supabase
         .from('prompts')
@@ -45,20 +50,26 @@ export class PromptService {
         .single();
 
       if (error) {
-        console.error(`Error fetching prompt '${name}':`, error);
+        console.error(`❌ [PromptService] Error fetching prompt '${name}':`, error);
         return null;
       }
 
       if (!data) {
-        console.warn(`No active prompt found for name: ${name}`);
+        console.warn(`⚠️ [PromptService] No active prompt found for name: ${name}`);
         return null;
       }
+
+      console.log(`✅ [PromptService] Prompt fetched successfully: ${name}`);
+      console.log(`📝 [PromptService] Prompt content length: ${data.content.length}`);
+      console.log(`🆔 [PromptService] Prompt ID: ${data.id}`);
+      console.log(`📊 [PromptService] Prompt active: ${data.active}`);
+      console.log(`🔢 [PromptService] Prompt sort order: ${data.sort_order}`);
 
       // Cache the result
       this.setCachedPrompt(name, data);
       return data;
     } catch (error) {
-      console.error(`Unexpected error fetching prompt '${name}':`, error);
+      console.error(`💥 [PromptService] Unexpected error fetching prompt '${name}':`, error);
       return null;
     }
   }

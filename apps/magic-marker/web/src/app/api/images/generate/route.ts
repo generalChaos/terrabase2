@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { OpenAIService } from '@/lib/openai';
 import { QuestionAnswer } from '@/lib/types';
+import { StepService } from '@/lib/stepService';
 
 // POST /api/images/generate - Generate new image based on answers
 export async function POST(request: NextRequest) {
@@ -41,9 +42,25 @@ export async function POST(request: NextRequest) {
     try {
       const questions = JSON.parse(imageData.questions);
       
-      // Create image prompt from questions and answers
+      // Step 3: Answer Analysis
+      console.log('🔍 Starting answer analysis...');
+      const answerAnalysisStartTime = Date.now();
       const answerStrings = (answers as QuestionAnswer[]).map(a => a.answer);
-      const prompt = await OpenAIService.createImagePrompt(questions, answerStrings);
+      
+      // Log answer analysis step
+      await StepService.logStep({
+        image_id: imageAnalysisId,
+        step_type: 'answer_analysis',
+        step_order: 3,
+        input_data: { questions, answers: answerStrings },
+        output_data: { analyzed_answers: answerStrings },
+        response_time_ms: 0, // This is just processing, no AI call
+        model_used: 'none',
+        success: true
+      });
+      
+      // Create image prompt from questions and answers
+      const prompt = await OpenAIService.createImagePrompt(questions, answerStrings, imageAnalysisId);
       
       // Generate new image
       const imageUrl = await OpenAIService.generateImage(prompt);
