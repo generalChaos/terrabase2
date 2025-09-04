@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useQuery } from 'react-query'
 import axios from 'axios'
+import Link from 'next/link'
 import { ImageAnalysis } from '@/lib/types'
 import ImageGallery from '@/components/ImageGallery'
 import LoadingSpinner from '@/components/LoadingSpinner'
