@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '@/lib/supabase';
 import { OpenAIService } from '@/lib/openai';
+import { StepService } from '@/lib/stepService';
 
 export async function POST(request: NextRequest) {
   const requestId = Math.random().toString(36).substring(7)
@@ -137,13 +138,33 @@ export async function POST(request: NextRequest) {
     const base64Image = buffer.toString('base64');
     console.log(`🔄 [${requestId}] Converted to base64, length:`, base64Image.length);
 
-    // Analyze image with OpenAI
+    // Step 1: Analyze image with OpenAI
     console.log(`🤖 [${requestId}] Starting OpenAI analysis...`);
-    const startTime = Date.now();
-    const { analysis, questions } = await OpenAIService.analyzeImage(base64Image);
-    const analysisTime = Date.now() - startTime;
+    const analysisStartTime = Date.now();
+    const { analysis } = await OpenAIService.analyzeImage(base64Image, imageId);
+    const analysisTime = Date.now() - analysisStartTime;
     console.log(`✅ [${requestId}] OpenAI analysis completed in ${analysisTime}ms`);
     console.log(`📝 [${requestId}] Analysis length:`, analysis?.length || 0);
+
+    // Log analysis step
+    console.log(`📊 [${requestId}] Logging analysis step...`);
+    await StepService.logStep({
+      image_id: imageId,
+      step_type: 'analysis',
+      step_order: 1,
+      input_data: { image_base64_length: base64Image.length },
+      output_data: { analysis },
+      response_time_ms: analysisTime,
+      model_used: 'gpt-4o',
+      success: true
+    });
+
+    // Step 2: Generate questions from analysis
+    console.log(`❓ [${requestId}] Starting questions generation...`);
+    const questionsStartTime = Date.now();
+    const questions = await OpenAIService.generateQuestions(analysis); // Remove imageId to prevent step logging
+    const questionsTime = Date.now() - questionsStartTime;
+    console.log(`✅ [${requestId}] Questions generation completed in ${questionsTime}ms`);
     console.log(`❓ [${requestId}] Questions count:`, questions?.length || 0);
 
     // Store in database
@@ -183,6 +204,19 @@ export async function POST(request: NextRequest) {
         }, { status: 500 });
       }
     }
+
+    // Now that the image is inserted, log the questions generation step
+    console.log(`📊 [${requestId}] Logging questions generation step...`);
+    await StepService.logStep({
+      image_id: imageId,
+      step_type: 'questions',
+      step_order: 2,
+      input_data: { analysis: analysis.trim() },
+      output_data: { questions },
+      response_time_ms: questionsTime,
+      model_used: 'gpt-4o',
+      success: true
+    });
 
     console.log(`🎉 [${requestId}] Upload completed successfully!`);
     return NextResponse.json({

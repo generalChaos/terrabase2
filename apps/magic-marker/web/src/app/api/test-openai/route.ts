@@ -12,8 +12,6 @@ export async function GET() {
     return NextResponse.json({
       success: true,
       analysis: result.analysis,
-      questionCount: result.questions.length,
-      firstQuestion: result.questions[0],
       message: 'OpenAI service is working correctly!'
     });
   } catch (error) {

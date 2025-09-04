@@ -13,6 +13,14 @@ interface Prompt {
   updated_at: string
 }
 
+interface PromptUsage {
+  prompt_id: string
+  step_type: string
+  total_requests: number
+  success_rate: number
+  avg_response_time_ms: number
+}
+
 // Separate component for the editing textarea
 function EditTextarea({ prompt, onSave, onCancel, saving }: {
   prompt: Prompt
@@ -110,6 +118,7 @@ function CreatePromptForm({ onSave, onCancel, saving }: {
 
 export default function PromptManagementPage() {
   const [prompts, setPrompts] = useState<Prompt[]>([])
+  const [promptUsage, setPromptUsage] = useState<PromptUsage[]>([])
   const [loading, setLoading] = useState(true)
   const [editingPrompt, setEditingPrompt] = useState<Prompt | null>(null)
   const [creatingPrompt, setCreatingPrompt] = useState(false)
@@ -120,6 +129,7 @@ export default function PromptManagementPage() {
 
   useEffect(() => {
     loadPrompts()
+    loadPromptUsage()
   }, [])
 
   const loadPrompts = async () => {
@@ -139,6 +149,23 @@ export default function PromptManagementPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const loadPromptUsage = async () => {
+    try {
+      const response = await fetch('/api/admin/analytics')
+      const data = await response.json()
+      
+      if (response.ok && data.analytics) {
+        setPromptUsage(data.analytics)
+      }
+    } catch (err) {
+      console.error('Error loading prompt usage:', err)
+    }
+  }
+
+  const getPromptUsage = (promptId: string) => {
+    return promptUsage.filter(usage => usage.prompt_id === promptId)
   }
 
   const startEditing = (prompt: Prompt) => {
@@ -424,6 +451,37 @@ export default function PromptManagementPage() {
                       </div>
                     )}
                   </div>
+
+                  {/* Usage Statistics */}
+                  {getPromptUsage(prompt.id).length > 0 && (
+                    <div className="mt-4">
+                      <h4 className="text-sm font-medium text-gray-700 mb-2">Usage Statistics</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                        {getPromptUsage(prompt.id).map((usage) => (
+                          <div key={usage.step_type} className="bg-white border rounded-lg p-3">
+                            <div className="flex items-center justify-between">
+                              <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                                usage.step_type === 'analysis' ? 'bg-blue-100 text-blue-800' :
+                                usage.step_type === 'questions' ? 'bg-green-100 text-green-800' :
+                                usage.step_type === 'conversational_question' ? 'bg-cyan-100 text-cyan-800' :
+                                usage.step_type === 'answer_analysis' ? 'bg-yellow-100 text-yellow-800' :
+                                usage.step_type === 'image_generation' ? 'bg-purple-100 text-purple-800' :
+                                'bg-gray-100 text-gray-800'
+                              }`}>
+                                {usage.step_type.replace('_', ' ')}
+                              </span>
+                              <span className="text-sm font-medium text-gray-900">
+                                {usage.total_requests} uses
+                              </span>
+                            </div>
+                            <div className="mt-1 text-xs text-gray-500">
+                              {(usage.success_rate || 0).toFixed(1)}% success • {(usage.avg_response_time_ms || 0).toFixed(0)}ms avg
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Actions */}
                   {editingPrompt?.id !== prompt.id && (

@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from 'react-query'
 import axios from 'axios'
 import { ImageAnalysis, QuestionAnswer } from '@/lib/types'
 import ImageUpload from '@/components/ImageUpload'
-import QuestionFlow from '@/components/QuestionFlow'
+import ConversationalQuestionFlow from '@/components/ConversationalQuestionFlow'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import DebugPanel from '@/components/DebugPanel'
 import AnimatedHomepage from '@/components/AnimatedHomepage'
@@ -83,7 +83,7 @@ export default function HomePage() {
         setCurrentImageAnalysis({
           id: data.imageAnalysisId,
           originalImagePath: data.originalImagePath,
-          analysisResult: '',
+          analysisResult: data.analysis || '',
           questions: data.questions,
           createdAt: new Date(),
           updatedAt: new Date()
@@ -183,6 +183,7 @@ export default function HomePage() {
           <main className="max-w-4xl mx-auto">
             <AnimatedHomepage onStartUpload={handleStartUpload} />
           </main>
+          
         </div>
       )}
 
@@ -197,8 +198,9 @@ export default function HomePage() {
           <main className="max-w-4xl mx-auto">
 
           {currentStep === 'questions' && currentImageAnalysis && (
-            <QuestionFlow
-              questions={currentImageAnalysis.questions}
+            <ConversationalQuestionFlow
+              imageId={currentImageAnalysis.id}
+              imageAnalysis={currentImageAnalysis.analysisResult}
               originalImagePath={currentImageAnalysis.originalImagePath}
               onSubmit={handleQuestionsSubmit}
               onReset={handleReset}
