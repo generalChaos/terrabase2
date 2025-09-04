@@ -22,9 +22,10 @@ function getOpenAIClient(): OpenAI {
 
 export class OpenAIService {
   static async analyzeImage(imageBase64: string): Promise<{ analysis: string; questions: Question[] }> {
-    console.log('Analyzing image with OpenAI');
-    console.log('Image base64 length:', imageBase64?.length ?? 0);
-    console.log('Using database prompts:', USE_DATABASE_PROMPTS);
+    const requestId = Math.random().toString(36).substring(7);
+    console.log(`🤖 [${requestId}] Analyzing image with OpenAI`);
+    console.log(`📊 [${requestId}] Image base64 length:`, imageBase64?.length ?? 0);
+    console.log(`🔧 [${requestId}] Using database prompts:`, USE_DATABASE_PROMPTS);
   
     // Get OpenAI client (validates API key)
     const openai = getOpenAIClient();
@@ -46,18 +47,21 @@ export class OpenAIService {
     let promptId: string | null = null;
     
     if (USE_DATABASE_PROMPTS) {
+      console.log(`🔍 [${requestId}] Retrieving prompt from database...`);
       const prompt = await PromptService.getPrompt('image_analysis');
       if (prompt) {
         promptText = prompt.content;
         promptId = prompt.id;
-        console.log('Using database prompt for image analysis');
+        console.log(`✅ [${requestId}] Using database prompt for image analysis`);
+        console.log(`📝 [${requestId}] Prompt ID:`, promptId);
+        console.log(`📏 [${requestId}] Prompt length:`, promptText.length);
       } else {
-        console.warn('Database prompt not found, falling back to hardcoded prompt');
+        console.warn(`⚠️ [${requestId}] Database prompt not found, falling back to hardcoded prompt`);
         promptText = this.getHardcodedImageAnalysisPrompt();
       }
     } else {
       promptText = this.getHardcodedImageAnalysisPrompt();
-      console.log('Using hardcoded prompt for image analysis');
+      console.log(`🔧 [${requestId}] Using hardcoded prompt for image analysis`);
     }
   
     const startTime = Date.now();
@@ -65,6 +69,7 @@ export class OpenAIService {
     let tokensUsed: number | undefined;
     
     try {
+      console.log(`🚀 [${requestId}] Making OpenAI API call...`);
       response = await openai.chat.completions.create({
         model: "gpt-4o", // Using gpt-4o instead of gpt-5 for better availability
         messages: [
@@ -88,8 +93,10 @@ export class OpenAIService {
       });
       
       tokensUsed = response.usage?.total_tokens;
+      console.log(`✅ [${requestId}] OpenAI API call successful`);
+      console.log(`🔢 [${requestId}] Tokens used:`, tokensUsed);
     } catch (error: any) {
-      console.error('OpenAI API error:', error);
+      console.error(`❌ [${requestId}] OpenAI API error:`, error);
       
       // Handle specific OpenAI errors
       if (error.code === 'rate_limit_exceeded') {
@@ -111,7 +118,7 @@ export class OpenAIService {
       }
     }
 
-    console.log('Response from OpenAI:', response.choices);
+    console.log(`📥 [${requestId}] Response from OpenAI:`, response.choices?.length || 0, 'choices');
     
     const responseTime = Date.now() - startTime;
     
@@ -129,8 +136,9 @@ export class OpenAIService {
     }
   
     const raw = response.choices[0]?.message?.content;
+    console.log(`📄 [${requestId}] Raw response length:`, raw?.length || 0);
     if (!raw) {
-      console.error('No response content from OpenAI');
+      console.error(`❌ [${requestId}] No response content from OpenAI`);
       
       // Log the error if we have a prompt ID
       if (promptId) {
@@ -151,25 +159,30 @@ export class OpenAIService {
   
     let parsed: { analysis: string; questions: Array<{ text: string; options: string[]; required: boolean }> };
     try {
+      console.log(`🔍 [${requestId}] Parsing JSON response...`);
       parsed = JSON.parse(raw);
+      console.log(`✅ [${requestId}] JSON parsing successful`);
     } catch (parseError) {
       // Helpful debug log; don't throw the raw content to clients
-      console.error('Failed to JSON.parse model output:', raw);
-      console.error('Parse error:', parseError);
+      console.error(`❌ [${requestId}] Failed to JSON.parse model output:`, raw);
+      console.error(`❌ [${requestId}] Parse error:`, parseError);
       throw new Error('Failed to parse JSON from OpenAI - invalid response format');
     }
   
     // Comprehensive validation
+    console.log(`🔍 [${requestId}] Validating response structure...`);
     if (!parsed.analysis || typeof parsed.analysis !== 'string' || parsed.analysis.trim().length === 0) {
+      console.error(`❌ [${requestId}] Invalid analysis from OpenAI - analysis is missing or empty`);
       throw new Error('Invalid analysis from OpenAI - analysis is missing or empty');
     }
     
     if (!Array.isArray(parsed.questions)) {
+      console.error(`❌ [${requestId}] Invalid questions from OpenAI - questions must be an array`);
       throw new Error('Invalid questions from OpenAI - questions must be an array');
     }
     
     // Validate question count - warn if 0, error if no fallback available
-    console.log(`OpenAI returned ${parsed.questions.length} questions`);
+    console.log(`❓ [${requestId}] OpenAI returned ${parsed.questions.length} questions`);
     
     if (parsed.questions.length === 0) {
       console.warn('OpenAI returned 0 questions - this may indicate a prompt issue');
@@ -216,6 +229,10 @@ export class OpenAIService {
       required: true,
     }));
   
+    console.log(`🎉 [${requestId}] Analysis completed successfully!`);
+    console.log(`📊 [${requestId}] Final analysis length:`, parsed.analysis.trim().length);
+    console.log(`❓ [${requestId}] Final questions count:`, questions.length);
+    
     return { analysis: parsed.analysis.trim(), questions };
   }
   

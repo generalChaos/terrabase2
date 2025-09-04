@@ -83,7 +83,15 @@ export default function HomePage() {
         queryClient.invalidateQueries('images')
       },
       onError: (error: any) => {
-        console.error('Upload failed:', error)
+        console.error('🚨 Upload failed:', error)
+        console.error('🚨 Error details:', {
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          data: JSON.stringify(error.response?.data),
+          message: error.message,
+          code: error.code
+        })
+        
         const errorMessage = error.response?.data?.error || error.message || 'Unknown error occurred'
         addError(`Upload failed: ${errorMessage}`)
         
@@ -120,7 +128,15 @@ export default function HomePage() {
         window.location.href = `/result?id=${currentImageAnalysis?.id}`
       },
       onError: (error: any) => {
-        console.error('Generation failed:', error)
+        console.error('🚨 Generation failed:', error)
+        console.error('🚨 Generation error details:', {
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          data: JSON.stringify(error.response?.data),
+          message: error.message,
+          code: error.code
+        })
+        
         const errorMessage = error.response?.data?.error || error.message || 'Unknown error occurred'
         addError(`Image generation failed: ${errorMessage}`)
         alert(`Failed to generate image: ${errorMessage}`)
@@ -150,32 +166,24 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen">
-      {currentStep !== 'homepage' && (
-        <div className="container mx-auto px-4 py-8">
-          <header className="text-center mb-8">
-            <div className="flex flex-col items-center">
-              <img 
-                src="/image.png" 
-                alt="MagicMarker Logo" 
-                className="w-full max-w-4xl h-auto drop-shadow-lg"
-              />
-            </div>
-          </header>
+      
+      {currentStep === 'homepage' && (
+        <div className="">
+          <main className="max-w-4xl mx-auto">
+            <AnimatedHomepage onStartUpload={handleStartUpload} />
+          </main>
         </div>
       )}
-      
-      <div className={currentStep === 'homepage' ? '' : 'container mx-auto px-4 py-8'}>
 
-        <main className="max-w-4xl mx-auto">
-          {currentStep === 'homepage' && (
-            <AnimatedHomepage onStartUpload={handleStartUpload} />
-          )}
+      {currentStep === 'upload' && (
+        <div className="min-h-screen flex items-center justify-center p-4">
+          <ImageUpload onUpload={handleImageUpload} isLoading={uploadMutation.isLoading} />
+        </div>
+      )}
 
-          {currentStep === 'upload' && (
-            <div className="space-y-6">
-              <ImageUpload onUpload={handleImageUpload} isLoading={uploadMutation.isLoading} />
-            </div>
-          )}
+      {currentStep !== 'homepage' && currentStep !== 'upload' && (
+        <div className="container mx-auto px-4 py-8">
+          <main className="max-w-4xl mx-auto">
 
           {currentStep === 'questions' && currentImageAnalysis && (
             <QuestionFlow
@@ -199,14 +207,15 @@ export default function HomePage() {
             </div>
           )}
 
-          {/* Debug Panel */}
-          <DebugPanel 
-            errors={errors} 
-            logs={logs} 
-            onClear={clearDebug} 
-          />
-        </main>
-      </div>
+            {/* Debug Panel */}
+            <DebugPanel 
+              errors={errors} 
+              logs={logs} 
+              onClear={clearDebug} 
+            />
+          </main>
+        </div>
+      )}
     </div>
   )
 }

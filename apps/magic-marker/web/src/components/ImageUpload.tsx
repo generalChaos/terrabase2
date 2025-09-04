@@ -61,13 +61,9 @@ const ImageUpload: React.FC<ImageUploadProps> = ({ onUpload, isLoading }) => {
   }
 
   return (
-    <div className="card">
-      <h2 className="text-2xl font-semibold text-white mb-4 drop-shadow-lg">
-        Upload an Image
-      </h2>
-      
+    <div className="w-full h-full flex items-center justify-center">
       <div
-        className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors duration-200 ${
+        className={`w-full max-w-2xl mx-auto border-2 border-dashed rounded-lg p-8 text-center transition-colors duration-200 ${
           isDragOver
             ? 'border-white bg-white/20'
             : 'border-white/50 hover:border-white/80'
