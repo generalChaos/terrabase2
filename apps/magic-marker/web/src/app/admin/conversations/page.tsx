@@ -40,6 +40,8 @@ interface ProcessingStep {
   step_order: number
   input_data: any
   output_data: any
+  input_schema?: any
+  output_schema?: any
   response_time_ms: number
   model_used: string
   success: boolean
@@ -386,28 +388,53 @@ export default function ConversationsPage() {
                                 </div>
                               )}
 
-                              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                              <div className="space-y-6">
+                                {/* Input Schema and Data */}
                                 <div>
                                   <h5 className="font-semibold text-gray-900 mb-3 flex items-center">
                                     <svg className="h-4 w-4 text-gray-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                     </svg>
-                                    Input Data
+                                    Input Schema & Data
                                   </h5>
-                                  <pre className="text-xs text-gray-800 bg-gray-50 p-4 rounded-lg border border-gray-200 overflow-x-auto whitespace-pre-wrap font-mono leading-relaxed">
-                                    {JSON.stringify(step.input_data, null, 2)}
-                                  </pre>
+                                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                    <div>
+                                      <h6 className="text-sm font-medium text-gray-700 mb-2">Expected Schema:</h6>
+                                      <pre className="text-xs text-gray-600 bg-blue-50 p-3 rounded-lg border border-blue-200 overflow-x-auto whitespace-pre-wrap font-mono leading-relaxed">
+                                        {step.input_schema ? JSON.stringify(step.input_schema, null, 2) : 'No schema available'}
+                                      </pre>
+                                    </div>
+                                    <div>
+                                      <h6 className="text-sm font-medium text-gray-700 mb-2">Actual Input:</h6>
+                                      <pre className="text-xs text-gray-800 bg-gray-50 p-3 rounded-lg border border-gray-200 overflow-x-auto whitespace-pre-wrap font-mono leading-relaxed">
+                                        {JSON.stringify(step.input_data, null, 2)}
+                                      </pre>
+                                    </div>
+                                  </div>
                                 </div>
+
+                                {/* Output Schema and Data */}
                                 <div>
                                   <h5 className="font-semibold text-gray-900 mb-3 flex items-center">
                                     <svg className="h-4 w-4 text-gray-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
-                                    Output Data
+                                    Output Schema & Data
                                   </h5>
-                                  <pre className="text-xs text-gray-800 bg-gray-50 p-4 rounded-lg border border-gray-200 overflow-x-auto whitespace-pre-wrap font-mono leading-relaxed">
-                                    {step.output_data ? JSON.stringify(step.output_data, null, 2) : 'No output data'}
-                                  </pre>
+                                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                    <div>
+                                      <h6 className="text-sm font-medium text-gray-700 mb-2">Expected Schema:</h6>
+                                      <pre className="text-xs text-gray-600 bg-green-50 p-3 rounded-lg border border-green-200 overflow-x-auto whitespace-pre-wrap font-mono leading-relaxed">
+                                        {step.output_schema ? JSON.stringify(step.output_schema, null, 2) : 'No schema available'}
+                                      </pre>
+                                    </div>
+                                    <div>
+                                      <h6 className="text-sm font-medium text-gray-700 mb-2">Actual Output:</h6>
+                                      <pre className="text-xs text-gray-800 bg-gray-50 p-3 rounded-lg border border-gray-200 overflow-x-auto whitespace-pre-wrap font-mono leading-relaxed">
+                                        {step.output_data ? JSON.stringify(step.output_data, null, 2) : 'No output data'}
+                                      </pre>
+                                    </div>
+                                  </div>
                                 </div>
                               </div>
                             </div>
