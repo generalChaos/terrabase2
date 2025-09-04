@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import LoadingSpinner from '@/components/LoadingSpinner'
 
 function ResultContent() {
@@ -16,6 +17,10 @@ function ResultContent() {
   } | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [imageErrors, setImageErrors] = useState<{
+    original: boolean
+    final: boolean
+  }>({ original: false, final: false })
 
   const imageId = searchParams.get('id')
 
@@ -34,6 +39,9 @@ function ResultContent() {
           throw new Error('Failed to fetch image data')
         }
         const data = await response.json()
+        console.log('📸 Image data received:', data)
+        console.log('🔗 Original image path:', data.original_image_path)
+        console.log('🔗 Final image path:', data.final_image_path)
         setImageData(data)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load image')
@@ -97,11 +105,28 @@ function ResultContent() {
               Original Image
             </h2>
             <div className="flex justify-center">
-              <img
-                src={imageData.originalImagePath}
-                alt="Original image"
-                className="max-w-full max-h-96 rounded-lg shadow-lg border-2 border-white/20"
-              />
+              <div className="relative w-full max-w-md h-96">
+                {!imageErrors.original ? (
+                  <Image
+                    src={imageData.originalImagePath}
+                    alt="Original image"
+                    fill
+                    className="object-contain rounded-lg shadow-lg border-2 border-white/20"
+                    onError={(e) => {
+                      console.error('Original image failed to load:', imageData.originalImagePath);
+                      console.error('Image error:', e);
+                      setImageErrors(prev => ({ ...prev, original: true }));
+                    }}
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-gray-800 rounded-lg border-2 border-white/20">
+                    <div className="text-center text-white/60">
+                      <p className="text-lg font-medium">Image failed to load</p>
+                      <p className="text-sm mt-2">URL: {imageData.originalImagePath}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -111,11 +136,28 @@ function ResultContent() {
               Generated Image
             </h2>
             <div className="flex justify-center">
-              <img
-                src={imageData.finalImagePath}
-                alt="Generated image"
-                className="max-w-full max-h-96 rounded-lg shadow-lg border-2 border-white/20"
-              />
+              <div className="relative w-full max-w-md h-96">
+                {!imageErrors.final ? (
+                  <Image
+                    src={imageData.finalImagePath}
+                    alt="Generated image"
+                    fill
+                    className="object-contain rounded-lg shadow-lg border-2 border-white/20"
+                    onError={(e) => {
+                      console.error('Generated image failed to load:', imageData.finalImagePath);
+                      console.error('Image error:', e);
+                      setImageErrors(prev => ({ ...prev, final: true }));
+                    }}
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-gray-800 rounded-lg border-2 border-white/20">
+                    <div className="text-center text-white/60">
+                      <p className="text-lg font-medium">Image failed to load</p>
+                      <p className="text-sm mt-2">URL: {imageData.finalImagePath}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

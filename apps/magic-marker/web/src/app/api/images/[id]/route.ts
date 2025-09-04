@@ -32,6 +32,12 @@ export async function GET(
       final_image_path: data.final_image_path // Already a Supabase Storage URL
     };
 
+    console.log('📸 Serving image data:', {
+      id: image.id,
+      original_image_path: image.original_image_path,
+      final_image_path: image.final_image_path
+    });
+
     return NextResponse.json(image);
   } catch (err) {
     console.error('Route error:', err);
