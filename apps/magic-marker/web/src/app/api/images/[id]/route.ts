@@ -28,14 +28,14 @@ export async function GET(
       ...data,
       questions: JSON.parse(data.questions),
       answers: data.answers ? JSON.parse(data.answers) : null,
-      original_image_path: data.original_image_path, // Already a Supabase Storage URL
-      final_image_path: data.final_image_path // Already a Supabase Storage URL
+      originalImagePath: data.original_image_path, // Already a Supabase Storage URL
+      finalImagePath: data.final_image_path // Already a Supabase Storage URL
     };
 
     console.log('📸 Serving image data:', {
       id: image.id,
-      original_image_path: image.original_image_path,
-      final_image_path: image.final_image_path
+      originalImagePath: image.originalImagePath,
+      finalImagePath: image.finalImagePath
     });
 
     return NextResponse.json(image);

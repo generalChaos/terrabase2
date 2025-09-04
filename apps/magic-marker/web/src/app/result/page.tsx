@@ -42,6 +42,10 @@ function ResultContent() {
         console.log('📸 Image data received:', data)
         console.log('🔗 Original image path:', data.original_image_path)
         console.log('🔗 Final image path:', data.final_image_path)
+        console.log('🔗 Original image path type:', typeof data.original_image_path)
+        console.log('🔗 Final image path type:', typeof data.final_image_path)
+        console.log('🔗 Original image path length:', data.original_image_path?.length)
+        console.log('🔗 Final image path length:', data.final_image_path?.length)
         setImageData(data)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load image')
@@ -106,20 +110,22 @@ function ResultContent() {
             </h2>
             <div className="flex justify-center">
               <div className="relative w-full max-w-md h-96">
-                {!imageErrors.original ? (
-                  <Image
-                    src={imageData.originalImagePath}
-                    alt="Original image"
-                    fill
-                    className="object-contain rounded-lg shadow-lg border-2 border-white/20"
-                    unoptimized={imageData.originalImagePath.includes('supabase')}
-                    loader={({ src }) => src}
-                    onError={(e) => {
-                      console.error('Original image failed to load:', imageData.originalImagePath);
-                      console.error('Image error:', e);
-                      setImageErrors(prev => ({ ...prev, original: true }));
-                    }}
-                  />
+                {!imageErrors.original && imageData.originalImagePath ? (
+                  <div className="relative w-full max-w-md h-96">
+                    <Image
+                      src={imageData.originalImagePath}
+                      alt="Original image"
+                      fill
+                      className="object-contain rounded-lg shadow-lg border-2 border-white/20"
+                      unoptimized={imageData.originalImagePath?.includes('supabase') || false}
+                      loader={({ src }) => src}
+                      onError={(e) => {
+                        console.error('Original image failed to load:', imageData.originalImagePath);
+                        console.error('Image error:', e);
+                        setImageErrors(prev => ({ ...prev, original: true }));
+                      }}
+                    />
+                  </div>
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-gray-800 rounded-lg border-2 border-white/20">
                     <div className="text-center text-white/60">
@@ -139,20 +145,22 @@ function ResultContent() {
             </h2>
             <div className="flex justify-center">
               <div className="relative w-full max-w-md h-96">
-                {!imageErrors.final ? (
-                  <Image
-                    src={imageData.finalImagePath}
-                    alt="Generated image"
-                    fill
-                    className="object-contain rounded-lg shadow-lg border-2 border-white/20"
-                    unoptimized={imageData.finalImagePath.includes('supabase')}
-                    loader={({ src }) => src}
-                    onError={(e) => {
-                      console.error('Generated image failed to load:', imageData.finalImagePath);
-                      console.error('Image error:', e);
-                      setImageErrors(prev => ({ ...prev, final: true }));
-                    }}
-                  />
+                {!imageErrors.final && imageData.finalImagePath ? (
+                  <div className="relative w-full max-w-md h-96">
+                    <Image
+                      src={imageData.finalImagePath}
+                      alt="Generated image"
+                      fill
+                      className="object-contain rounded-lg shadow-lg border-2 border-white/20"
+                      unoptimized={imageData.finalImagePath?.includes('supabase') || false}
+                      loader={({ src }) => src}
+                      onError={(e) => {
+                        console.error('Generated image failed to load:', imageData.finalImagePath);
+                        console.error('Image error:', e);
+                        setImageErrors(prev => ({ ...prev, final: true }));
+                      }}
+                    />
+                  </div>
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-gray-800 rounded-lg border-2 border-white/20">
                     <div className="text-center text-white/60">
