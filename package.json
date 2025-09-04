@@ -32,13 +32,10 @@
     "infra:plan": "cd infrastructure/terraform && terraform plan",
     "infra:apply": "cd infrastructure/terraform && terraform apply",
     "infra:destroy": "cd infrastructure/terraform && terraform destroy",
-    "prepare": "husky"
   },
   "devDependencies": {
     "@types/node": "^20.12.0",
     "eslint": "^9.0.0",
-    "husky": "^9.1.7",
-    "lint-staged": "^16.1.6",
     "prettier": "^3.3.0",
     "turbo": "^2.0.0",
     "typescript": "^5.5.0"
@@ -49,13 +46,4 @@
       "eslint": "^9.0.0"
     }
   },
-  "lint-staged": {
-    "apps/**/*.{ts,tsx}": [
-      "turbo run lint --filter=./apps/magic-marker/web",
-      "turbo run type-check --filter=./apps/magic-marker/web"
-    ],
-    "apps/**/*.{js,jsx,ts,tsx,json,css,md}": [
-      "prettier --write"
-    ]
-  }
 }
