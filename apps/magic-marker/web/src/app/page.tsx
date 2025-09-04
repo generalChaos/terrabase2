@@ -6,7 +6,6 @@ import axios from 'axios'
 import { ImageAnalysis, Question, QuestionAnswer } from '@/lib/types'
 import ImageUpload from '@/components/ImageUpload'
 import QuestionFlow from '@/components/QuestionFlow'
-import ImageGallery from '@/components/ImageGallery'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import DebugPanel from '@/components/DebugPanel'
 
@@ -112,7 +111,8 @@ export default function HomePage() {
         setCurrentStep('upload')
         setCurrentImageAnalysis(null)
         queryClient.invalidateQueries('images')
-        alert('Image generated successfully!')
+        // Redirect to result page
+        window.location.href = `/result?id=${currentImageAnalysis?.id}`
       },
       onError: (error: any) => {
         console.error('Generation failed:', error)
@@ -159,9 +159,6 @@ export default function HomePage() {
           {currentStep === 'upload' && (
             <div className="space-y-6">
               <ImageUpload onUpload={handleImageUpload} isLoading={uploadMutation.isLoading} />
-              {images && images.length > 0 && (
-                <ImageGallery images={images} />
-              )}
             </div>
           )}
 

@@ -1,18 +1,14 @@
 'use client'
 
 import Link from 'next/link'
+import AdminLayout from '@/components/AdminLayout'
 
 export default function AdminDashboard() {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-          <p className="mt-2 text-gray-600">
-            Manage your Magic Marker application
-          </p>
-        </div>
+    <AdminLayout 
+      title="Admin Dashboard" 
+      description="Manage your Magic Marker application"
+    >
 
         {/* Dashboard Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -59,6 +55,31 @@ export default function AdminDashboard() {
                     </h3>
                     <p className="text-sm text-gray-500">
                       View prompt performance metrics
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Link>
+
+          {/* Image Gallery */}
+          <Link href="/admin/images" className="group">
+            <div className="bg-white overflow-hidden shadow rounded-lg hover:shadow-lg transition-shadow duration-200">
+              <div className="p-6">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0">
+                    <div className="w-12 h-12 bg-purple-500 rounded-lg flex items-center justify-center group-hover:bg-purple-600 transition-colors duration-200">
+                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div className="ml-4">
+                    <h3 className="text-lg font-medium text-gray-900 group-hover:text-purple-600 transition-colors duration-200">
+                      Image Gallery
+                    </h3>
+                    <p className="text-sm text-gray-500">
+                      View and manage all generated images
                     </p>
                   </div>
                 </div>
@@ -127,7 +148,6 @@ export default function AdminDashboard() {
             </div>
           </div>
         </div>
-      </div>
-    </div>
+    </AdminLayout>
   )
 }

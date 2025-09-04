@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import AdminLayout from '@/components/AdminLayout'
 
 interface Prompt {
   id: string
@@ -317,25 +318,18 @@ export default function PromptManagementPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Prompt Management</h1>
-              <p className="mt-2 text-gray-600">
-                Manage AI prompts and monitor their performance
-              </p>
-            </div>
-            <button
-              onClick={() => setCreatingPrompt(true)}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-            >
-              + Create New Prompt
-            </button>
-          </div>
-        </div>
+    <AdminLayout 
+      title="Prompt Management" 
+      description="Manage AI prompts and monitor their performance"
+    >
+      <div className="mb-6">
+        <button
+          onClick={() => setCreatingPrompt(true)}
+          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+        >
+          + Create New Prompt
+        </button>
+      </div>
 
         {/* Status Messages */}
         {error && (
@@ -494,7 +488,6 @@ export default function PromptManagementPage() {
             View Analytics
           </a>
         </div>
-      </div>
-    </div>
+    </AdminLayout>
   )
 }

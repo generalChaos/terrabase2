@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import AdminLayout from '@/components/AdminLayout'
 
 interface AnalyticsData {
   prompt_id: string
@@ -71,25 +72,18 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Prompt Analytics</h1>
-              <p className="mt-2 text-gray-600">
-                Performance metrics and usage statistics for AI prompts
-              </p>
-            </div>
-            <a
-              href="/admin/prompts"
-              className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              Manage Prompts
-            </a>
-          </div>
-        </div>
+    <AdminLayout 
+      title="Prompt Analytics" 
+      description="Performance metrics and usage statistics for AI prompts"
+    >
+      <div className="mb-6">
+        <a
+          href="/admin/prompts"
+          className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+        >
+          Manage Prompts
+        </a>
+      </div>
 
         {/* Analytics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -269,7 +263,6 @@ export default function AnalyticsPage() {
             <p className="mt-2 text-gray-400">Start using prompts to see performance metrics</p>
           </div>
         )}
-      </div>
-    </div>
+    </AdminLayout>
   )
 }
