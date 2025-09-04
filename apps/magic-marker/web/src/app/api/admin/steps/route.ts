@@ -52,8 +52,40 @@ export async function GET(request: NextRequest) {
       console.error('Count error:', countError);
     }
 
+    // Get unique step types to fetch schemas
+    const stepTypes = [...new Set((data || []).map(step => step.step_type))];
+    
+    // Fetch schemas for all step types
+    const { data: schemas, error: schemaError } = await supabase
+      .from('prompt_definitions')
+      .select('type, input_schema, output_schema')
+      .in('type', stepTypes);
+
+    if (schemaError) {
+      console.error('Schema fetch error:', schemaError);
+    }
+
+    // Create a map of step type to schema
+    const schemaMap = new Map();
+    (schemas || []).forEach(schema => {
+      schemaMap.set(schema.type, {
+        input_schema: schema.input_schema,
+        output_schema: schema.output_schema
+      });
+    });
+
+    // Process the data to include schema information
+    const processedSteps = (data || []).map(step => {
+      const schema = schemaMap.get(step.step_type);
+      return {
+        ...step,
+        input_schema: schema?.input_schema,
+        output_schema: schema?.output_schema
+      };
+    });
+
     return NextResponse.json({
-      steps: data || [],
+      steps: processedSteps,
       total: count || 0,
       limit,
       offset

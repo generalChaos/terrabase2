@@ -271,12 +271,35 @@ export class PromptExecutor {
     prompt: string,
     input: PromptInput<T>
   ): string | Array<{ type: "text" | "image_url"; text?: string; image_url?: { url: string } }> {
-    // For image analysis, we need to handle image input
+    // For image analysis, we need to handle image input and optional text fields
     if (definition.type === 'image_analysis' && 'image' in input) {
+      // Build enhanced prompt with optional text fields
+      let enhancedPrompt = prompt;
+      
+      // Add context if provided
+      if ('context' in input && input.context) {
+        enhancedPrompt += `\n\nContext: ${input.context}`;
+      }
+      
+      // Add user instructions if provided
+      if ('user_instructions' in input && input.user_instructions) {
+        enhancedPrompt += `\n\nUser Instructions: ${input.user_instructions}`;
+      }
+      
+      // Add analysis type if provided
+      if ('analysis_type' in input && input.analysis_type) {
+        enhancedPrompt += `\n\nAnalysis Type: ${input.analysis_type}`;
+      }
+      
+      // Add focus areas if provided
+      if ('focus_areas' in input && input.focus_areas && input.focus_areas.length > 0) {
+        enhancedPrompt += `\n\nFocus Areas: ${input.focus_areas.join(', ')}`;
+      }
+      
       return [
         {
           type: "text" as const,
-          text: prompt
+          text: enhancedPrompt
         },
         {
           type: "image_url" as const,
@@ -289,10 +312,26 @@ export class PromptExecutor {
 
     // For image + text analysis, we need to handle both image and text input
     if (definition.type === 'image_text_analysis' && 'image' in input && 'text' in input) {
+      // Build enhanced prompt with text input and optional fields
+      let enhancedPrompt = prompt;
+      
+      // Add the main text prompt
+      enhancedPrompt += `\n\nText Prompt: ${input.text}`;
+      
+      // Add context if provided
+      if ('context' in input && input.context) {
+        enhancedPrompt += `\n\nContext: ${input.context}`;
+      }
+      
+      // Add instructions if provided
+      if ('instructions' in input && input.instructions) {
+        enhancedPrompt += `\n\nInstructions: ${input.instructions}`;
+      }
+      
       return [
         {
           type: "text" as const,
-          text: prompt
+          text: enhancedPrompt
         },
         {
           type: "image_url" as const,
