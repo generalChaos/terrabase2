@@ -162,7 +162,7 @@ Current Context: ${conversationContext.artisticDirection || 'No specific directi
       if (!result.done && result.questions.length > 0) {
         const firstQuestion = result.questions[0];
         question = {
-          id: firstQuestion.id,
+          id: `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           text: firstQuestion.text,
           options: firstQuestion.options,
           required: firstQuestion.required
