@@ -88,7 +88,8 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
             artisticDirection: String(flow.context_data?.artisticDirection || ''),
             previousAnswers: previousAnswers
           },
-          imageId
+          imageId,
+          flowId: flow.id
         })
       })
 

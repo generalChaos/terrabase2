@@ -9,7 +9,8 @@ export async function POST(request: NextRequest) {
       imageAnalysis, 
       previousAnswers, 
       conversationContext, 
-      imageId 
+      imageId,
+      flowId 
     } = body
 
     if (!imageAnalysis) {
@@ -29,7 +30,7 @@ export async function POST(request: NextRequest) {
       imageAnalysis,
       previousAnswers || [],
       conversationContext || { questions: [], previousAnswers: [] },
-      imageId
+      flowId || imageId // Use flowId if available, fallback to imageId
     )
 
     console.log('✅ [API] Conversational question generated:', {
