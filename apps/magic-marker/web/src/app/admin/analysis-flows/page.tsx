@@ -255,11 +255,11 @@ export default function AnalysisFlowsPage() {
                           <div className="flex items-center space-x-1">
                             <MessageSquare className="w-4 h-4 text-gray-400" />
                             <span className="text-sm font-medium text-gray-900">
-                              {flow.total_questions || 0}
+                              {flow.total_answers || 0}
                             </span>
                           </div>
                           <div className="text-sm text-gray-500">
-                            / {flow.total_answers || 0} answered
+                            / {flow.total_questions || 0} questions
                           </div>
                         </div>
                       </td>
