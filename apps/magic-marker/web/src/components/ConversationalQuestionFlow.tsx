@@ -10,6 +10,7 @@ interface ConversationalQuestionFlowProps {
   originalImagePath?: string
   onSubmit: (answers: QuestionAnswer[]) => void
   onReset: () => void
+  onSkip?: () => void
   isLoading: boolean
 }
 
@@ -19,6 +20,7 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
   originalImagePath,
   onSubmit,
   onReset,
+  onSkip,
   isLoading
 }) => {
   const [conversation, setConversation] = useState<Conversation | null>(null)
@@ -28,7 +30,8 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
   const [sessionId] = useState(() => ConversationService.generateSessionId())
   const [error, setError] = useState<string | null>(null)
 
-  const finishConversation = async (conv: Conversation) => {
+
+  const finishConversation = useCallback(async (conv: Conversation) => {
     console.log('🏁 [ConversationalQuestionFlow] Finishing conversation...', {
       conversationId: conv.id,
       questionsCount: conv.conversation_state.questions.length,
@@ -45,38 +48,22 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
         .filter((q) => q.answer)
         .map((q) => ({
           questionId: q.id,
-          questionText: q.text,
           answer: q.answer!,
-          context: q.context
         }))
 
       console.log('📊 [ConversationalQuestionFlow] Question answers prepared:', {
         count: questionAnswers.length,
-        answers: questionAnswers.map(qa => ({ question: qa.questionText, answer: qa.answer }))
+        answers: questionAnswers.map(qa => ({ questionId: qa.questionId, answer: qa.answer }))
       });
 
-      // Generate image based on conversation
-      console.log('🎨 [ConversationalQuestionFlow] Generating image based on conversation...');
-      const imageUrl = await OpenAIService.generateImageFromAnswers(questionAnswers, imageId)
-      
-      console.log('✅ [ConversationalQuestionFlow] Image generated:', imageUrl);
-
-      // Update conversation with final image
-      const finalConversation = await ConversationService.updateConversation(conv.id, {
-        status: 'completed',
-        finalImageUrl: imageUrl
-      })
-
-      setConversation(finalConversation)
-      setCurrentQuestion(null)
-      setSelectedAnswer('')
-      
+      // Call onSubmit with the answers
       console.log('🎉 [ConversationalQuestionFlow] Conversation completed successfully!');
+      onSubmit(questionAnswers)
     } catch (err) {
       console.error('❌ [ConversationalQuestionFlow] Failed to finish conversation:', err)
       setError('Failed to complete conversation. Please try again.')
     }
-  }
+  }, [onSubmit])
 
   const generateNextQuestion = useCallback(async (conv: Conversation) => {
     console.log('🔄 [ConversationalQuestionFlow] Generating next question for conversation:', {
@@ -301,33 +288,6 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
     }
   }
 
-  const finishConversation = async (conv: Conversation) => {
-    console.log('🏁 [ConversationalQuestionFlow] Finishing conversation...', {
-      conversationId: conv.id,
-      questionsCount: conv.conversation_state.questions.length,
-      answeredQuestions: conv.conversation_state.questions.filter(q => q.answer).length
-    });
-
-    try {
-      // End conversation
-      console.log('🔚 [ConversationalQuestionFlow] Ending conversation...');
-      await ConversationService.endConversation(conv.id)
-      
-      // Convert to QuestionAnswer format
-      const questionAnswers: QuestionAnswer[] = conv.conversation_state.questions
-        .filter((q) => q.answer)
-        .map((q) => ({
-          questionId: q.id,
-          answer: q.answer!
-        }))
-      
-      console.log('📤 [ConversationalQuestionFlow] Submitting answers:', questionAnswers);
-      onSubmit(questionAnswers)
-    } catch (err) {
-      console.error('❌ [ConversationalQuestionFlow] Failed to finish conversation:', err)
-      setError('Failed to finish conversation. Please try again.')
-    }
-  }
 
   const handleReset = async () => {
     if (conversation) {
@@ -379,9 +339,20 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
                 Refresh Page
               </button>
             )}
+            {onSkip && (
+              <button
+                onClick={onSkip}
+                className="btn-primary"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+                Skip to Next Step
+              </button>
+            )}
             <button
               onClick={handleReset}
-              className="btn-primary"
+              className="btn-secondary"
             >
               Start Over
             </button>
