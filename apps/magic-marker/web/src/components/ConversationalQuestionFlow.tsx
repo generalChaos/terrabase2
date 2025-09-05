@@ -40,9 +40,8 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
     });
 
     try {
-      // End conversation
-      console.log('🔚 [ConversationalQuestionFlow] Ending conversation...');
-      await AnalysisFlowService.deactivateAnalysisFlow(flow.id)
+      // Don't deactivate the flow yet - let image generation complete first
+      console.log('🔚 [ConversationalQuestionFlow] Conversation complete, keeping flow active for image generation...');
       
       // Convert to QuestionAnswer format
       const questionAnswers: QuestionAnswer[] = flow.answers;

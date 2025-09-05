@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
 import axios from 'axios'
 import { ImageAnalysis, QuestionAnswer } from '@/lib/types'
+import { AnalysisFlowService } from '@/lib/analysisFlowService'
 import ImageUpload from '@/components/ImageUpload'
 import QuestionFlow from '@/components/QuestionFlow'
 import ConversationalQuestionFlow from '@/components/ConversationalQuestionFlow'
@@ -152,6 +153,7 @@ export default function HomePage() {
           updatedAt: new Date(),
           // New fields from analysis flows
           sessionId: data.sessionId,
+          flowId: data.flowId, // Store the analysis flow ID
           totalQuestions: data.questions?.length || 0,
           totalAnswers: 0,
           currentStep: 'questions',
@@ -230,8 +232,19 @@ export default function HomePage() {
       return response.data
     },
     {
-      onSuccess: (_data) => {
+      onSuccess: async (_data) => {
         addLog('Image generated successfully!')
+        
+        // Deactivate the analysis flow now that image generation is complete
+        if (currentImageAnalysis?.flowId) {
+          try {
+            console.log('🔚 [GENERATION] Deactivating analysis flow:', currentImageAnalysis.flowId)
+            await AnalysisFlowService.deactivateAnalysisFlow(currentImageAnalysis.flowId)
+            console.log('✅ [GENERATION] Analysis flow deactivated successfully')
+          } catch (error) {
+            console.error('❌ [GENERATION] Failed to deactivate analysis flow:', error)
+          }
+        }
         
         // Show success toast
         success(

@@ -14,6 +14,7 @@ export interface ImageAnalysis {
   
   // New fields from analysis_flows
   sessionId?: string;
+  flowId?: string; // Analysis flow ID
   totalQuestions?: number;
   totalAnswers?: number;
   currentStep?: string;
