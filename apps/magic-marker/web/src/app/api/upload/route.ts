@@ -181,11 +181,17 @@ export async function POST(request: NextRequest) {
       analysisResult.response
     );
 
+    // Ensure unique IDs for questions
+    const questionsWithUniqueIds = questionsResult.questions.map((q, index) => ({
+      ...q,
+      id: `q_${Date.now()}_${index}_${Math.random().toString(36).substr(2, 6)}`
+    }));
+
     // Add questions to the analysis flow
     console.log(`❓ [${requestId}] Adding questions to analysis flow...`);
     const updatedFlow = await AnalysisFlowService.updateAnalysisFlow(analysisFlow.id, {
-      questions: questionsResult.questions,
-      totalQuestions: questionsResult.questions.length,
+      questions: questionsWithUniqueIds,
+      totalQuestions: questionsWithUniqueIds.length,
       currentStep: 'questions'
     });
 
@@ -221,7 +227,7 @@ export async function POST(request: NextRequest) {
       flowId: analysisFlow.id, // Return the analysis flow ID
       originalImagePath: publicUrl,
       analysis: analysisResult.response,
-      questions: questionsResult.questions // Return generated questions
+      questions: questionsWithUniqueIds // Return generated questions with unique IDs
     });
 
   } catch (error) {
