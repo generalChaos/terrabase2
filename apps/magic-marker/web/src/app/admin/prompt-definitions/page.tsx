@@ -62,7 +62,7 @@ function TypeDisplay({
   }
 
   const typeSummary = getTypeSummary(schema)
-  const hasMultipleFields = Array.isArray(typeSummary) && typeSummary.length > 1
+  // const hasMultipleFields = Array.isArray(typeSummary) && typeSummary.length > 1 // Unused for now
 
   return (
     <div className="relative group">
@@ -215,18 +215,18 @@ const getStepNumber = (promptName: string): number => {
   return PIPELINE_ORDER[promptName as keyof typeof PIPELINE_ORDER] || 99
 }
 
-// Get step description
-const getStepDescription = (promptName: string): string => {
-  const descriptions = {
-    'image_analysis': 'Analyze uploaded image',
-    'questions_generation': 'Generate questions from analysis',
-    'conversational_question': 'Generate follow-up questions',
-    'text_processing': 'Process text (utility)',
-    'image_text_analysis': 'Analyze image with text prompt',
-    'image_prompt_creation': 'Create final image generation prompt'
-  }
-  return descriptions[promptName as keyof typeof descriptions] || 'Unknown step'
-}
+// Get step description - unused for now
+// const getStepDescription = (promptName: string): string => {
+//   const descriptions = {
+//     'image_analysis': 'Analyze uploaded image',
+//     'questions_generation': 'Generate questions from analysis',
+//     'conversational_question': 'Generate follow-up questions',
+//     'text_processing': 'Process text (utility)',
+//     'image_text_analysis': 'Analyze image with text prompt',
+//     'image_prompt_creation': 'Create final image generation prompt'
+//   }
+//   return descriptions[promptName as keyof typeof descriptions] || 'Unknown step'
+// }
 
 export default function PromptDefinitionsPage() {
   const [prompts, setPrompts] = useState<PromptDefinition[]>([])

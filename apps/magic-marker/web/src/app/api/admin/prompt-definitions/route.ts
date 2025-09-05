@@ -34,7 +34,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Prompt ID or name is required' }, { status: 400 })
     }
 
-    const updateData: any = {}
+    const updateData: Record<string, unknown> = {}
     if (prompt_text !== undefined) updateData.prompt_text = prompt_text
     if (active !== undefined) updateData.active = active
     if (input_schema !== undefined) updateData.input_schema = input_schema

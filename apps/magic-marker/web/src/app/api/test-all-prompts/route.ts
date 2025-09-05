@@ -3,7 +3,7 @@ import { PromptExecutor } from '@/lib/promptExecutor';
 
 // GET /api/test-all-prompts - Test all prompt types
 export async function GET() {
-  const results: Record<string, any> = {};
+  const results: Record<string, unknown> = {};
   const errors: Record<string, string> = {};
 
   // Test data
