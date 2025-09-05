@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import AdminLayout from '@/components/AdminLayout';
 
@@ -39,7 +39,7 @@ export default function StepsPage() {
     offset: 0
   });
 
-  const fetchSteps = async () => {
+  const fetchSteps = useCallback(async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
@@ -60,7 +60,7 @@ export default function StepsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters.step_type, filters.image_id, pagination.limit, pagination.offset]);
 
   useEffect(() => {
     fetchSteps();

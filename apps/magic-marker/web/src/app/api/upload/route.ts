@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '@/lib/supabase';
-import { OpenAIService } from '@/lib/openai';
+import { PromptExecutor } from '@/lib/promptExecutor';
 import { StepService } from '@/lib/stepService';
 
 export async function POST(request: NextRequest) {
@@ -138,25 +138,27 @@ export async function POST(request: NextRequest) {
     const base64Image = buffer.toString('base64');
     console.log(`🔄 [${requestId}] Converted to base64, length:`, base64Image.length);
 
-    // Step 1: Analyze image with OpenAI using prompt system
-    console.log(`🤖 [${requestId}] Starting OpenAI analysis with prompt system...`);
+    // Step 1: Analyze image using prompt system
+    console.log(`🤖 [${requestId}] Starting image analysis with prompt system...`);
     const analysisStartTime = Date.now();
-    const analysisResult = await OpenAIService.analyzeImage(
-      base64Image, 
-      imageId,
-      'Analyze this image and describe what you see, focusing on artistic elements, composition, colors, and mood. Consider what kind of questions would help create a great artistic image based on this analysis.'
-    );
+    const analysisResult = await PromptExecutor.execute('image_analysis', {
+      image: base64Image,
+      prompt: 'Analyze this image and describe what you see, focusing on artistic elements, composition, colors, and mood.'
+    });
     const analysisTime = Date.now() - analysisStartTime;
-    console.log(`✅ [${requestId}] OpenAI analysis completed in ${analysisTime}ms`);
+    console.log(`✅ [${requestId}] Image analysis completed in ${analysisTime}ms`);
     console.log(`📝 [${requestId}] Analysis length:`, analysisResult.response?.length || 0);
 
     // Step 2: Generate questions from analysis using prompt system
     console.log(`❓ [${requestId}] Starting questions generation with prompt system...`);
     const questionsStartTime = Date.now();
-    const questions = await OpenAIService.generateQuestions(analysisResult.response, imageId);
+    const questionsResult = await PromptExecutor.execute('questions_generation', {
+      analysis: analysisResult.response,
+      prompt: 'Generate engaging questions to help create a great artistic image based on this analysis.'
+    });
     const questionsTime = Date.now() - questionsStartTime;
     console.log(`✅ [${requestId}] Questions generation completed in ${questionsTime}ms`);
-    console.log(`❓ [${requestId}] Questions count:`, questions?.length || 0);
+    console.log(`❓ [${requestId}] Questions count:`, questionsResult.questions?.length || 0);
 
     // Store in database FIRST
     console.log(`💾 [${requestId}] Storing in database...`);
@@ -166,7 +168,7 @@ export async function POST(request: NextRequest) {
         id: imageId,
         original_image_path: publicUrl,
         analysis_result: analysisResult.response,
-        questions: JSON.stringify(questions)
+        questions: JSON.stringify(questionsResult.questions)
       });
 
     if (insertError) {
@@ -215,7 +217,7 @@ export async function POST(request: NextRequest) {
       step_type: 'questions',
       step_order: 2,
       input_data: { analysis: analysisResult.response.trim() },
-      output_data: { questions },
+      output_data: { questions: questionsResult.questions },
       response_time_ms: questionsTime,
       model_used: 'gpt-4o',
       success: true
@@ -227,7 +229,7 @@ export async function POST(request: NextRequest) {
       imageAnalysisId: imageId,
       originalImagePath: publicUrl,
       analysis: analysisResult.response,
-      questions
+      questions: questionsResult.questions
     });
 
   } catch (error) {

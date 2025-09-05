@@ -8,10 +8,7 @@ export async function GET() {
     
     // Test with a simple text processing prompt
     const result = await PromptExecutor.execute('text_processing', {
-      text: 'Hello, this is a test message.',
-      context: 'This is a test context',
-      instructions: 'Please respond with a greeting',
-      format: 'JSON'
+      prompt: 'Hello, this is a test message. Please respond with a greeting.'
     });
     
     console.log('✅ Simple text processing successful:', result);

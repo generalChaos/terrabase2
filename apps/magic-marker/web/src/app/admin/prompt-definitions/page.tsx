@@ -11,7 +11,12 @@ interface PromptDefinition {
   input_schema: Record<string, unknown>
   output_schema: Record<string, unknown>
   return_schema: Record<string, unknown>
+  model: string
+  response_format: string
+  max_tokens?: number
+  temperature?: number
   active: boolean
+  sort_order: number
   created_at: string
   updated_at: string
 }
@@ -200,19 +205,9 @@ function EditPromptText({ prompt, onSave, onCancel, saving }: {
   )
 }
 
-// Define the logical pipeline order
-const PIPELINE_ORDER = {
-  'image_analysis': 1,
-  'questions_generation': 2,
-  'conversational_question': 3,
-  'text_processing': 4,
-  'image_text_analysis': 5,
-  'image_prompt_creation': 6
-} as const
-
-// Get step number for a prompt
-const getStepNumber = (promptName: string): number => {
-  return PIPELINE_ORDER[promptName as keyof typeof PIPELINE_ORDER] || 99
+// Get step number for a prompt based on sort_order
+const getStepNumber = (prompt: PromptDefinition): number => {
+  return prompt.sort_order
 }
 
 // Get step description - unused for now
@@ -342,6 +337,7 @@ export default function PromptDefinitionsPage() {
     }
   }
 
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -385,17 +381,18 @@ export default function PromptDefinitionsPage() {
       <div className="mb-8 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">AI Pipeline Flow</h2>
         <div className="flex flex-wrap items-center gap-4">
-          {Object.entries(PIPELINE_ORDER)
-            .sort(([,a], [,b]) => a - b)
-            .map(([name, step]) => (
-              <div key={name} className="flex items-center space-x-2">
+          {prompts
+            .filter(p => p.active)
+            .sort((a, b) => a.sort_order - b.sort_order)
+            .map((prompt, index, array) => (
+              <div key={prompt.id} className="flex items-center space-x-2">
                 <div className="flex items-center justify-center w-6 h-6 bg-blue-600 text-white text-xs font-bold rounded-full">
-                  {step}
+                  {prompt.sort_order}
                 </div>
                 <span className="text-sm font-medium text-gray-700">
-                  {name.replace('_', ' ')}
+                  {prompt.name.replace('_', ' ')}
                 </span>
-                {step < Object.keys(PIPELINE_ORDER).length && (
+                {index < array.length - 1 && (
                   <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
@@ -404,7 +401,7 @@ export default function PromptDefinitionsPage() {
             ))}
         </div>
         <p className="mt-3 text-sm text-gray-600">
-          Prompts are ordered by their logical position in the AI pipeline. Each step builds on the previous one.
+          Prompts are ordered by their sort_order value. Each step builds on the previous one.
         </p>
       </div>
 
@@ -417,7 +414,7 @@ export default function PromptDefinitionsPage() {
                 <div className="flex items-center space-x-3">
                   {/* Step Number */}
                   <div className="flex items-center justify-center w-8 h-8 bg-blue-600 text-white text-sm font-bold rounded-full">
-                    {getStepNumber(prompt.name)}
+                    {getStepNumber(prompt)}
                   </div>
                   
                   <div>
@@ -428,6 +425,9 @@ export default function PromptDefinitionsPage() {
                   
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                     {prompt.type}
+                  </span>
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                    {prompt.model}
                   </span>
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                     prompt.active 
@@ -478,6 +478,45 @@ export default function PromptDefinitionsPage() {
                 )}
               </div>
 
+              {/* Output Constraints - Non-editable */}
+              <div className="mt-4">
+                <h4 className="text-sm font-medium text-gray-700 mb-2">Output Constraints (Auto-appended by system)</h4>
+                <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+                  <div className="text-xs text-blue-800 font-mono">
+                    <div className="font-semibold mb-1">Return Schema:</div>
+                    <pre className="text-xs">{JSON.stringify(prompt.return_schema, null, 2)}</pre>
+                    
+                    {prompt.type === 'conversational_question' && (
+                      <>
+                        <div className="mt-3 font-semibold">Schema Alignment Rules:</div>
+                        <div className="text-xs space-y-1">
+                          <div>• Questions array must match questions_generation schema exactly</div>
+                          <div>• Each question must have: id, text, type, options, required</div>
+                          <div>• type must be &quot;multiple_choice&quot; (matches questions_generation enum)</div>
+                          <div>• options array: 2-6 items, all strings</div>
+                          <div>• When done: true, questions array must be empty []</div>
+                          <div>• When done: false, questions array must have exactly 1 question</div>
+                          <div>• summary field only present when done: true</div>
+                        </div>
+                        
+                        <div className="mt-3 font-semibold">End State Rules:</div>
+                        <div className="text-xs space-y-1">
+                          <div>• done: true → questions: [], summary: &quot;complete Q&A summary&quot;</div>
+                          <div>• done: false → questions: [single_question], no summary</div>
+                          <div>• Summary must include all 6 aspects covered in conversation</div>
+                          <div>• Summary should create detailed image generation prompt</div>
+                        </div>
+                      </>
+                    )}
+                    
+                    <div className="mt-3 font-semibold">JSON Formatting Rules:</div>
+                    <div className="text-xs">• No extra keys. No preamble. No markdown. Only JSON.</div>
+                    <div className="text-xs">• Follow the schema exactly.</div>
+                  </div>
+                </div>
+              </div>
+
+
               {/* Input/Output Types - Collapsible */}
               <details className="group">
                 <summary className="cursor-pointer text-sm font-medium text-gray-700 hover:text-gray-900 flex items-center mb-4">
@@ -525,6 +564,7 @@ export default function PromptDefinitionsPage() {
                   />
                 </div>
               </details>
+
 
               {/* Metadata */}
               <div className="text-xs text-gray-500">

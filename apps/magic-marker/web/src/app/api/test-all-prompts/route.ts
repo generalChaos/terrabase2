@@ -9,10 +9,7 @@ export async function GET() {
   // Test data
   const testImageBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
   const testAnalysis = 'This is a test image analysis for testing purposes.';
-  const testQuestions = [
-    { id: '1', text: 'What is the main color?', type: 'multiple_choice', options: ['Blue', 'Red', 'Green', 'Yellow'], required: true }
-  ];
-  const testAnswers = ['Blue', 'Artistic', 'Modern'];
+  // Test data for prompts that need it
 
   console.log('🧪 Testing all prompt types...');
 
@@ -21,10 +18,7 @@ export async function GET() {
     console.log('Testing image_analysis...');
     results.image_analysis = await PromptExecutor.execute('image_analysis', {
       image: testImageBase64,
-      context: 'Test context',
-      analysis_type: 'general',
-      focus_areas: ['composition'],
-      user_instructions: 'Test instructions'
+      prompt: 'Analyze this image and describe what you see, focusing on composition, colors, and artistic style.'
     });
     console.log('✅ image_analysis passed');
   } catch (error) {
@@ -48,12 +42,7 @@ export async function GET() {
   try {
     console.log('Testing conversational_question...');
     results.conversational_question = await PromptExecutor.execute('conversational_question', {
-      analysis: testAnalysis,
-      previousAnswers: testAnswers,
-      conversationContext: {
-        questions: testQuestions,
-        artisticDirection: 'Modern'
-      }
+      prompt: 'I want to create an image. Help me discover my artistic preferences through a fun conversation.'
     });
     console.log('✅ conversational_question passed');
   } catch (error) {
@@ -61,27 +50,23 @@ export async function GET() {
     console.log('❌ conversational_question failed:', error);
   }
 
-  // 4. Test image_prompt_creation
+  // 4. Test image_generation
   try {
-    console.log('Testing image_prompt_creation...');
-    results.image_prompt_creation = await PromptExecutor.execute('image_prompt_creation', {
-      questions: testQuestions,
-      answers: testAnswers
+    console.log('Testing image_generation...');
+    results.image_generation = await PromptExecutor.execute('image_generation', {
+      prompt: 'A beautiful landscape with mountains and a lake at sunset, in a happy and bright style'
     });
-    console.log('✅ image_prompt_creation passed');
+    console.log('✅ image_generation passed');
   } catch (error) {
-    errors.image_prompt_creation = error instanceof Error ? error.message : 'Unknown error';
-    console.log('❌ image_prompt_creation failed:', error);
+    errors.image_generation = error instanceof Error ? error.message : 'Unknown error';
+    console.log('❌ image_generation failed:', error);
   }
 
   // 5. Test text_processing
   try {
     console.log('Testing text_processing...');
     results.text_processing = await PromptExecutor.execute('text_processing', {
-      text: 'Test text for processing',
-      context: 'Test context',
-      instructions: 'Process this text',
-      format: 'JSON'
+      prompt: 'This is a test text to process. Please analyze it and provide insights.'
     });
     console.log('✅ text_processing passed');
   } catch (error) {
@@ -89,19 +74,16 @@ export async function GET() {
     console.log('❌ text_processing failed:', error);
   }
 
-  // 6. Test image_text_analysis
+  // 6. Test questions_generation
   try {
-    console.log('Testing image_text_analysis...');
-    results.image_text_analysis = await PromptExecutor.execute('image_text_analysis', {
-      image: testImageBase64,
-      text: 'Describe this image',
-      context: 'Test context',
-      instructions: 'Provide detailed analysis'
+    console.log('Testing questions_generation...');
+    results.questions_generation = await PromptExecutor.execute('questions_generation', {
+      analysis: 'This is a test image showing a beautiful landscape with mountains and a lake at sunset. The composition is well-balanced with warm colors and dramatic lighting.'
     });
-    console.log('✅ image_text_analysis passed');
+    console.log('✅ questions_generation passed');
   } catch (error) {
-    errors.image_text_analysis = error instanceof Error ? error.message : 'Unknown error';
-    console.log('❌ image_text_analysis failed:', error);
+    errors.questions_generation = error instanceof Error ? error.message : 'Unknown error';
+    console.log('❌ questions_generation failed:', error);
   }
 
   const successCount = Object.keys(results).length;

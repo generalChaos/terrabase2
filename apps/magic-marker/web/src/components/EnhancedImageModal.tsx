@@ -248,7 +248,7 @@ const EnhancedImageModal: React.FC<EnhancedImageModalProps> = ({ image, isOpen, 
                 <div className="space-y-4">
                   {steps
                     .sort((a, b) => a.step_order - b.step_order)
-                    .map((step, _index) => (
+                    .map((step) => (
                       <div key={step.id} className="bg-white/10 rounded-lg p-4 border border-white/20">
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex items-center space-x-3">

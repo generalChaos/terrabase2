@@ -11,8 +11,8 @@ export async function GET() {
     });
     
     console.log('✅ Questions generation result:', {
-      questionsCount: result.length,
-      firstQuestion: result[0]?.text?.substring(0, 50) + '...'
+      questionsCount: (result as { questions?: unknown[] }).questions?.length || 0,
+      firstQuestion: (result as { questions?: Array<{ text?: string }> }).questions?.[0]?.text?.substring(0, 50) + '...'
     });
     
     return NextResponse.json({

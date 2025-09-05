@@ -60,7 +60,10 @@ export async function POST(request: NextRequest) {
       });
       
       // Create image prompt from questions and answers
-      const prompt = await OpenAIService.createImagePrompt(questions, answerStrings, imageAnalysisId);
+      const prompt = `Create an image based on these artistic preferences:
+Questions: ${questions.map((q: { text: string }) => q.text).join(', ')}
+Answers: ${answerStrings.join(', ')}
+Style: Artistic and creative interpretation of the user's preferences`;
       
       // Generate new image with proper step logging
       const imageUrl = await OpenAIService.generateImage(prompt, imageAnalysisId);

@@ -40,6 +40,8 @@ Magic Marker is a full-stack Next.js application that combines AI image analysis
 ### **Admin Features**
 - ✅ **Admin Dashboard**: Centralized management interface
 - ✅ **Prompt Management**: Create, edit, and reorder AI prompts
+- ✅ **Prompt Tester**: Interactive testing interface with real-time validation
+- ✅ **Conversational Q&A Testing**: Step-by-step conversation flow testing with visual progress tracking
 - ✅ **Image Gallery**: Browse and manage all generated images with statistics
 - ✅ **Analytics Dashboard**: Performance metrics and usage statistics
 - ✅ **System Status**: Health monitoring and configuration validation
@@ -237,6 +239,18 @@ The admin interface provides comprehensive management tools for the Magic Marker
 - **Toggle Active**: Enable/disable prompts for A/B testing
 - **Database Integration**: Dynamic prompt system with fallback support
 
+### **Prompt Tester (`/admin/prompt-tester`)**
+- **Interactive Testing**: Test any prompt with real inputs and see live results
+- **Schema Validation**: Real-time input/output validation with detailed error messages
+- **Image Upload**: Direct image upload for image-based prompts with base64 conversion
+- **Conversational Q&A Flow**: Specialized testing interface for conversational prompts
+  - **Step-by-step Instructions**: Clear guidance on how to test conversation flows
+  - **Visual Progress Tracking**: Progress bar and question status indicators
+  - **Answer Selection**: Interactive multiple-choice question answering
+  - **Conversation Summary**: AI-generated summary when conversation completes
+  - **Statistics Dashboard**: Track questions asked, answered, and completion status
+  - **Reset Functionality**: Start new conversations for repeated testing
+
 ### **Image Gallery (`/admin/images`)**
 - **Browse Images**: View all uploaded and generated images
 - **Statistics**: Total, completed, and in-progress image counts
@@ -372,7 +386,30 @@ curl http://localhost:3002/api/test-errors
 
 # Test image upload (use Postman or similar)
 curl -X POST -F "image=@test-image.jpg" http://localhost:3002/api/upload
+
+# Test conversational Q&A flow
+curl -X POST http://localhost:3002/api/test-prompt \
+  -H "Content-Type: application/json" \
+  -d '{"promptName": "conversational_question", "input": {"prompt": "I want to create an image. Help me discover my artistic preferences through a fun conversation."}}'
 ```
+
+### **Conversational Q&A Testing**
+The admin interface includes a specialized testing tool for conversational prompts:
+
+1. **Navigate to `/admin/prompt-tester`**
+2. **Select "conversational_question"** from the prompt list
+3. **Click "Run Test"** to start the conversation
+4. **Answer questions** by clicking on the provided options
+5. **Click "Next Question"** to generate follow-up questions
+6. **Watch the conversation evolve** as the AI learns about preferences
+7. **View the summary** when the conversation completes
+
+**Features:**
+- **Real-time Progress**: Visual progress bar and question status
+- **Interactive UI**: Click to answer questions and advance the conversation
+- **Conversation Tracking**: See all questions and answers in one place
+- **AI Summary**: Get a summary of what the AI learned
+- **Reset & Restart**: Start new conversations for repeated testing
 
 ## 🚀 **Deployment**
 

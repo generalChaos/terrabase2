@@ -28,6 +28,56 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
   const [sessionId] = useState(() => ConversationService.generateSessionId())
   const [error, setError] = useState<string | null>(null)
 
+  const finishConversation = async (conv: Conversation) => {
+    console.log('🏁 [ConversationalQuestionFlow] Finishing conversation...', {
+      conversationId: conv.id,
+      questionsCount: conv.conversation_state.questions.length,
+      answeredQuestions: conv.conversation_state.questions.filter(q => q.answer).length
+    });
+
+    try {
+      // End conversation
+      console.log('🔚 [ConversationalQuestionFlow] Ending conversation...');
+      await ConversationService.endConversation(conv.id)
+      
+      // Convert to QuestionAnswer format
+      const questionAnswers: QuestionAnswer[] = conv.conversation_state.questions
+        .filter((q) => q.answer)
+        .map((q) => ({
+          questionId: q.id,
+          questionText: q.text,
+          answer: q.answer!,
+          context: q.context
+        }))
+
+      console.log('📊 [ConversationalQuestionFlow] Question answers prepared:', {
+        count: questionAnswers.length,
+        answers: questionAnswers.map(qa => ({ question: qa.questionText, answer: qa.answer }))
+      });
+
+      // Generate image based on conversation
+      console.log('🎨 [ConversationalQuestionFlow] Generating image based on conversation...');
+      const imageUrl = await OpenAIService.generateImageFromAnswers(questionAnswers, imageId)
+      
+      console.log('✅ [ConversationalQuestionFlow] Image generated:', imageUrl);
+
+      // Update conversation with final image
+      const finalConversation = await ConversationService.updateConversation(conv.id, {
+        status: 'completed',
+        finalImageUrl: imageUrl
+      })
+
+      setConversation(finalConversation)
+      setCurrentQuestion(null)
+      setSelectedAnswer('')
+      
+      console.log('🎉 [ConversationalQuestionFlow] Conversation completed successfully!');
+    } catch (err) {
+      console.error('❌ [ConversationalQuestionFlow] Failed to finish conversation:', err)
+      setError('Failed to complete conversation. Please try again.')
+    }
+  }
+
   const generateNextQuestion = useCallback(async (conv: Conversation) => {
     console.log('🔄 [ConversationalQuestionFlow] Generating next question for conversation:', {
       conversationId: conv.id,
@@ -47,7 +97,7 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
         imageAnalysis,
         previousAnswers,
         {
-          questions: conv.conversation_state.questions,
+          questions: conv.conversation_state.questions as Question[],
           artisticDirection: conv.conversation_state.contextData.artisticDirection,
           previousAnswers: previousAnswers
         },
