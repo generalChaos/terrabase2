@@ -236,6 +236,96 @@ export default function AnalysisFlowDetailsPage() {
               </div>
             </div>
 
+            {/* AI Prompts & Responses */}
+            <div className="bg-white rounded-lg shadow-sm border p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <Code className="w-5 h-5 mr-2" />
+                AI Prompts & Responses
+              </h2>
+              
+              <div className="space-y-4">
+                {processingSteps.map((step, index) => (
+                  <div key={step.id} className="border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center space-x-3">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                          step.success ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+                        }`}>
+                          {index + 1}
+                        </div>
+                        <div>
+                          <h3 className="font-medium text-gray-900 capitalize">
+                            {step.step_type.replace('_', ' ')}
+                          </h3>
+                          <p className="text-sm text-gray-500">
+                            {step.model_used} • {step.response_time_ms}ms
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        {step.success ? (
+                          <CheckCircle className="w-5 h-5 text-green-500" />
+                        ) : (
+                          <XCircle className="w-5 h-5 text-red-500" />
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* Prompt Content */}
+                    {step.prompt_content && (
+                      <div className="mb-4">
+                        <h4 className="text-sm font-medium text-gray-700 mb-2">Prompt Sent:</h4>
+                        <div className="bg-blue-50 p-3 rounded border">
+                          <pre className="text-sm text-blue-900 whitespace-pre-wrap font-mono">
+                            {step.prompt_content}
+                          </pre>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Input Data */}
+                    {step.input_data && (
+                      <div className="mb-4">
+                        <h4 className="text-sm font-medium text-gray-700 mb-2">Input Data:</h4>
+                        <div className="bg-gray-50 p-3 rounded border">
+                          <pre className="text-sm text-gray-800 whitespace-pre-wrap font-mono max-h-32 overflow-y-auto">
+                            {JSON.stringify(step.input_data, null, 2)}
+                          </pre>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Output Data */}
+                    {step.output_data && (
+                      <div className="mb-4">
+                        <h4 className="text-sm font-medium text-gray-700 mb-2">AI Response:</h4>
+                        <div className="bg-green-50 p-3 rounded border">
+                          <pre className="text-sm text-green-900 whitespace-pre-wrap font-mono max-h-32 overflow-y-auto">
+                            {JSON.stringify(step.output_data, null, 2)}
+                          </pre>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Error Message */}
+                    {step.error_message && (
+                      <div className="bg-red-50 p-3 rounded border border-red-200">
+                        <h4 className="text-sm font-medium text-red-800 mb-1">Error:</h4>
+                        <p className="text-sm text-red-700">{step.error_message}</p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+                
+                {processingSteps.length === 0 && (
+                  <div className="text-center py-8 text-gray-500">
+                    <Database className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                    <p>No processing steps found</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
             {/* Complete Conversation Flow */}
             <div className="bg-white rounded-lg shadow-sm border p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
@@ -610,6 +700,72 @@ export default function AnalysisFlowDetailsPage() {
                 </div>
               </div>
             )}
+
+            {/* Database Debug Info */}
+            <div className="bg-white rounded-lg shadow-sm border p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <Database className="w-5 h-5 mr-2" />
+                Database Debug Info
+              </h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Key Fields */}
+                <div>
+                  <h3 className="text-md font-medium text-gray-900 mb-3">Key Database Fields</h3>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">total_questions:</span>
+                      <span className="text-sm font-mono text-gray-900">{analysisFlow.total_questions || 'null'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">total_answers:</span>
+                      <span className="text-sm font-mono text-gray-900">{analysisFlow.total_answers || 'null'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">total_tokens:</span>
+                      <span className="text-sm font-mono text-gray-900">{analysisFlow.total_tokens || 'null'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">questions array length:</span>
+                      <span className="text-sm font-mono text-gray-900">{analysisFlow.questions?.length || 'null'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">answers array length:</span>
+                      <span className="text-sm font-mono text-gray-900">{analysisFlow.answers?.length || 'null'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">current_step:</span>
+                      <span className="text-sm font-mono text-gray-900">{analysisFlow.current_step || 'null'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">is_active:</span>
+                      <span className="text-sm font-mono text-gray-900">{analysisFlow.is_active ? 'true' : 'false'}</span>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Questions Preview */}
+                <div>
+                  <h3 className="text-md font-medium text-gray-900 mb-3">Questions Preview</h3>
+                  {analysisFlow.questions && analysisFlow.questions.length > 0 ? (
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {analysisFlow.questions.map((q, index) => (
+                        <div key={q.id || index} className="p-2 bg-gray-50 rounded border text-xs">
+                          <div className="font-medium text-gray-900">Q{index + 1}: {q.text || q.question}</div>
+                          {q.options && q.options.length > 0 && (
+                            <div className="text-gray-600 mt-1">
+                              Options: {q.options.join(', ')}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500">No questions found</p>
+                  )}
+                </div>
+              </div>
+            </div>
 
             {/* Raw Flow Data */}
             <div className="bg-white rounded-lg shadow-sm border p-6">
