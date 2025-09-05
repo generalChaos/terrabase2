@@ -18,6 +18,14 @@ export default function AnalysisFlowModal({ analysisFlow, isOpen, onClose }: Ana
 
   useEffect(() => {
     if (analysisFlow && isOpen) {
+      console.log('🔍 [AnalysisFlowModal] Received analysis flow data:', {
+        id: analysisFlow.id,
+        total_questions: analysisFlow.total_questions,
+        total_answers: analysisFlow.total_answers,
+        total_tokens: analysisFlow.total_tokens,
+        questions_count: analysisFlow.questions?.length || 0,
+        answers_count: analysisFlow.answers?.length || 0
+      });
       fetchImages()
     }
   }, [analysisFlow, isOpen])
