@@ -10,7 +10,10 @@ export async function GET() {
       analysis: 'This is a test image analysis for testing purposes.'
     });
     
-    console.log('✅ Questions generation result:', JSON.stringify(result, null, 2));
+    console.log('✅ Questions generation result:', {
+      questionsCount: result.length,
+      firstQuestion: result[0]?.text?.substring(0, 50) + '...'
+    });
     
     return NextResponse.json({
       success: true,

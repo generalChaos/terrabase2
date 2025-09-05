@@ -13,6 +13,7 @@ export default function AdminLayout({ children, title, description }: AdminLayou
   const navigation = [
     { name: 'Dashboard', href: '/admin', icon: '🏠' },
     { name: 'Prompts', href: '/admin/prompts', icon: '✏️' },
+    { name: 'Prompt Tester', href: '/admin/prompt-tester', icon: '🧪' },
     { name: 'Images', href: '/admin/images', icon: '🖼️' },
     { name: 'Conversations', href: '/admin/conversations', icon: '💬' },
     { name: 'Steps', href: '/admin/steps', icon: '⚡' },

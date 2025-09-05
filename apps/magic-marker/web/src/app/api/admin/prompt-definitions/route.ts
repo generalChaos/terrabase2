@@ -28,20 +28,30 @@ export async function GET() {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json()
-    const { id, prompt_text, active } = body
+    const { id, name, prompt_text, active, input_schema, output_schema, return_schema } = body
 
-    if (!id) {
-      return NextResponse.json({ error: 'Prompt ID is required' }, { status: 400 })
+    if (!id && !name) {
+      return NextResponse.json({ error: 'Prompt ID or name is required' }, { status: 400 })
     }
 
     const updateData: any = {}
     if (prompt_text !== undefined) updateData.prompt_text = prompt_text
     if (active !== undefined) updateData.active = active
+    if (input_schema !== undefined) updateData.input_schema = input_schema
+    if (output_schema !== undefined) updateData.output_schema = output_schema
+    if (return_schema !== undefined) updateData.return_schema = return_schema
 
-    const { data, error } = await supabase
+    const query = supabase
       .from('prompt_definitions')
       .update(updateData)
-      .eq('id', id)
+    
+    if (id) {
+      query.eq('id', id)
+    } else if (name) {
+      query.eq('name', name)
+    }
+
+    const { data, error } = await query
       .select()
       .single()
 

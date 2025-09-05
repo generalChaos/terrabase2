@@ -9,22 +9,16 @@ export class OpenAIService {
   static async analyzeImage(
     imageBase64: string, 
     imageId?: string,
-    context?: string,
-    analysisType?: 'general' | 'artistic' | 'technical' | 'child_drawing',
-    focusAreas?: string[],
-    userInstructions?: string
-  ): Promise<{ analysis: string; response?: string; confidence_score?: number; identified_elements?: string[]; artistic_notes?: string; technical_notes?: string }> {
+    prompt?: string
+  ): Promise<{ response: string }> {
     const requestId = Math.random().toString(36).substring(7);
     console.log(`🤖 [${requestId}] Analyzing image with new prompt system`);
 
     try {
       const result = await PromptExecutor.execute('image_analysis', {
         image: imageBase64,
-        context,
-        analysis_type: analysisType,
-        focus_areas: focusAreas,
-        user_instructions: userInstructions
-      }) as { analysis: string; response?: string; confidence_score?: number; identified_elements?: string[]; artistic_notes?: string; technical_notes?: string };
+        prompt: prompt || 'Analyze this image and describe what you see, focusing on artistic elements, composition, colors, and mood.'
+      }) as { response: string };
 
       // Log the step if imageId is provided
       if (imageId) {
@@ -34,10 +28,7 @@ export class OpenAIService {
           step_order: 1,
           input_data: { 
             image_base64_length: imageBase64.length,
-            context,
-            analysis_type: analysisType,
-            focus_areas: focusAreas,
-            user_instructions: userInstructions
+            prompt: prompt || 'Default analysis prompt'
           },
           output_data: result,
           response_time_ms: 0, // Will be calculated by StepService
@@ -58,10 +49,7 @@ export class OpenAIService {
           step_order: 1,
           input_data: { 
             image_base64_length: imageBase64.length,
-            context,
-            analysis_type: analysisType,
-            focus_areas: focusAreas,
-            user_instructions: userInstructions
+            prompt: prompt || 'Default analysis prompt'
           },
           output_data: null,
           response_time_ms: 0,
@@ -79,7 +67,7 @@ export class OpenAIService {
    * Generate questions using the new prompt system
    */
   static async generateQuestions(
-    analysis: string, 
+    prompt: string, 
     imageId?: string
   ): Promise<Question[]> {
     const requestId = Math.random().toString(36).substring(7);
@@ -87,8 +75,8 @@ export class OpenAIService {
 
     try {
       const result = await PromptExecutor.execute('questions_generation', {
-        analysis
-      }) as { questions: Question[]; response?: string };
+        prompt
+      }) as { questions: Question[] };
 
       // Log the step if imageId is provided
       if (imageId) {
@@ -96,7 +84,7 @@ export class OpenAIService {
           image_id: imageId,
           step_type: 'questions',
           step_order: 2,
-          input_data: { analysis },
+          input_data: { prompt },
           output_data: result,
           response_time_ms: 0,
           model_used: 'gpt-4o',
@@ -114,7 +102,7 @@ export class OpenAIService {
           image_id: imageId,
           step_type: 'questions',
           step_order: 2,
-          input_data: { analysis },
+          input_data: { prompt },
           output_data: null,
           response_time_ms: 0,
           model_used: 'gpt-4o',
@@ -195,59 +183,6 @@ export class OpenAIService {
     }
   }
 
-  /**
-   * Create image prompt using the new prompt system
-   */
-  static async createImagePrompt(
-    questions: Question[], 
-    answers: string[],
-    imageId?: string
-  ): Promise<string> {
-    const requestId = Math.random().toString(36).substring(7);
-    console.log(`🎨 [${requestId}] Creating image prompt with new prompt system`);
-
-    try {
-      const result = await PromptExecutor.execute('image_prompt_creation', {
-        questions,
-        answers
-      }) as { prompt: string; response?: string };
-
-      // Log the step if imageId is provided
-      if (imageId) {
-        await StepService.logStep({
-          image_id: imageId,
-          step_type: 'image_generation',
-          step_order: 4,
-          input_data: { questions, answers },
-          output_data: result,
-          response_time_ms: 0,
-          model_used: 'gpt-4o',
-          success: true
-        });
-      }
-
-      return result.prompt;
-    } catch (error: unknown) {
-      console.error(`❌ [${requestId}] Image prompt creation failed:`, error);
-      
-      // Log the error step if imageId is provided
-      if (imageId) {
-        await StepService.logStep({
-          image_id: imageId,
-          step_type: 'image_generation',
-          step_order: 4,
-          input_data: { questions, answers },
-          output_data: null,
-          response_time_ms: 0,
-          model_used: 'gpt-4o',
-          success: false,
-          error_message: error instanceof Error ? error.message : 'Unknown error'
-        });
-      }
-      
-      throw error;
-    }
-  }
 
   /**
    * Analyze image with text prompt using the new prompt system
@@ -257,17 +192,15 @@ export class OpenAIService {
     textPrompt: string,
     context?: string,
     instructions?: string
-  ): Promise<{ analysis: string; response?: string }> {
+  ): Promise<{ response: string }> {
     const requestId = Math.random().toString(36).substring(7);
     console.log(`🖼️📝 [${requestId}] Analyzing image with text prompt using new prompt system`);
 
     try {
       const result = await PromptExecutor.execute('image_text_analysis', {
         image: imageBase64,
-        text: textPrompt,
-        context,
-        instructions
-      }) as { analysis: string; response?: string };
+        prompt: textPrompt
+      }) as { response: string };
 
       return result;
     } catch (error: unknown) {
@@ -292,10 +225,10 @@ export class OpenAIService {
     try {
       // Use the old OpenAI service for DALL-E (since it's not in our prompt system yet)
       const { OpenAIService: OpenAIServiceOld } = await import('./openai');
-      const imageUrl = await OpenAIServiceOld.generateImage(prompt);
+      const imageBase64 = await OpenAIServiceOld.generateImage(prompt);
 
       const responseTime = Date.now() - startTime;
-      console.log(`✅ [${requestId}] Image generated:`, imageUrl);
+      console.log(`✅ [${requestId}] Image generated (base64 length: ${imageBase64.length})`);
 
       // Log the step if imageId is provided
       if (imageId) {
@@ -304,14 +237,14 @@ export class OpenAIService {
           step_type: 'image_generation',
           step_order: 4,
           input_data: { prompt },
-          output_data: { image_url: imageUrl },
+          output_data: { image_base64: imageBase64 },
           response_time_ms: responseTime,
           model_used: 'dall-e-3',
           success: true
         });
       }
 
-      return imageUrl;
+      return imageBase64;
     } catch (error: unknown) {
       const responseTime = Date.now() - startTime;
       console.error(`❌ [${requestId}] DALL-E image generation failed:`, error);

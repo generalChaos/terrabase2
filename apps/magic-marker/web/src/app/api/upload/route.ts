@@ -144,20 +144,16 @@ export async function POST(request: NextRequest) {
     const analysisResult = await OpenAIService.analyzeImage(
       base64Image, 
       imageId,
-      'User uploaded image for analysis',
-      'general',
-      ['composition', 'colors', 'style', 'mood'],
-      'Focus on artistic elements and creative potential'
+      'Analyze this image and describe what you see, focusing on artistic elements, composition, colors, and mood. Consider what kind of questions would help create a great artistic image based on this analysis.'
     );
     const analysisTime = Date.now() - analysisStartTime;
     console.log(`✅ [${requestId}] OpenAI analysis completed in ${analysisTime}ms`);
-    console.log(`📝 [${requestId}] Analysis length:`, analysisResult.analysis?.length || 0);
-    console.log(`🎯 [${requestId}] Analysis confidence:`, analysisResult.confidence_score);
+    console.log(`📝 [${requestId}] Analysis length:`, analysisResult.response?.length || 0);
 
     // Step 2: Generate questions from analysis using new prompt system
     console.log(`❓ [${requestId}] Starting questions generation with new prompt system...`);
     const questionsStartTime = Date.now();
-    const questions = await OpenAIService.generateQuestions(analysisResult.analysis, imageId);
+    const questions = await OpenAIService.generateQuestions(analysisResult.response, imageId);
     const questionsTime = Date.now() - questionsStartTime;
     console.log(`✅ [${requestId}] Questions generation completed in ${questionsTime}ms`);
     console.log(`❓ [${requestId}] Questions count:`, questions?.length || 0);
@@ -169,7 +165,7 @@ export async function POST(request: NextRequest) {
       .insert({
         id: imageId,
         original_image_path: publicUrl,
-        analysis_result: analysisResult.analysis,
+        analysis_result: analysisResult.response,
         questions: JSON.stringify(questions)
       });
 
@@ -207,7 +203,7 @@ export async function POST(request: NextRequest) {
       step_type: 'analysis',
       step_order: 1,
       input_data: { image_base64_length: base64Image.length },
-      output_data: { analysis: analysisResult.analysis },
+      output_data: { response: analysisResult.response },
       response_time_ms: analysisTime,
       model_used: 'gpt-4o',
       success: true
@@ -218,7 +214,7 @@ export async function POST(request: NextRequest) {
       image_id: imageId,
       step_type: 'questions',
       step_order: 2,
-      input_data: { analysis: analysisResult.analysis.trim() },
+      input_data: { analysis: analysisResult.response.trim() },
       output_data: { questions },
       response_time_ms: questionsTime,
       model_used: 'gpt-4o',
@@ -230,13 +226,7 @@ export async function POST(request: NextRequest) {
       success: true,
       imageAnalysisId: imageId,
       originalImagePath: publicUrl,
-      analysis: analysisResult.analysis,
-      analysisMetadata: {
-        confidence_score: analysisResult.confidence_score,
-        identified_elements: analysisResult.identified_elements,
-        artistic_notes: analysisResult.artistic_notes,
-        technical_notes: analysisResult.technical_notes
-      },
+      analysis: analysisResult.response,
       questions
     });
 

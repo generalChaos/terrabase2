@@ -99,21 +99,48 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
       try {
         setIsGeneratingQuestion(true)
         
-        // First, check if the image exists in the database
+        // First, check if the image exists in the database with retry mechanism
         console.log('🔍 [ConversationalQuestionFlow] Checking if image exists in database...');
-        const { data: imageData, error: imageError } = await supabase
-          .from('images')
-          .select('id')
-          .eq('id', imageId)
-          .single();
+        
+        let imageData = null;
+        let imageError = null;
+        let retryCount = 0;
+        const maxRetries = 3;
+        const retryDelay = 1000; // 1 second
 
-        if (imageError || !imageData) {
-          console.error(`❌ [ConversationalQuestionFlow] Image ${imageId} not found in database:`, imageError);
-          setError('Image not found in database. Please try uploading again.');
-          return;
+        while (retryCount < maxRetries) {
+          const { data, error } = await supabase
+            .from('images')
+            .select('id')
+            .eq('id', imageId)
+            .single();
+
+          imageData = data;
+          imageError = error;
+
+          if (imageData && !imageError) {
+            console.log(`✅ [ConversationalQuestionFlow] Image ${imageId} exists in database (attempt ${retryCount + 1})`);
+            break;
+          }
+
+          if (imageError && imageError.code !== 'PGRST116') {
+            // PGRST116 is "not found", other errors are real errors
+            console.error(`❌ [ConversationalQuestionFlow] Database error (attempt ${retryCount + 1}):`, imageError);
+            break;
+          }
+
+          retryCount++;
+          if (retryCount < maxRetries) {
+            console.log(`⏳ [ConversationalQuestionFlow] Image not found, retrying in ${retryDelay}ms... (attempt ${retryCount + 1}/${maxRetries})`);
+            await new Promise(resolve => setTimeout(resolve, retryDelay));
+          }
         }
 
-        console.log(`✅ [ConversationalQuestionFlow] Image ${imageId} exists in database`);
+        if (imageError || !imageData) {
+          console.error(`❌ [ConversationalQuestionFlow] Image ${imageId} not found in database after ${maxRetries} attempts:`, imageError);
+          setError('Image not found in database. This might be a temporary issue. Please try refreshing the page.');
+          return;
+        }
         
         // Check if there's already an active conversation
         console.log('🔍 [ConversationalQuestionFlow] Checking for existing conversation...');
@@ -259,6 +286,8 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
   }
 
   if (error) {
+    const isImageNotFoundError = error.includes('Image not found in database')
+    
     return (
       <div className="card">
         <div className="text-center py-8">
@@ -268,12 +297,25 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
             </svg>
           </div>
           <p className="text-white text-lg mb-4">{error}</p>
-          <button
-            onClick={handleReset}
-            className="btn-primary"
-          >
-            Start Over
-          </button>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            {isImageNotFoundError && (
+              <button
+                onClick={() => window.location.reload()}
+                className="btn-secondary"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Refresh Page
+              </button>
+            )}
+            <button
+              onClick={handleReset}
+              className="btn-primary"
+            >
+              Start Over
+            </button>
+          </div>
         </div>
       </div>
     )

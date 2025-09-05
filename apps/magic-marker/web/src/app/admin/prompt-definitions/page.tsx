@@ -156,7 +156,7 @@ function EditPromptText({ prompt, onSave, onCancel, saving }: {
     <div className="space-y-4">
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          Prompt Text (Use placeholders like {`{image}`, `{text}`, `{context}`, `{instructions}`})
+          Prompt Text (Use placeholders like {`{image}`}, {`{text}`}, {`{context}`}, {`{instructions}`})
         </label>
         <textarea
           value={promptText}
@@ -356,7 +356,7 @@ export default function PromptDefinitionsPage() {
   return (
     <AdminLayout 
       title="Prompt Definitions" 
-      description="Manage AI prompt definitions with schemas and placeholders"
+      description="Manage AI prompt definitions"
     >
       {/* Status Messages */}
       {error && (
@@ -424,9 +424,6 @@ export default function PromptDefinitionsPage() {
                     <h3 className="text-lg font-medium text-gray-900">
                       {prompt.name}
                     </h3>
-                    <p className="text-sm text-gray-500">
-                      {getStepDescription(prompt.name)}
-                    </p>
                   </div>
                   
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
@@ -481,21 +478,29 @@ export default function PromptDefinitionsPage() {
                 )}
               </div>
 
-              {/* Input/Output Types */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <TypeDisplay 
-                  schema={prompt.input_schema} 
-                  title="Input" 
-                  type="input"
-                  onViewSchema={(schemaType) => setViewingSchema({prompt, schema: schemaType})}
-                />
-                <TypeDisplay 
-                  schema={prompt.output_schema} 
-                  title="Output" 
-                  type="output"
-                  onViewSchema={(schemaType) => setViewingSchema({prompt, schema: schemaType})}
-                />
-              </div>
+              {/* Input/Output Types - Collapsible */}
+              <details className="group">
+                <summary className="cursor-pointer text-sm font-medium text-gray-700 hover:text-gray-900 flex items-center mb-4">
+                  <svg className="w-4 h-4 mr-2 transform group-open:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                  Input/Output Schemas
+                </summary>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <TypeDisplay 
+                    schema={prompt.input_schema} 
+                    title="Input" 
+                    type="input"
+                    onViewSchema={(schemaType) => setViewingSchema({prompt, schema: schemaType})}
+                  />
+                  <TypeDisplay 
+                    schema={prompt.output_schema} 
+                    title="Output" 
+                    type="output"
+                    onViewSchema={(schemaType) => setViewingSchema({prompt, schema: schemaType})}
+                  />
+                </div>
+              </details>
 
               {/* Collapsible Full Schemas */}
               <details className="group">
