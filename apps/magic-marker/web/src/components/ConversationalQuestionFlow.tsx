@@ -29,6 +29,7 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
   const [isGeneratingQuestion, setIsGeneratingQuestion] = useState(false)
   const [sessionId] = useState(() => AnalysisFlowService.generateSessionId())
   const [error, setError] = useState<string | null>(null)
+  const [isConversationComplete, setIsConversationComplete] = useState(false)
 
 
   const finishConversation = useCallback(async (flow: AnalysisFlow) => {
@@ -110,6 +111,7 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
       if (done) {
         console.log('🏁 [ConversationalQuestionFlow] AI says conversation is done, finishing...');
         // AI decided the conversation is complete
+        setIsConversationComplete(true)
         await finishConversation(flow)
         return
       }
@@ -244,11 +246,19 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
       hasConversation: !!analysisFlow,
       hasCurrentQuestion: !!currentQuestion,
       hasSelectedAnswer: !!selectedAnswer,
-      selectedAnswer: selectedAnswer
+      selectedAnswer: selectedAnswer,
+      isConversationComplete
     });
 
     if (!analysisFlow || !currentQuestion || !selectedAnswer) {
       console.log('⚠️ [ConversationalQuestionFlow] Missing required data, cannot proceed');
+      return
+    }
+
+    // If conversation is already complete, just finish it
+    if (isConversationComplete) {
+      console.log('🏁 [ConversationalQuestionFlow] Conversation already complete, finishing...');
+      await finishConversation(analysisFlow)
       return
     }
 
@@ -304,8 +314,11 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
     onReset()
   }
 
+  // Calculate progress based on conversation state
   const progress = analysisFlow 
-    ? (analysisFlow.total_questions / 5) * 100 
+    ? isConversationComplete 
+      ? 100 
+      : Math.min((analysisFlow.total_questions / 8) * 100, 90) // Cap at 90% until complete
     : 0
 
   if (isGeneratingQuestion && !currentQuestion) {
@@ -417,12 +430,21 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
       {/* Progress Bar */}
       <div className="mb-8">
         <div className="flex justify-between text-sm text-white/80 mb-2">
-          <span>Question {analysisFlow?.total_questions || 0} of 5</span>
+          <span>
+            {isConversationComplete 
+              ? 'Conversation Complete' 
+              : `Question ${analysisFlow?.total_questions || 0}${isConversationComplete ? '' : '+'}`
+            }
+          </span>
           <span>{Math.round(progress)}% Complete</span>
         </div>
         <div className="w-full bg-white/20 rounded-full h-2">
           <div 
-            className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-500 ease-out"
+            className={`h-2 rounded-full transition-all duration-500 ease-out ${
+              isConversationComplete 
+                ? 'bg-gradient-to-r from-green-500 to-emerald-500' 
+                : 'bg-gradient-to-r from-blue-500 to-purple-500'
+            }`}
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -474,16 +496,21 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
         {/* Navigation Buttons */}
         <div className="flex justify-between items-center pt-6 border-t border-white/20">
           <div className="flex space-x-2">
-            {Array.from({ length: 5 }, (_, index) => (
+            {Array.from({ length: Math.min(analysisFlow?.total_questions || 0, 8) }, (_, index) => (
               <div
                 key={index}
                 className={`w-3 h-3 rounded-full transition-all duration-200 ${
                   index < (analysisFlow?.total_questions || 0)
-                    ? 'bg-white/60'
+                    ? isConversationComplete 
+                      ? 'bg-green-400' 
+                      : 'bg-white/60'
                     : 'bg-white/20'
                 }`}
               />
             ))}
+            {!isConversationComplete && (analysisFlow?.total_questions || 0) < 8 && (
+              <div className="w-3 h-3 rounded-full bg-white/10 animate-pulse" />
+            )}
           </div>
 
           <button
@@ -496,8 +523,8 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                 <span>Generating...</span>
               </div>
-            ) : (analysisFlow?.total_questions ?? 0) >= 4 ? (
-              isLoading ? 'Generating...' : 'Generate Image'
+            ) : isConversationComplete ? (
+              isLoading ? 'Generating Image...' : 'Generate Image'
             ) : (
               'Next →'
             )}
