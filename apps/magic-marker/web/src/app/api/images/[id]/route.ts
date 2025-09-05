@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ImageService } from '@/lib/imageService';
 import { AnalysisFlowService } from '@/lib/analysisFlowService';
+import { supabase } from '@/lib/supabase';
 
 // GET /api/images/[id] - Get specific image with its analysis flow
 export async function GET(
@@ -16,8 +17,22 @@ export async function GET(
       return NextResponse.json({ error: 'Image not found' }, { status: 404 });
     }
 
-    // Get the analysis flow for this image
-    const analysisFlow = await AnalysisFlowService.getActiveAnalysisFlow(id);
+    // Get the analysis flow for this image (active or inactive)
+    let analysisFlow = await AnalysisFlowService.getActiveAnalysisFlow(id);
+    
+    // If no active flow found, try to find any flow for this image
+    if (!analysisFlow) {
+      const { data: flows, error } = await supabase
+        .from('analysis_flows')
+        .select('*')
+        .eq('original_image_id', id)
+        .order('created_at', { ascending: false })
+        .limit(1);
+      
+      if (!error && flows && flows.length > 0) {
+        analysisFlow = flows[0];
+      }
+    }
     
     // Get final image if it exists
     let finalImagePath = null;

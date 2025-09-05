@@ -17,6 +17,17 @@ export async function GET() {
       flowsByImageId.set(flow.original_image_id, flow);
     });
 
+    // Create a map of final images by ID
+    const finalImagesByFlowId = new Map();
+    for (const flow of analysisFlows) {
+      if (flow.final_image_id) {
+        const finalImage = await ImageService.getImage(flow.final_image_id);
+        if (finalImage) {
+          finalImagesByFlowId.set(flow.original_image_id, finalImage.file_path);
+        }
+      }
+    }
+
     // Combine images with their analysis flows
     const imagesWithFlows = images.map(image => {
       const flow = flowsByImageId.get(image.id);
@@ -26,10 +37,7 @@ export async function GET() {
         analysisResult: image.analysis_result,
         questions: flow?.questions || [],
         answers: flow?.answers || [],
-        finalImagePath: flow?.final_image_id ? 
-          // We'd need to fetch the final image path from the images table
-          // For now, we'll return null and handle this in the frontend
-          null : null,
+        finalImagePath: finalImagesByFlowId.get(image.id) || null,
         createdAt: new Date(image.created_at),
         updatedAt: new Date(image.updated_at),
         // New fields from analysis flows
