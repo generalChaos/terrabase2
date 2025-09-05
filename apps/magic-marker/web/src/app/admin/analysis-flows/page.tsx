@@ -87,6 +87,14 @@ export default function AnalysisFlowsPage() {
   }
 
   const handleRowClick = (flow: AnalysisFlow) => {
+    console.log('🔍 [AnalysisFlowsPage] Setting selected flow:', {
+      id: flow.id,
+      total_questions: flow.total_questions,
+      total_answers: flow.total_answers,
+      total_tokens: flow.total_tokens,
+      questions_count: flow.questions?.length || 0,
+      answers_count: flow.answers?.length || 0
+    });
     setSelectedFlow(flow)
     setIsModalOpen(true)
   }
