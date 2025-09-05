@@ -241,228 +241,7 @@ export default function AnalysisFlowDetailsPage() {
               </div>
             </div>
 
-            {/* AI Prompts & Responses */}
-            <div className="bg-white rounded-lg shadow-sm border p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <Code className="w-5 h-5 mr-2" />
-                AI Prompts & Responses
-              </h2>
-              
-              <div className="space-y-4">
-                {processingSteps.map((step, index) => (
-                  <div key={step.id} className="border border-gray-200 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center space-x-3">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                          step.success ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
-                        }`}>
-                          {index + 1}
-                        </div>
-                        <div>
-                          <h3 className="font-medium text-gray-900 capitalize">
-                            {step.step_type.replace('_', ' ')}
-                          </h3>
-                          <p className="text-sm text-gray-500">
-                            {step.model_used} • {step.response_time_ms}ms
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        {step.success ? (
-                          <CheckCircle className="w-5 h-5 text-green-500" />
-                        ) : (
-                          <XCircle className="w-5 h-5 text-red-500" />
-                        )}
-                      </div>
-                    </div>
-                    
-                    {/* Prompt Content */}
-                    {step.prompt_content && (
-                      <div className="mb-4">
-                        <h4 className="text-sm font-medium text-gray-700 mb-2">Prompt Sent:</h4>
-                        <div className="bg-blue-50 p-3 rounded border">
-                          <pre className="text-sm text-blue-900 whitespace-pre-wrap font-mono">
-                            {step.prompt_content}
-                          </pre>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* Input Data */}
-                    {step.input_data && (
-                      <div className="mb-4">
-                        <h4 className="text-sm font-medium text-gray-700 mb-2">Input Data:</h4>
-                        <div className="bg-gray-50 p-3 rounded border">
-                          <pre className="text-sm text-gray-800 whitespace-pre-wrap font-mono">
-                            {JSON.stringify(step.input_data, null, 2)}
-                          </pre>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* Output Data */}
-                    {step.output_data && (
-                      <div className="mb-4">
-                        <h4 className="text-sm font-medium text-gray-700 mb-2">AI Response:</h4>
-                        <div className="bg-green-50 p-3 rounded border">
-                          <pre className="text-sm text-green-900 whitespace-pre-wrap font-mono">
-                            {JSON.stringify(step.output_data, null, 2)}
-                          </pre>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* Error Message */}
-                    {step.error_message && (
-                      <div className="bg-red-50 p-3 rounded border border-red-200">
-                        <h4 className="text-sm font-medium text-red-800 mb-1">Error:</h4>
-                        <p className="text-sm text-red-700">{step.error_message}</p>
-                      </div>
-                    )}
-                  </div>
-                ))}
-                
-                {processingSteps.length === 0 && (
-                  <div className="text-center py-8 text-gray-500">
-                    <Database className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                    <p>No processing steps found</p>
-                  </div>
-                )}
-              </div>
-            </div>
 
-            {/* Complete Conversation Flow */}
-            <div className="bg-white rounded-lg shadow-sm border p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <MessageSquare className="w-5 h-5 mr-2" />
-                Complete Conversation Flow
-              </h2>
-              
-              {/* Summary Stats */}
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Total Questions</label>
-                  <p className="mt-1 text-2xl font-bold text-gray-900">{analysisFlow.total_questions}</p>
-                  <p className="text-xs text-gray-500 mt-1">Initial + Conversational</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Answered</label>
-                  <p className="mt-1 text-2xl font-bold text-gray-900">{analysisFlow.total_answers}</p>
-                  <p className="text-xs text-gray-500 mt-1">Conversational answers</p>
-                </div>
-              </div>
-
-              {/* Conversation Timeline */}
-              <div className="space-y-6">
-                {/* Step 1: Image Analysis */}
-                <div className="border-l-4 border-blue-500 pl-4">
-                  <div className="flex items-center mb-2">
-                    <div className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold mr-3">1</div>
-                    <h3 className="text-lg font-semibold text-gray-900">Image Analysis</h3>
-                  </div>
-                  <div className="ml-9 space-y-3">
-                    <div className="bg-blue-50 p-3 rounded-lg">
-                      <p className="text-sm font-medium text-blue-900 mb-1">Prompt Sent:</p>
-                      <p className="text-sm text-blue-800">"Analyze this image and describe what you see, focusing on artistic elements, composition, colors, and mood."</p>
-                    </div>
-                    <div className="bg-green-50 p-3 rounded-lg">
-                      <p className="text-sm font-medium text-green-900 mb-1">AI Response:</p>
-                      <p className="text-sm text-green-800">{analysisFlow.contextData?.imageAnalysis || 'No analysis available'}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Step 2: Questions Generation */}
-                <div className="border-l-4 border-purple-500 pl-4">
-                  <div className="flex items-center mb-2">
-                    <div className="w-6 h-6 bg-purple-500 text-white rounded-full flex items-center justify-center text-xs font-bold mr-3">2</div>
-                    <h3 className="text-lg font-semibold text-gray-900">Questions Generation</h3>
-                  </div>
-                  <div className="ml-9 space-y-3">
-                    <div className="bg-purple-50 p-3 rounded-lg">
-                      <p className="text-sm font-medium text-purple-900 mb-1">Prompt Sent:</p>
-                      <p className="text-sm text-purple-800">"Generate engaging questions to help create a great artistic image based on this analysis."</p>
-                    </div>
-                    <div className="bg-green-50 p-3 rounded-lg">
-                      <p className="text-sm font-medium text-green-900 mb-1">Questions Generated:</p>
-                      <div className="space-y-2">
-                        {analysisFlow.questions && analysisFlow.questions.length > 0 ? (
-                          analysisFlow.questions.map((question, index) => (
-                            <div key={question.id} className="p-3 bg-gray-50 rounded border border-gray-200">
-                              <p className="text-sm text-gray-900 font-medium">
-                                <span className="font-bold">Q{index + 1}:</span> {question.text}
-                              </p>
-                              {question.options && question.options.length > 0 && (
-                                <div className="mt-2">
-                                  <p className="text-xs font-medium text-gray-700 mb-1">Options:</p>
-                                  <ul className="text-xs text-gray-800 space-y-1">
-                                    {question.options.map((option, optIndex) => (
-                                      <li key={optIndex} className="flex items-start">
-                                        <span className="mr-2 text-gray-600">•</span>
-                                        <span>{option}</span>
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              )}
-                            </div>
-                          ))
-                        ) : (
-                          <p className="text-sm text-gray-500">No questions generated</p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Step 3: Conversational Flow */}
-                {analysisFlow.answers && analysisFlow.answers.length > 0 && (
-                  <div className="border-l-4 border-orange-500 pl-4">
-                    <div className="flex items-center mb-2">
-                      <div className="w-6 h-6 bg-orange-500 text-white rounded-full flex items-center justify-center text-xs font-bold mr-3">3</div>
-                      <h3 className="text-lg font-semibold text-gray-900">Conversational Flow</h3>
-                    </div>
-                    <div className="ml-9 space-y-4">
-                      {analysisFlow.answers.map((answer, index) => {
-                        const question = analysisFlow.questions?.find(q => q.id === answer.questionId)
-                        return (
-                          <div key={answer.questionId} className="space-y-2">
-                            <div className="bg-orange-50 p-3 rounded-lg">
-                              <p className="text-sm font-medium text-orange-900 mb-1">Question {index + 1}:</p>
-                              <p className="text-sm text-orange-800">{question?.text || 'Question not found'}</p>
-                            </div>
-                            <div className="bg-green-50 p-3 rounded-lg">
-                              <p className="text-sm font-medium text-green-900 mb-1">User Answer:</p>
-                              <p className="text-sm text-green-800">{answer.answer}</p>
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {/* Step 4: Image Generation */}
-                {analysisFlow.final_image_id && (
-                  <div className="border-l-4 border-green-500 pl-4">
-                    <div className="flex items-center mb-2">
-                      <div className="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-xs font-bold mr-3">4</div>
-                      <h3 className="text-lg font-semibold text-gray-900">Image Generation</h3>
-                    </div>
-                    <div className="ml-9 space-y-3">
-                      <div className="bg-green-50 p-3 rounded-lg">
-                        <p className="text-sm font-medium text-green-900 mb-1">Generation Prompt:</p>
-                        <p className="text-sm text-green-800">"Generate an artistic image based on the original image analysis and user preferences from the conversation."</p>
-                      </div>
-                      <div className="bg-blue-50 p-3 rounded-lg">
-                        <p className="text-sm font-medium text-blue-900 mb-1">Final Image Generated:</p>
-                        <p className="text-sm text-blue-800">Image ID: {analysisFlow.final_image_id}</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
 
             {/* Processing Steps Timeline */}
             <div className="bg-white rounded-lg shadow-sm border p-6">
@@ -470,90 +249,210 @@ export default function AnalysisFlowDetailsPage() {
                 <Activity className="w-5 h-5 mr-2" />
                 Processing Steps Timeline
               </h2>
-              <div className="space-y-4">
-                {processingSteps.length > 0 ? (
-                  processingSteps
-                    .sort((a, b) => a.step_order - b.step_order)
-                    .map((step, index) => (
-                      <div key={step.id} className="flex items-start space-x-4 p-4 bg-gray-50 rounded-lg">
-                        <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                          step.success ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                        }`}>
-                          {step.step_order}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <h3 className="text-sm font-medium text-gray-900 capitalize">
-                              {step.step_type.replace('_', ' ')}
-                            </h3>
-                            <div className="flex items-center space-x-2">
-                              {step.response_time_ms && (
-                                <span className="text-xs text-gray-500">
-                                  {step.response_time_ms}ms
-                                </span>
-                              )}
-                              {step.success ? (
-                                <CheckCircle className="w-4 h-4 text-green-500" />
-                              ) : (
-                                <XCircle className="w-4 h-4 text-red-500" />
-                              )}
-                            </div>
+
+              <div className="space-y-6">
+                {processingSteps.map((step, index) => {
+                  const stepColors = {
+                    'image_analysis': 'blue',
+                    'questions_generation': 'purple', 
+                    'conversational_question': 'orange',
+                    'answer_analysis': 'orange',
+                    'image_generation': 'green'
+                  }
+                  const color = stepColors[step.step_type as keyof typeof stepColors] || 'gray'
+                  const colorClasses = {
+                    blue: 'border-blue-500 bg-blue-500',
+                    purple: 'border-purple-500 bg-purple-500',
+                    orange: 'border-orange-500 bg-orange-500',
+                    green: 'border-green-500 bg-green-500',
+                    gray: 'border-gray-500 bg-gray-500'
+                  }
+                  
+                  return (
+                    <div key={step.id} className={`border-l-4 border-${color}-500 pl-4`}>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center">
+                          <div className={`w-6 h-6 ${colorClasses[color]} text-white rounded-full flex items-center justify-center text-xs font-bold mr-3`}>
+                            {index + 1}
                           </div>
-                          {step.model_used && (
-                            <p className="text-xs text-gray-500 mt-1">Model: {step.model_used}</p>
+                          <h3 className="text-lg font-semibold text-gray-900 capitalize">
+                            {step.step_type.replace('_', ' ')}
+                          </h3>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          {step.response_time_ms && (
+                            <span className="text-xs text-gray-500">{step.response_time_ms}ms</span>
                           )}
-                          {step.error_message && (
-                            <p className="text-xs text-red-600 mt-1">Error: {step.error_message}</p>
+                          {step.success ? (
+                            <CheckCircle className="w-4 h-4 text-green-500" />
+                          ) : (
+                            <XCircle className="w-4 h-4 text-red-500" />
                           )}
                         </div>
                       </div>
-                    ))
-                ) : (
-                  <p className="text-gray-500 text-sm">No processing steps found</p>
+                      
+                      <div className="ml-9 space-y-3">
+                        {/* Prompt Content */}
+                        {step.prompt_content && (
+                          <div className={`bg-${color}-50 p-3 rounded-lg`}>
+                            <p className={`text-sm font-medium text-${color}-900 mb-1`}>Initial Prompt:</p>
+                            <div className={`text-sm text-${color}-800 bg-white p-2 rounded border`}>
+                              {step.prompt_content}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* AI Response - Human Readable */}
+                        {step.output_data && (
+                          <div className="bg-green-50 p-3 rounded-lg">
+                            <p className="text-sm font-medium text-green-900 mb-1">AI Response:</p>
+                            <div className="text-sm text-green-800">
+                              {(() => {
+                                // Try to extract human-readable content from the response
+                                if (typeof step.output_data === 'string') {
+                                  return step.output_data
+                                }
+                                
+                                // For structured responses, try to find the most relevant text
+                                const data = step.output_data
+                                if (data.analysis) return data.analysis
+                                if (data.description) return data.description
+                                if (data.response) return data.response
+                                if (data.questions && Array.isArray(data.questions)) {
+                                  return data.questions.map((q: any, i: number) => 
+                                    `${i + 1}. ${q.text || q.question || q}`
+                                  ).join('\n')
+                                }
+                                if (data.answer) return data.answer
+                                if (data.prompt) return data.prompt
+                                
+                                // Fallback to JSON for complex structures
+                                return JSON.stringify(step.output_data, null, 2)
+                              })()}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Questions Generated (for questions_generation step) */}
+                        {step.step_type === 'questions_generation' && analysisFlow.questions && analysisFlow.questions.length > 0 && (
+                          <div className="bg-purple-50 p-3 rounded-lg">
+                            <p className="text-sm font-medium text-purple-900 mb-3">Questions Generated:</p>
+                            <div className="space-y-4">
+                              {analysisFlow.questions.map((question, qIndex) => (
+                                <div key={question.id} className="bg-white p-3 rounded border border-purple-200">
+                                  <p className="text-sm font-medium text-gray-900 mb-2">
+                                    Q{qIndex + 1}: {question.text}
+                                  </p>
+                                  {question.options && question.options.length > 0 && (
+                                    <div className="flex flex-wrap gap-2">
+                                      {question.options.map((option, optIndex) => (
+                                        <span
+                                          key={optIndex}
+                                          className="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded-full border"
+                                        >
+                                          {option}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Conversational Questions & Answers - Show all Q&A for conversational steps */}
+                        {(step.step_type === 'conversational_question' || step.step_type === 'answer_analysis') && analysisFlow.answers && analysisFlow.answers.length > 0 && (
+                          <div className="bg-orange-50 p-3 rounded-lg">
+                            <p className="text-sm font-medium text-orange-900 mb-3">All Conversational Q&A:</p>
+                            <div className="space-y-4">
+                              {analysisFlow.answers.map((answer, aIndex) => {
+                                const question = analysisFlow.questions?.find(q => q.id === answer.questionId)
+                                if (!question) return null
+                                
+                                return (
+                                  <div key={answer.questionId} className="bg-white p-3 rounded border border-orange-200">
+                                    <p className="text-sm font-medium text-gray-900 mb-2">
+                                      Q{aIndex + 1}: {question.text}
+                                    </p>
+                                    {question.options && question.options.length > 0 && (
+                                      <div className="flex flex-wrap gap-2">
+                                        {question.options.map((option, optIndex) => {
+                                          const isSelected = option === answer.answer
+                                          return (
+                                            <span
+                                              key={optIndex}
+                                              className={`px-3 py-1 text-xs rounded-full border ${
+                                                isSelected
+                                                  ? 'bg-green-100 text-green-800 border-green-300 font-medium'
+                                                  : 'bg-gray-100 text-gray-700 border-gray-300'
+                                              }`}
+                                            >
+                                              {option}
+                                            </span>
+                                          )
+                                        })}
+                                      </div>
+                                    )}
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Error Message */}
+                        {step.error_message && (
+                          <div className="bg-red-50 p-3 rounded-lg border border-red-200">
+                            <p className="text-sm font-medium text-red-800 mb-1">Error:</p>
+                            <p className="text-sm text-red-700">{step.error_message}</p>
+                          </div>
+                        )}
+                        
+                        {/* Collapsible Technical Details */}
+                        <details className="bg-gray-50 rounded-lg">
+                          <summary className="p-3 cursor-pointer text-sm font-medium text-gray-700 hover:text-gray-900">
+                            Technical Details (Click to expand)
+                          </summary>
+                          <div className="px-3 pb-3 space-y-3">
+                            {/* Input Data */}
+                            {step.input_data && (
+                              <div>
+                                <h4 className="text-xs font-medium text-gray-600 mb-1">Input Data:</h4>
+                                <pre className="text-xs text-gray-800 bg-white p-2 rounded border font-mono overflow-auto max-h-32">
+                                  {JSON.stringify(step.input_data, null, 2)}
+                                </pre>
+                              </div>
+                            )}
+                            
+                            {/* Full Output Data */}
+                            {step.output_data && (
+                              <div>
+                                <h4 className="text-xs font-medium text-gray-600 mb-1">Full AI Response (JSON):</h4>
+                                <pre className="text-xs text-gray-800 bg-white p-2 rounded border font-mono overflow-auto max-h-32">
+                                  {JSON.stringify(step.output_data, null, 2)}
+                                </pre>
+                              </div>
+                            )}
+                            
+                            {/* Model Info */}
+                            <div className="text-xs text-gray-600">
+                              <span className="font-medium">Model:</span> {step.model_used || 'Unknown'} • 
+                              <span className="font-medium ml-2">Response Time:</span> {step.response_time_ms || 0}ms
+                            </div>
+                          </div>
+                        </details>
+                      </div>
+                    </div>
+                  )
+                })}
+                
+                {processingSteps.length === 0 && (
+                  <div className="text-center py-8 text-gray-500">
+                    <Database className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                    <p>No processing steps found</p>
+                  </div>
                 )}
-              </div>
-            </div>
-
-            {/* Performance Metrics */}
-            <div className="bg-white rounded-lg shadow-sm border p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <BarChart3 className="w-5 h-5 mr-2" />
-                Performance Metrics
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <div className="flex items-center">
-                    <Zap className="w-5 h-5 text-blue-600 mr-2" />
-                    <div>
-                      <p className="text-sm font-medium text-blue-900">Total Cost</p>
-                      <p className="text-2xl font-bold text-blue-600">
-                        ${(analysisFlow.totalCostUsd || 0).toFixed(4)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                <div className="bg-green-50 p-4 rounded-lg">
-                  <div className="flex items-center">
-                    <Hash className="w-5 h-5 text-green-600 mr-2" />
-                    <div>
-                      <p className="text-sm font-medium text-green-900">Total Tokens</p>
-                      <p className="text-2xl font-bold text-green-600">
-                        {(analysisFlow.total_tokens || 0).toLocaleString()}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                <div className="bg-purple-50 p-4 rounded-lg">
-                  <div className="flex items-center">
-                    <Clock className="w-5 h-5 text-purple-600 mr-2" />
-                    <div>
-                      <p className="text-sm font-medium text-purple-900">Processing Time</p>
-                      <p className="text-2xl font-bold text-purple-600">
-                        {processingSteps.reduce((total, step) => total + (step.response_time_ms || 0), 0)}ms
-                      </p>
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
 
@@ -567,210 +466,6 @@ export default function AnalysisFlowDetailsPage() {
               </div>
             )}
 
-            {/* Processing Steps Timeline */}
-            <div className="bg-white rounded-lg shadow-sm border p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <Activity className="w-5 h-5 mr-2" />
-                Processing Steps Timeline
-              </h2>
-              <div className="space-y-4">
-                {processingSteps.length > 0 ? (
-                  processingSteps
-                    .sort((a, b) => a.step_order - b.step_order)
-                    .map((step, index) => (
-                      <div key={step.id} className="flex items-start space-x-4 p-4 bg-gray-50 rounded-lg">
-                        <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                          step.success ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                        }`}>
-                          {step.step_order}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <h3 className="text-sm font-medium text-gray-900 capitalize">
-                              {step.step_type.replace('_', ' ')}
-                            </h3>
-                            <div className="flex items-center space-x-2">
-                              {step.response_time_ms && (
-                                <span className="text-xs text-gray-500">
-                                  {step.response_time_ms}ms
-                                </span>
-                              )}
-                              {step.success ? (
-                                <CheckCircle className="w-4 h-4 text-green-500" />
-                              ) : (
-                                <XCircle className="w-4 h-4 text-red-500" />
-                              )}
-                            </div>
-                          </div>
-                          {step.model_used && (
-                            <p className="text-xs text-gray-500 mt-1">Model: {step.model_used}</p>
-                          )}
-                          {step.error_message && (
-                            <p className="text-xs text-red-600 mt-1">Error: {step.error_message}</p>
-                          )}
-                          {step.prompt_content && (
-                            <div className="mt-2">
-                              <p className="text-xs font-medium text-gray-700 mb-1">Prompt Content:</p>
-                              <div className="text-xs text-gray-800 bg-blue-50 p-2 rounded border">
-                                {step.prompt_content}
-                              </div>
-                            </div>
-                          )}
-                          {step.input_data && (
-                            <details className="mt-2">
-                              <summary className="text-xs text-gray-600 cursor-pointer hover:text-gray-800">Input Data</summary>
-                              <pre className="text-xs text-gray-800 bg-gray-100 p-2 rounded mt-1 overflow-auto max-h-32 border font-mono">
-                                {JSON.stringify(step.input_data, null, 2)}
-                              </pre>
-                            </details>
-                          )}
-                          {step.output_data && (
-                            <details className="mt-2">
-                              <summary className="text-xs text-gray-600 cursor-pointer hover:text-gray-800">Output Data</summary>
-                              <pre className="text-xs text-gray-800 bg-gray-100 p-2 rounded mt-1 overflow-auto max-h-32 border font-mono">
-                                {JSON.stringify(step.output_data, null, 2)}
-                              </pre>
-                            </details>
-                          )}
-                        </div>
-                      </div>
-                    ))
-                ) : (
-                  <p className="text-gray-500 text-sm">No processing steps found</p>
-                )}
-              </div>
-            </div>
-
-            {/* Performance Metrics */}
-            <div className="bg-white rounded-lg shadow-sm border p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <BarChart3 className="w-5 h-5 mr-2" />
-                Performance Metrics
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <div className="flex items-center">
-                    <Zap className="w-5 h-5 text-blue-600 mr-2" />
-                    <div>
-                      <p className="text-sm font-medium text-blue-900">Total Cost</p>
-                      <p className="text-2xl font-bold text-blue-600">
-                        ${(analysisFlow.totalCostUsd || 0).toFixed(4)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                <div className="bg-green-50 p-4 rounded-lg">
-                  <div className="flex items-center">
-                    <Hash className="w-5 h-5 text-green-600 mr-2" />
-                    <div>
-                      <p className="text-sm font-medium text-green-900">Total Tokens</p>
-                      <p className="text-2xl font-bold text-green-600">
-                        {(analysisFlow.total_tokens || 0).toLocaleString()}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                <div className="bg-purple-50 p-4 rounded-lg">
-                  <div className="flex items-center">
-                    <Clock className="w-5 h-5 text-purple-600 mr-2" />
-                    <div>
-                      <p className="text-sm font-medium text-purple-900">Processing Time</p>
-                      <p className="text-2xl font-bold text-purple-600">
-                        {processingSteps.reduce((total, step) => total + (step.response_time_ms || 0), 0)}ms
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Error Summary */}
-            {processingSteps.some(step => !step.success) && (
-              <div className="bg-white rounded-lg shadow-sm border p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                  <AlertTriangle className="w-5 h-5 mr-2 text-red-500" />
-                  Error Summary
-                </h2>
-                <div className="space-y-2">
-                  {processingSteps
-                    .filter(step => !step.success)
-                    .map((step, index) => (
-                      <div key={index} className="p-3 bg-red-50 rounded-lg border border-red-200">
-                        <p className="text-sm font-medium text-red-800 capitalize">
-                          {step.step_type.replace('_', ' ')}
-                        </p>
-                        <p className="text-xs text-red-600 mt-1">{step.error_message}</p>
-                      </div>
-                    ))}
-                </div>
-              </div>
-            )}
-
-            {/* Database Debug Info */}
-            <div className="bg-white rounded-lg shadow-sm border p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <Database className="w-5 h-5 mr-2" />
-                Database Debug Info
-              </h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Key Fields */}
-                <div>
-                  <h3 className="text-md font-medium text-gray-900 mb-3">Key Database Fields</h3>
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">total_questions:</span>
-                      <span className="text-sm font-mono text-gray-900">{analysisFlow.total_questions || 'null'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">total_answers:</span>
-                      <span className="text-sm font-mono text-gray-900">{analysisFlow.total_answers || 'null'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">total_tokens:</span>
-                      <span className="text-sm font-mono text-gray-900">{analysisFlow.total_tokens || 'null'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">questions array length:</span>
-                      <span className="text-sm font-mono text-gray-900">{analysisFlow.questions?.length || 'null'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">answers array length:</span>
-                      <span className="text-sm font-mono text-gray-900">{analysisFlow.answers?.length || 'null'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">current_step:</span>
-                      <span className="text-sm font-mono text-gray-900">{analysisFlow.current_step || 'null'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">is_active:</span>
-                      <span className="text-sm font-mono text-gray-900">{analysisFlow.is_active ? 'true' : 'false'}</span>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Questions Preview */}
-                <div>
-                  <h3 className="text-md font-medium text-gray-900 mb-3">Questions Preview</h3>
-                  {analysisFlow.questions && analysisFlow.questions.length > 0 ? (
-                    <div className="space-y-2">
-                      {analysisFlow.questions.map((q, index) => (
-                        <div key={q.id || index} className="p-2 bg-gray-50 rounded border text-xs">
-                          <div className="font-medium text-gray-900">Q{index + 1}: {q.text || q.question}</div>
-                          {q.options && q.options.length > 0 && (
-                            <div className="text-gray-600 mt-1">
-                              Options: {q.options.join(', ')}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-gray-500">No questions found</p>
-                  )}
-                </div>
-              </div>
-            </div>
 
             {/* Raw Flow Data */}
             <div className="bg-white rounded-lg shadow-sm border p-6">
@@ -844,27 +539,6 @@ export default function AnalysisFlowDetailsPage() {
               </div>
             </div>
 
-            {/* Error Summary */}
-            {processingSteps.some(step => !step.success) && (
-              <div className="bg-white rounded-lg shadow-sm border p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                  <AlertTriangle className="w-5 h-5 mr-2 text-red-500" />
-                  Error Summary
-                </h3>
-                <div className="space-y-2">
-                  {processingSteps
-                    .filter(step => !step.success)
-                    .map((step, index) => (
-                      <div key={index} className="p-3 bg-red-50 rounded-lg border border-red-200">
-                        <p className="text-sm font-medium text-red-800 capitalize">
-                          {step.step_type.replace('_', ' ')}
-                        </p>
-                        <p className="text-xs text-red-600 mt-1">{step.error_message}</p>
-                      </div>
-                    ))}
-                </div>
-              </div>
-            )}
 
             {/* Quick Actions */}
             <div className="bg-white rounded-lg shadow-sm border p-6">
