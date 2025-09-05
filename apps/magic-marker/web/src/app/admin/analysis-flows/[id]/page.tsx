@@ -31,22 +31,21 @@ export default function AnalysisFlowDetailsPage() {
         const data = await response.json()
         setAnalysisFlow(data)
         
-        // Fetch original image if available
-        if (data.original_image_id) {
-          const imageResponse = await fetch(`/api/images/${data.original_image_id}`)
-          if (imageResponse.ok) {
-            const imageData = await imageResponse.json()
-            setOriginalImage(imageData)
-          }
+        // Set images using the paths from the enhanced API response
+        if (data.original_image_id && (data as any).original_image_path) {
+          setOriginalImage({
+            id: data.original_image_id,
+            originalPath: (data as any).original_image_path,
+            type: 'original'
+          })
         }
         
-        // Fetch final image if available
-        if (data.final_image_id) {
-          const imageResponse = await fetch(`/api/images/${data.final_image_id}`)
-          if (imageResponse.ok) {
-            const imageData = await imageResponse.json()
-            setFinalImage(imageData)
-          }
+        if (data.final_image_id && (data as any).final_image_path) {
+          setFinalImage({
+            id: data.final_image_id,
+            originalPath: (data as any).final_image_path,
+            type: 'final'
+          })
         }
         
         // Fetch processing steps
