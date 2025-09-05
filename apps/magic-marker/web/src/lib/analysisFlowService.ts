@@ -170,6 +170,7 @@ export class AnalysisFlowService {
       contextData?: Record<string, unknown>
       totalCostUsd?: number
       totalTokens?: number
+      final_image_id?: string
     }
   ): Promise<AnalysisFlow> {
     console.log('🔄 [AnalysisFlowService] Updating analysis flow:', flowId.substring(0, 8) + '...');
@@ -201,6 +202,9 @@ export class AnalysisFlowService {
     }
     if (updates.totalTokens !== undefined) {
       updateData.total_tokens = updates.totalTokens;
+    }
+    if (updates.final_image_id !== undefined) {
+      updateData.final_image_id = updates.final_image_id;
     }
 
     const { data, error } = await supabase
