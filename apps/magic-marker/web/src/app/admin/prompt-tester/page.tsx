@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/AdminLayout';
-import { PromptType, PromptTypeMap } from '@/lib/promptTypes';
+// import { PromptType, PromptTypeMap } from '@/lib/promptTypes' // Unused for now;
 
 interface PromptDefinition {
   id: string;
@@ -10,9 +10,9 @@ interface PromptDefinition {
   type: string;
   active: boolean;
   prompt_text: string;
-  input_schema: any;
-  output_schema: any;
-  return_schema: any;
+  input_schema: Record<string, unknown>;
+  output_schema: Record<string, unknown>;
+  return_schema: Record<string, unknown>;
   model: string;
   response_format: string;
   max_tokens?: number;
@@ -22,7 +22,7 @@ interface PromptDefinition {
 
 interface TestResult {
   success: boolean;
-  response?: any;
+  response?: Record<string, unknown>;
   error?: string;
   executionTime?: number;
   tokensUsed?: number;
@@ -38,7 +38,7 @@ export default function PromptTesterPage() {
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   
   // Individual input fields
-  const [inputFields, setInputFields] = useState<Record<string, any>>({});
+  const [inputFields, setInputFields] = useState<Record<string, unknown>>({});
 
   // Load prompts on mount
   useEffect(() => {
@@ -112,17 +112,17 @@ export default function PromptTesterPage() {
     reader.readAsDataURL(file);
   };
 
-  const handleInputFieldChange = (fieldName: string, value: any) => {
+  const handleInputFieldChange = (fieldName: string, value: unknown) => {
     const newFields = { ...inputFields, [fieldName]: value };
     setInputFields(newFields);
     setInputData(JSON.stringify(newFields, null, 2));
   };
 
-  const generateSampleInput = (promptType: string): any => {
+  const generateSampleInput = (promptType: string): Record<string, unknown> => {
     // Use a placeholder that indicates a real image should be uploaded
     const imagePlaceholder = 'PLACEHOLDER_FOR_REAL_IMAGE';
     
-    const samples: Record<string, any> = {
+    const samples: Record<string, Record<string, unknown>> = {
       'image_analysis': {
         image: imagePlaceholder,
         prompt: 'Describe what you see in this image, focusing on colors, composition, and artistic style.'
@@ -207,7 +207,7 @@ export default function PromptTesterPage() {
       for (const [fieldName, fieldSchema] of Object.entries(schema.properties)) {
         if (input[fieldName] !== undefined) {
           const fieldValue = input[fieldName];
-          const fieldDef = fieldSchema as any;
+          const fieldDef = fieldSchema as Record<string, unknown>;
           
           // String validation
           if (fieldDef.type === 'string') {
@@ -315,7 +315,7 @@ export default function PromptTesterPage() {
                   {selectedPrompt && selectedPrompt.input_schema && selectedPrompt.input_schema.properties && (
                     <div className="space-y-4">
                       {Object.entries(selectedPrompt.input_schema.properties).map(([fieldName, fieldSchema]) => {
-                        const fieldDef = fieldSchema as any;
+                        const fieldDef = fieldSchema as Record<string, unknown>;
                         const fieldValue = inputFields[fieldName] || '';
                         const isRequired = selectedPrompt.input_schema.required?.includes(fieldName);
                         
@@ -382,7 +382,7 @@ export default function PromptTesterPage() {
                                   rows={4}
                                 />
                                 <p className="text-xs text-gray-500">
-                                  Enter as JSON array format: ["item1", "item2", ...]
+                                  Enter as JSON array format: [&quot;item1&quot;, &quot;item2&quot;, ...]
                                 </p>
                               </div>
                             )}
@@ -537,7 +537,7 @@ export default function PromptTesterPage() {
 
               {!testResult && selectedPrompt && (
                 <div className="text-gray-500 text-center py-8">
-                  Click "Run Test" to test the selected prompt
+                  Click &quot;Run Test&quot; to test the selected prompt
                 </div>
               )}
             </div>
