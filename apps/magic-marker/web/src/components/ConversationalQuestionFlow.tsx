@@ -43,7 +43,7 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
       console.log('📝 [ConversationalQuestionFlow] Previous answers:', previousAnswers);
 
       console.log('🤖 [ConversationalQuestionFlow] Calling OpenAI service with new prompt system...');
-      const { question, context } = await OpenAIService.generateConversationalQuestion(
+      const { question, context, response, done } = await OpenAIService.generateConversationalQuestion(
         imageAnalysis,
         previousAnswers,
         {
@@ -53,6 +53,25 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
         },
         imageId
       )
+
+      console.log('✅ [ConversationalQuestionFlow] AI response received:', {
+        done,
+        hasQuestion: !!question,
+        responseLength: response.length
+      });
+
+      if (done) {
+        console.log('🏁 [ConversationalQuestionFlow] AI says conversation is done, finishing...');
+        // AI decided the conversation is complete
+        await finishConversation(conv)
+        return
+      }
+
+      if (!question) {
+        console.error('❌ [ConversationalQuestionFlow] AI returned done=false but no question');
+        setError('Failed to generate question. Please try again.')
+        return
+      }
 
       console.log('✅ [ConversationalQuestionFlow] Question generated:', {
         questionId: question.id,
@@ -214,11 +233,11 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
       
       // Check if we should generate another question or finish
       const totalQuestions = updatedConversation.conversation_state.totalQuestions
-      const maxQuestions = 5 // Limit to 5 questions for now
+      const maxQuestions = 10 // Safety limit - AI can finish earlier
       
       if (totalQuestions < maxQuestions) {
         console.log('🔄 [ConversationalQuestionFlow] Generating next question...');
-        // Generate next question
+        // Generate next question and check if AI says we're done
         await generateNextQuestion(updatedConversation)
       } else {
         console.log('🏁 [ConversationalQuestionFlow] Reached max questions, finishing conversation...');

@@ -174,6 +174,11 @@ export class PromptExecutor {
   ): string {
     let promptText = definition.prompt_text;
 
+    // Replace {prompt} placeholder if it exists
+    if ('prompt' in input && input.prompt) {
+      promptText = promptText.replace('{prompt}', input.prompt);
+    }
+
     // Add context from input if available
     if ('context' in input && input.context) {
       promptText += `\n\nContext: ${input.context}`;
