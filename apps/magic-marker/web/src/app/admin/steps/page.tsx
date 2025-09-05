@@ -88,7 +88,7 @@ export default function StepsPage() {
 
   if (loading) {
     return (
-      <AdminLayout title="Processing Steps">
+      <AdminLayout title="Processing & Analytics" description="View processing steps and performance analytics">
         <div className="flex items-center justify-center h-64">
           <div className="text-lg">Loading steps...</div>
         </div>
@@ -97,10 +97,10 @@ export default function StepsPage() {
   }
 
   return (
-    <AdminLayout title="Processing Steps">
+    <AdminLayout title="Processing & Analytics" description="View processing steps and performance analytics">
       <div className="space-y-6">
         <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold text-gray-900">Processing Steps</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Processing & Analytics</h1>
           <Link
             href="/admin"
             className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
@@ -226,12 +226,9 @@ export default function StepsPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <Link
-                        href={`/admin/images?search=${step.image_id}`}
-                        className="text-sm text-blue-600 hover:text-blue-800"
-                      >
+                      <span className="text-sm text-gray-600 font-mono">
                         {step.image_id.substring(0, 8)}...
-                      </Link>
+                      </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {step.model_used}

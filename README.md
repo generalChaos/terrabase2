@@ -61,6 +61,21 @@ pnpm dev
 
 #### **1. Supabase Setup**
 
+**Option A: Local Development (Recommended)**
+```bash
+# Install Supabase CLI
+npm install -g supabase
+
+# Initialize and start local Supabase
+cd apps/magic-marker/web
+supabase init
+supabase start
+
+# Apply migrations
+supabase db reset
+```
+
+**Option B: Cloud Supabase (Production)**
 1. Create a new Supabase project at [supabase.com](https://supabase.com/)
 2. Get your project URL and anon key from Settings > API
 3. Create the required tables (see Database Setup below)
@@ -75,13 +90,31 @@ touch apps/magic-marker/web/.env.local
 ```
 
 Add to `apps/magic-marker/web/.env.local`:
+
+**For Local Development:**
 ```env
-# Supabase Configuration
+# Local Supabase Development Environment
+NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
+
+# OpenAI API Configuration (for server-side API routes)
+OPENAI_API_KEY=sk-proj-your-openai-api-key
+
+# Prompt Management Configuration
+USE_DATABASE_PROMPTS=true
+```
+
+**For Production:**
+```env
+# Cloud Supabase Configuration
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
 
 # OpenAI API Configuration (for server-side API routes)
 OPENAI_API_KEY=sk-proj-your-openai-api-key
+
+# Prompt Management Configuration
+USE_DATABASE_PROMPTS=true
 ```
 
 ```bash
@@ -96,6 +129,15 @@ touch apps/party-game/api/.env
 #### **3. Database Setup**
 
 **Magic Marker (Supabase):**
+
+**For Local Development:**
+```bash
+# Apply all migrations (includes all required tables)
+cd apps/magic-marker/web
+supabase db reset
+```
+
+**For Cloud Supabase:**
 ```sql
 -- Create images table
 CREATE TABLE IF NOT EXISTS images (
@@ -109,11 +151,46 @@ CREATE TABLE IF NOT EXISTS images (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Create prompt_definitions table for AI prompt management
+CREATE TABLE IF NOT EXISTS prompt_definitions (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name VARCHAR(255) UNIQUE NOT NULL,
+  type VARCHAR(100) NOT NULL,
+  prompt_text TEXT NOT NULL,
+  input_schema JSONB NOT NULL,
+  return_schema JSONB NOT NULL,
+  model VARCHAR(100) DEFAULT 'gpt-4o',
+  max_tokens INTEGER DEFAULT 4000,
+  temperature DECIMAL(3,2) DEFAULT 0.7,
+  response_format VARCHAR(50) DEFAULT 'json_object',
+  active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create analysis_flows table for conversational question flows
+CREATE TABLE IF NOT EXISTS analysis_flows (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  original_image_id UUID REFERENCES images(id),
+  session_id VARCHAR(255) NOT NULL,
+  is_active BOOLEAN DEFAULT true,
+  total_questions INTEGER DEFAULT 0,
+  questions JSONB DEFAULT '[]',
+  answers JSONB DEFAULT '[]',
+  context_data JSONB DEFAULT '{}',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Enable Row Level Security
 ALTER TABLE images ENABLE ROW LEVEL SECURITY;
+ALTER TABLE prompt_definitions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE analysis_flows ENABLE ROW LEVEL SECURITY;
 
--- Create policy for public access (adjust as needed)
+-- Create policies for public access (adjust as needed)
 CREATE POLICY "Allow public access" ON images FOR ALL USING (true);
+CREATE POLICY "Allow public access" ON prompt_definitions FOR ALL USING (true);
+CREATE POLICY "Allow public access" ON analysis_flows FOR ALL USING (true);
 ```
 
 **Party Game (Supabase):**
@@ -160,7 +237,15 @@ pnpm dev
 # Run specific project
 pnpm dev:portal          # Portal only (localhost:3000)
 pnpm dev:party-game      # Party Game (API + Web)
-pnpm dev:magic-marker    # Magic Marker (localhost:3002)
+pnpm dev:magic-marker    # Magic Marker with Supabase (localhost:3002)
+
+# Magic Marker specific commands
+pnpm setup:magic-marker  # Setup Magic Marker with local Supabase
+pnpm supabase:start      # Start local Supabase
+pnpm supabase:stop       # Stop local Supabase
+pnpm supabase:status     # Check Supabase status
+pnpm supabase:reset      # Reset Supabase database
+pnpm supabase:dashboard  # Open Supabase dashboard
 ```
 
 ### Testing

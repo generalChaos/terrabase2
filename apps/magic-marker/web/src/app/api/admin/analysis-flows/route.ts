@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { AnalysisFlowService } from '@/lib/analysisFlowService'
 
+// GET /api/admin/analysis-flows - Get all analysis flows
 export async function GET() {
   try {
     const analysisFlows = await AnalysisFlowService.getAllAnalysisFlows()

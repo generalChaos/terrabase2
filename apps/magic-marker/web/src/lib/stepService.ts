@@ -1,21 +1,5 @@
 import { supabase } from '@/lib/supabase';
-
-export interface ProcessingStep {
-  id?: string;
-  image_id: string;
-  step_type: 'analysis' | 'questions' | 'conversational_question' | 'answer_analysis' | 'image_generation';
-  step_order: number;
-  prompt_id?: string;
-  prompt_content?: string;
-  input_data: unknown;
-  output_data: unknown;
-  response_time_ms: number;
-  tokens_used?: number;
-  model_used: string;
-  success: boolean;
-  error_message?: string;
-  created_at?: string;
-}
+import { ProcessingStep } from './newTypes';
 
 export class StepService {
   /**
@@ -23,26 +7,26 @@ export class StepService {
    */
   static async logStep(step: Omit<ProcessingStep, 'id' | 'created_at'>): Promise<void> {
     try {
-      // First, check if the image exists in the database
-      console.log(`🔍 [StepService] Checking if image exists: ${step.image_id}`);
-      const { data: imageData, error: imageError } = await supabase
-        .from('images')
+      // First, check if the analysis flow exists in the database
+      console.log(`🔍 [StepService] Checking if analysis flow exists: ${step.flow_id}`);
+      const { data: flowData, error: flowError } = await supabase
+        .from('analysis_flows')
         .select('id')
-        .eq('id', step.image_id)
+        .eq('id', step.flow_id)
         .single();
 
-      if (imageError || !imageData) {
-        console.error(`❌ [StepService] Image ${step.image_id} not found in database:`, imageError);
-        console.log(`⚠️ [StepService] Skipping step logging for non-existent image`);
+      if (flowError || !flowData) {
+        console.error(`❌ [StepService] Analysis flow ${step.flow_id} not found in database:`, flowError);
+        console.log(`⚠️ [StepService] Skipping step logging for non-existent flow`);
         return;
       }
 
-      console.log(`✅ [StepService] Image ${step.image_id} exists, proceeding with step logging`);
+      console.log(`✅ [StepService] Analysis flow ${step.flow_id} exists, proceeding with step logging`);
 
       const { error } = await supabase
         .from('image_processing_steps')
         .insert({
-          image_id: step.image_id,
+          flow_id: step.flow_id,
           step_type: step.step_type,
           step_order: step.step_order,
           prompt_id: step.prompt_id,
@@ -60,7 +44,7 @@ export class StepService {
         console.error('Error logging processing step:', error);
         // Don't throw - logging failures shouldn't break the main flow
       } else {
-        console.log(`✅ Logged ${step.step_type} step for image ${step.image_id}`);
+        console.log(`✅ Logged ${step.step_type} step for flow ${step.flow_id}`);
       }
     } catch (error) {
       console.error('Unexpected error logging processing step:', error);
@@ -69,14 +53,14 @@ export class StepService {
   }
 
   /**
-   * Get all steps for a specific image
+   * Get all steps for a specific analysis flow
    */
-  static async getStepsForImage(imageId: string): Promise<ProcessingStep[]> {
+  static async getStepsForFlow(flowId: string): Promise<ProcessingStep[]> {
     try {
       const { data, error } = await supabase
         .from('image_processing_steps')
         .select('*')
-        .eq('image_id', imageId)
+        .eq('flow_id', flowId)
         .order('step_order', { ascending: true });
 
       if (error) {
@@ -87,6 +71,31 @@ export class StepService {
       return data || [];
     } catch (error) {
       console.error('Unexpected error fetching processing steps:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get all steps for a specific image (legacy method - now uses analysis flows)
+   */
+  static async getStepsForImage(imageId: string): Promise<ProcessingStep[]> {
+    try {
+      // First find the analysis flow for this image
+      const { data: flowData, error: flowError } = await supabase
+        .from('analysis_flows')
+        .select('id')
+        .eq('original_image_id', imageId)
+        .eq('is_active', true)
+        .single();
+
+      if (flowError || !flowData) {
+        console.log('No active analysis flow found for image:', imageId);
+        return [];
+      }
+
+      return this.getStepsForFlow(flowData.id);
+    } catch (error) {
+      console.error('Unexpected error fetching processing steps for image:', error);
       return [];
     }
   }

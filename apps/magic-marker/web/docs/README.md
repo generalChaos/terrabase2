@@ -498,7 +498,7 @@ Debug endpoints are accessible through the admin interface:
 
 For more detailed information, see the [Debug Endpoints Documentation](../src/app/api/debug/README.md).
 
-## 🚀 **Deployment**
+.a## 🚀 **Deployment**
 
 ### **Vercel Deployment**
 ```bash

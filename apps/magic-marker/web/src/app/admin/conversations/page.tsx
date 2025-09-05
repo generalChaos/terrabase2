@@ -120,7 +120,7 @@ export default function AnalysisFlowsPage() {
 
   if (error) {
     return (
-      <AdminLayout title="AnalysisFlows">
+      <AdminLayout title="Image Analysis Flows">
         <div className="bg-red-50 border border-red-200 rounded-md p-4">
           <div className="flex">
             <div className="ml-3">
@@ -134,12 +134,12 @@ export default function AnalysisFlowsPage() {
   }
 
   return (
-    <AdminLayout title="AnalysisFlows">
+    <AdminLayout title="Image Analysis Flows">
       <div className="space-y-6">
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">AnalysisFlows</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Image Analysis Flows</h1>
             <p className="text-gray-600">View and manage conversational question flows</p>
           </div>
           <button

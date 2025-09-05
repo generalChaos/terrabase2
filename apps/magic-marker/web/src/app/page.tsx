@@ -10,6 +10,7 @@ import ConversationalQuestionFlow from '@/components/ConversationalQuestionFlow'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import DebugPanel from '@/components/DebugPanel'
 import AnimatedHomepage from '@/components/AnimatedHomepage'
+import { ToastContainer, useToast } from '@/components/Toast'
 
 const API_BASE = '/api'
 
@@ -19,6 +20,7 @@ export default function HomePage() {
   const [errors, setErrors] = useState<string[]>([])
   const [logs, setLogs] = useState<string[]>([])
   const [currentStepIndex, setCurrentStepIndex] = useState(0)
+  const { toasts, removeToast, success, error, warning, info } = useToast()
 
   // Log when currentStepIndex changes
   useEffect(() => {
@@ -94,25 +96,24 @@ export default function HomePage() {
     'images',
     async () => {
       const response = await axios.get(`${API_BASE}/images`)
-      // Transform snake_case API response to camelCase frontend types
-      return response.data.map((item: {
-        id: string;
-        original_image_path: string;
-        analysis_result: string;
-        questions: string;
-        answers?: string;
-        final_image_path?: string;
-        created_at: string;
-        updated_at: string;
-      }) => ({
+      // The API now returns the combined data structure directly
+      return response.data.map((item: any) => ({
         id: item.id,
-        originalImagePath: item.original_image_path,
-        analysisResult: item.analysis_result,
-        questions: item.questions,
-        answers: item.answers,
-        finalImagePath: item.final_image_path,
-        createdAt: new Date(item.created_at),
-        updatedAt: new Date(item.updated_at)
+        originalImagePath: item.originalImagePath,
+        analysisResult: item.analysisResult,
+        questions: item.questions || [],
+        answers: item.answers || [],
+        finalImagePath: item.finalImagePath,
+        createdAt: new Date(item.createdAt),
+        updatedAt: new Date(item.updatedAt),
+        // New fields from analysis flows
+        sessionId: item.sessionId,
+        totalQuestions: item.totalQuestions || 0,
+        totalAnswers: item.totalAnswers || 0,
+        currentStep: item.currentStep,
+        totalCostUsd: item.totalCostUsd || 0,
+        totalTokens: item.totalTokens || 0,
+        isActive: item.isActive || false
       }))
     }
   )
@@ -134,13 +135,28 @@ export default function HomePage() {
       onSuccess: (data) => {
         console.log('📤 [UPLOAD] Upload success - data:', data)
         addLog(`Image analysis completed. Generated ${data.questions.length} questions`)
+        
+        // Show success toast
+        success(
+          'Image Uploaded Successfully!',
+          `Analysis completed and ${data.questions.length} questions generated.`
+        )
+        
         setCurrentImageAnalysis({
           id: data.imageAnalysisId,
           originalImagePath: data.originalImagePath,
           analysisResult: data.analysis || '',
           questions: data.questions,
           createdAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
+          // New fields from analysis flows
+          sessionId: data.sessionId,
+          totalQuestions: data.questions?.length || 0,
+          totalAnswers: 0,
+          currentStep: 'questions',
+          totalCostUsd: 0,
+          totalTokens: 0,
+          isActive: true
         })
         console.log('🔄 [UPLOAD] Setting currentStep to dynamic and currentStepIndex to 1 (questions_generation step)')
         setCurrentStep('dynamic')
@@ -171,15 +187,32 @@ export default function HomePage() {
         
         // Extract error message safely
         let errorMessage = 'Unknown error occurred'
+        let debugInfo = null
+        
         if (errorObj?.response?.data?.error) {
           errorMessage = errorObj.response.data.error
+          // Check if there's debug info in the response
+          if (errorObj.response.data.debug) {
+            debugInfo = errorObj.response.data.debug
+          }
         } else if (errorObj?.message) {
           errorMessage = errorObj.message
         } else if (errorObj?.response?.statusText) {
           errorMessage = errorObj.response.statusText
         }
         
-        addError(`Upload failed: ${errorMessage}`)
+        // Show user-friendly error toast
+        error(
+          'Upload Failed',
+          errorMessage
+        )
+        
+        // Still add to debug panel for developers
+        const fullErrorMessage = debugInfo 
+          ? `Upload failed: ${errorMessage}\nDebug: ${JSON.stringify(debugInfo, null, 2)}`
+          : `Upload failed: ${errorMessage}`
+        
+        addError(fullErrorMessage)
       }
     }
   )
@@ -198,6 +231,13 @@ export default function HomePage() {
     {
       onSuccess: (_data) => {
         addLog('Image generated successfully!')
+        
+        // Show success toast
+        success(
+          'Image Generated!',
+          'Your custom image has been created successfully.'
+        )
+        
         setCurrentStep('upload')
         setCurrentImageAnalysis(null)
         queryClient.invalidateQueries('images')
@@ -216,6 +256,14 @@ export default function HomePage() {
         })
         
         const errorMessage = errorObj.response?.data?.error || error.message || 'Unknown error occurred'
+        
+        // Show user-friendly error toast
+        error(
+          'Image Generation Failed',
+          errorMessage
+        )
+        
+        // Still add to debug panel for developers
         addError(`Image generation failed: ${errorMessage}`)
         setCurrentStep('questions')
       }
@@ -223,12 +271,24 @@ export default function HomePage() {
   )
 
   const handleImageUpload = (file: File) => {
+    // Show info toast when upload starts
+    info(
+      'Uploading Image...',
+      'Please wait while we analyze your image.'
+    )
     uploadMutation.mutate(file)
   }
 
   const handleQuestionsSubmit = (answers: QuestionAnswer[]) => {
     console.log('📝 [QUESTIONS] handleQuestionsSubmit called with answers:', answers)
     console.log('📝 [QUESTIONS] Current step index:', currentStepIndex)
+    
+    // Show success toast for questions completion
+    success(
+      'Questions Answered!',
+      `You've answered ${answers.length} questions. Moving to next step.`
+    )
+    
     // Store the answers and move to next step in dynamic flow
     setCurrentImageAnalysis(prev => prev ? { ...prev, answers } : null)
     console.log('📝 [QUESTIONS] Moving to next step after storing answers')
@@ -264,6 +324,8 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen">
+      {/* Toast Container */}
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
       
       {currentStep === 'homepage' && (
         <div className="">
@@ -321,7 +383,45 @@ export default function HomePage() {
             
             const currentStepInfo = getCurrentStepInfo()
             if (!currentStepInfo) {
-              console.log('🎨 [RENDER] No current step info - returning null')
+              console.log('🎨 [RENDER] No current step info - checking if we have a generated image to show')
+              // If we're past the last step and have a generated image, show it
+              if (currentImageAnalysis?.finalImagePath) {
+                return (
+                  <div className="text-center py-8">
+                    <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                      Your Generated Image
+                    </h2>
+                    <div className="flex justify-center mb-6">
+                      <img
+                        src={currentImageAnalysis.finalImagePath}
+                        alt="Generated image"
+                        className="max-w-full h-auto max-h-96 border border-gray-300 rounded-lg shadow-lg"
+                      />
+                    </div>
+                    <div className="space-x-4">
+                      <button
+                        onClick={handleReset}
+                        className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                      >
+                        Start Over
+                      </button>
+                      <button
+                        onClick={() => {
+                          // Download the image
+                          const link = document.createElement('a')
+                          link.href = currentImageAnalysis.finalImagePath || ''
+                          link.download = 'generated-image.png'
+                          link.click()
+                        }}
+                        className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                      >
+                        Download Image
+                      </button>
+                    </div>
+                  </div>
+                )
+              }
+              console.log('🎨 [RENDER] No current step info and no generated image - returning null')
               return null
             }
 
@@ -474,12 +574,13 @@ export default function HomePage() {
                           
                           if (result.success) {
                             console.log('🖼️ [IMAGE] Image generated successfully')
-                            // Store the generated image and move back to dynamic flow
+                            // Store the generated image and move to next step to show result
                             setCurrentImageAnalysis(prev => prev ? { 
                               ...prev, 
                               finalImagePath: `data:image/png;base64,${result.response.image_base64}`
                             } : null)
-                            setCurrentStep('dynamic')
+                            // Move to next step to show the generated image
+                            moveToNextStep()
                           } else {
                             console.error('🖼️ [IMAGE] Failed to generate image:', result.error)
                             setCurrentStep('dynamic') // Go back to dynamic flow even on error
@@ -528,41 +629,6 @@ export default function HomePage() {
             </div>
           )}
 
-          {/* Generated Image Display */}
-          {currentImageAnalysis?.finalImagePath && (
-            <div className="text-center py-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                Your Generated Image
-              </h2>
-              <div className="flex justify-center mb-6">
-                <img
-                  src={currentImageAnalysis.finalImagePath}
-                  alt="Generated image"
-                  className="max-w-full h-auto max-h-96 border border-gray-300 rounded-lg shadow-lg"
-                />
-              </div>
-              <div className="space-x-4">
-                <button
-                  onClick={handleReset}
-                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Start Over
-                </button>
-                <button
-                  onClick={() => {
-                    // Download the image
-                    const link = document.createElement('a')
-                    link.href = currentImageAnalysis.finalImagePath || ''
-                    link.download = 'generated-image.png'
-                    link.click()
-                  }}
-                  className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                >
-                  Download Image
-                </button>
-              </div>
-            </div>
-          )}
 
             {/* Debug Panel */}
             <DebugPanel 

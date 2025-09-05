@@ -2,6 +2,16 @@
 
 import Link from 'next/link'
 import AdminLayout from '@/components/AdminLayout'
+import { 
+  FileText, 
+  BarChart3, 
+  TestTube, 
+  MessageCircle, 
+  Settings,
+  Database,
+  Zap,
+  Bug
+} from 'lucide-react'
 
 export default function AdminDashboard() {
   return (
@@ -19,10 +29,8 @@ export default function AdminDashboard() {
               <div className="p-6">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
-                    <div className="w-12 h-12 bg-purple-500 rounded-lg flex items-center justify-center group-hover:bg-purple-600 transition-colors duration-200">
-                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
+                    <div className="w-16 h-16 bg-purple-500 rounded-lg flex items-center justify-center group-hover:bg-purple-600 transition-colors duration-200">
+                      <FileText className="w-8 h-8 text-white" />
                     </div>
                   </div>
                   <div className="ml-4">
@@ -38,105 +46,53 @@ export default function AdminDashboard() {
             </div>
           </Link>
 
-          {/* Analytics */}
-          <Link href="/admin/analytics" className="group">
-            <div className="bg-white overflow-hidden shadow rounded-lg hover:shadow-lg transition-shadow duration-200">
-              <div className="p-6">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0">
-                    <div className="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center group-hover:bg-green-600 transition-colors duration-200">
-                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                      </svg>
-                    </div>
-                  </div>
-                  <div className="ml-4">
-                    <h3 className="text-lg font-medium text-gray-900 group-hover:text-green-600 transition-colors duration-200">
-                      Analytics
-                    </h3>
-                    <p className="text-sm text-gray-500">
-                      View prompt performance metrics
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </Link>
-
-          {/* Image Gallery */}
-          <Link href="/admin/images" className="group">
-            <div className="bg-white overflow-hidden shadow rounded-lg hover:shadow-lg transition-shadow duration-200">
-              <div className="p-6">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0">
-                    <div className="w-12 h-12 bg-purple-500 rounded-lg flex items-center justify-center group-hover:bg-purple-600 transition-colors duration-200">
-                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                    </div>
-                  </div>
-                  <div className="ml-4">
-                    <h3 className="text-lg font-medium text-gray-900 group-hover:text-purple-600 transition-colors duration-200">
-                      Image Gallery
-                    </h3>
-                    <p className="text-sm text-gray-500">
-                      View and manage all generated images
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </Link>
-
-          {/* Conversations */}
-          <Link href="/admin/conversations" className="group">
-            <div className="bg-white overflow-hidden shadow rounded-lg hover:shadow-lg transition-shadow duration-200">
-              <div className="p-6">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0">
-                    <div className="w-12 h-12 bg-cyan-500 rounded-lg flex items-center justify-center group-hover:bg-cyan-600 transition-colors duration-200">
-                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                      </svg>
-                    </div>
-                  </div>
-                  <div className="ml-4">
-                    <h3 className="text-lg font-medium text-gray-900 group-hover:text-cyan-600 transition-colors duration-200">
-                      Conversations
-                    </h3>
-                    <p className="text-sm text-gray-500">
-                      View conversational question flows
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </Link>
-
-          {/* Processing Steps */}
+          {/* Processing & Analytics */}
           <Link href="/admin/steps" className="group">
             <div className="bg-white overflow-hidden shadow rounded-lg hover:shadow-lg transition-shadow duration-200">
               <div className="p-6">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
-                    <div className="w-12 h-12 bg-purple-500 rounded-lg flex items-center justify-center group-hover:bg-purple-600 transition-colors duration-200">
-                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                      </svg>
+                    <div className="w-16 h-16 bg-green-500 rounded-lg flex items-center justify-center group-hover:bg-green-600 transition-colors duration-200">
+                      <BarChart3 className="w-8 h-8 text-white" />
                     </div>
                   </div>
                   <div className="ml-4">
-                    <h3 className="text-lg font-medium text-gray-900 group-hover:text-purple-600 transition-colors duration-200">
-                      Processing Steps
+                    <h3 className="text-lg font-medium text-gray-900 group-hover:text-green-600 transition-colors duration-200">
+                      Processing & Analytics
                     </h3>
                     <p className="text-sm text-gray-500">
-                      Track AI processing pipeline steps
+                      View processing steps and performance metrics
                     </p>
                   </div>
                 </div>
               </div>
             </div>
           </Link>
+
+
+          {/* Conversations */}
+          <Link href="/admin/analysis-flows" className="group">
+            <div className="bg-white overflow-hidden shadow rounded-lg hover:shadow-lg transition-shadow duration-200">
+              <div className="p-6">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0">
+                    <div className="w-16 h-16 bg-cyan-500 rounded-lg flex items-center justify-center group-hover:bg-cyan-600 transition-colors duration-200">
+                      <MessageCircle className="w-8 h-8 text-white" />
+                    </div>
+                  </div>
+                  <div className="ml-4">
+                    <h3 className="text-lg font-medium text-gray-900 group-hover:text-cyan-600 transition-colors duration-200">
+                      Analysis Flows
+                    </h3>
+                    <p className="text-sm text-gray-500">
+                      View image analysis flows and conversations
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Link>
+
 
           {/* System Status */}
           <Link href="/admin/status" className="group">
@@ -144,10 +100,8 @@ export default function AdminDashboard() {
               <div className="p-6">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
-                    <div className="w-12 h-12 bg-yellow-500 rounded-lg flex items-center justify-center group-hover:bg-yellow-600 transition-colors duration-200">
-                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
+                    <div className="w-16 h-16 bg-yellow-500 rounded-lg flex items-center justify-center group-hover:bg-yellow-600 transition-colors duration-200">
+                      <Settings className="w-8 h-8 text-white" />
                     </div>
                   </div>
                   <div className="ml-4">
@@ -199,6 +153,7 @@ export default function AdminDashboard() {
             </div>
           </div>
         </div>
+
     </AdminLayout>
   )
 }

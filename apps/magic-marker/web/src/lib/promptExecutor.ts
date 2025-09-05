@@ -395,7 +395,8 @@ export class PromptExecutor {
     }
 
     // For image + text analysis, we need to handle both image and text input
-    if (definition.type === 'image_text_analysis' && 'image' in input && 'text' in input) {
+    // Removed deprecated image_text_analysis prompt type
+    if ('text' in input && 'image' in input) {
       // Build enhanced prompt with text input and optional fields
       let enhancedPrompt = prompt;
       
@@ -450,8 +451,11 @@ export class PromptExecutor {
         // Check required fields
         if (Array.isArray(schemaObj.required)) {
           for (const field of schemaObj.required) {
-            if (typeof field === 'string' && !(field in (data as Record<string, unknown>))) {
-              errors.push(`Missing required field: ${field}`);
+            if (typeof field === 'string') {
+              const dataObj = data as Record<string, unknown>;
+              if (!(field in dataObj)) {
+                errors.push(`Missing required field: ${field}`);
+              }
             }
           }
         }

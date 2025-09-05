@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { Question, QuestionAnswer } from '@/lib/types'
-import { AnalysisFlowService, AnalysisFlow } from '@/lib/analysisFlowService'
-import { OpenAIService } from '@/lib/openai'
+import { AnalysisFlowService } from '@/lib/analysisFlowService'
+import { AnalysisFlow } from '@/lib/newTypes'
 import { supabase } from '@/lib/supabase'
 
 interface ConversationalQuestionFlowProps {
@@ -34,8 +34,8 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
   const finishConversation = useCallback(async (flow: AnalysisFlow) => {
     console.log('🏁 [ConversationalQuestionFlow] Finishing analysis flow...', {
       flowId: flow.id,
-      questionsCount: flow.conversation_state.questions.length,
-      answeredQuestions: flow.conversation_state.questions.filter(q => q.answer).length
+      questionsCount: flow.questions.length,
+      answeredQuestions: flow.answers.length
     });
 
     try {
@@ -44,12 +44,7 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
       await AnalysisFlowService.deactivateAnalysisFlow(flow.id)
       
       // Convert to QuestionAnswer format
-      const questionAnswers: QuestionAnswer[] = flow.conversation_state.questions
-        .filter((q) => q.answer)
-        .map((q) => ({
-          questionId: q.id,
-          answer: q.answer!,
-        }))
+      const questionAnswers: QuestionAnswer[] = flow.answers;
 
       console.log('📊 [ConversationalQuestionFlow] Question answers prepared:', {
         count: questionAnswers.length,
@@ -68,28 +63,41 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
   const generateNextQuestion = useCallback(async (flow: AnalysisFlow) => {
     console.log('🔄 [ConversationalQuestionFlow] Generating next question for conversation:', {
       conversationId: flow.id,
-      currentQuestionsCount: flow.conversation_state.questions.length,
-      totalQuestions: flow.conversation_state.totalQuestions
+      currentQuestionsCount: flow.questions.length,
+      totalQuestions: flow.total_questions
     });
 
     try {
       setIsGeneratingQuestion(true)
       setError(null)
       
-      const previousAnswers = flow.conversation_state.contextData.previousAnswers || []
+      const previousAnswers = flow.answers.map((a: QuestionAnswer) => a.answer)
       console.log('📝 [ConversationalQuestionFlow] Previous answers:', previousAnswers);
 
-      console.log('🤖 [ConversationalQuestionFlow] Calling OpenAI service with prompt system...');
-      const { question, context, questions, done, summary } = await OpenAIService.generateConversationalQuestion(
-        imageAnalysis,
-        previousAnswers,
-        {
-          questions: flow.conversation_state.questions as Question[],
-          artisticDirection: flow.conversation_state.contextData.artisticDirection,
-          previousAnswers: previousAnswers
+      console.log('🤖 [ConversationalQuestionFlow] Calling API for conversational question...');
+      const response = await fetch('/api/conversational-question', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        imageId
-      )
+        body: JSON.stringify({
+          imageAnalysis,
+          previousAnswers,
+          conversationContext: {
+            questions: flow.questions as Question[],
+            artisticDirection: String(flow.context_data?.artisticDirection || ''),
+            previousAnswers: previousAnswers
+          },
+          imageId
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.details || errorData.error || 'Failed to generate question')
+      }
+
+      const { question, context, questions, done, summary } = await response.json()
 
       console.log('✅ [ConversationalQuestionFlow] AI response received:', {
         done,
@@ -101,7 +109,7 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
       if (done) {
         console.log('🏁 [ConversationalQuestionFlow] AI says conversation is done, finishing...');
         // AI decided the conversation is complete
-        await finishConversation(conv)
+        await finishConversation(flow)
         return
       }
 
@@ -121,19 +129,14 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
       console.log('💾 [ConversationalQuestionFlow] Adding question to conversation...');
       const updatedConversation = await AnalysisFlowService.addQuestion(
         flow.id,
-        {
-          id: question.id,
-          text: question.text,
-          options: question.options,
-          context
-        }
+        question
       )
 
       console.log('✅ [ConversationalQuestionFlow] Question added to conversation:', {
-        newQuestionsCount: updatedConversation.conversation_state.questions.length
+        newQuestionsCount: updatedConversation.questions.length
       });
 
-      setQuestionSession(updatedConversation)
+      setAnalysisFlow(updatedConversation)
       setCurrentQuestion(question)
       setSelectedAnswer('')
     } catch (err) {
@@ -215,7 +218,7 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
           console.log('♻️ [ConversationalQuestionFlow] Found existing conversation, resuming...');
         }
         
-        setConversation(activeConversation)
+        setAnalysisFlow(activeConversation)
         
         // Generate first question
         console.log('❓ [ConversationalQuestionFlow] Generating first question...');
@@ -243,7 +246,7 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
       selectedAnswer: selectedAnswer
     });
 
-    if (!conversation || !currentQuestion || !selectedAnswer) {
+    if (!analysisFlow || !currentQuestion || !selectedAnswer) {
       console.log('⚠️ [ConversationalQuestionFlow] Missing required data, cannot proceed');
       return
     }
@@ -262,15 +265,15 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
         selectedAnswer
       )
       
-      setQuestionSession(updatedConversation)
+      setAnalysisFlow(updatedConversation)
       
       console.log('✅ [ConversationalQuestionFlow] Answer added:', {
-        questionsCount: updatedConversation.conversation_state.questions.length,
-        totalQuestions: updatedConversation.conversation_state.totalQuestions
+        questionsCount: updatedConversation.questions.length,
+        totalQuestions: updatedConversation.total_questions
       });
       
       // Check if we should generate another question or finish
-      const totalQuestions = updatedConversation.conversation_state.totalQuestions
+      const totalQuestions = updatedConversation.total_questions
       const maxQuestions = 10 // Safety limit - AI can finish earlier
       
       if (totalQuestions < maxQuestions) {
@@ -301,7 +304,7 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
   }
 
   const progress = analysisFlow 
-    ? (analysisFlow.conversation_state.totalQuestions / 5) * 100 
+    ? (analysisFlow.total_questions / 5) * 100 
     : 0
 
   if (isGeneratingQuestion && !currentQuestion) {
@@ -413,7 +416,7 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
       {/* Progress Bar */}
       <div className="mb-8">
         <div className="flex justify-between text-sm text-white/80 mb-2">
-          <span>Question {analysisFlow?.conversation_state.totalQuestions || 0} of 5</span>
+          <span>Question {analysisFlow?.total_questions || 0} of 5</span>
           <span>{Math.round(progress)}% Complete</span>
         </div>
         <div className="w-full bg-white/20 rounded-full h-2">
@@ -474,7 +477,7 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
               <div
                 key={index}
                 className={`w-3 h-3 rounded-full transition-all duration-200 ${
-                  index < (analysisFlow?.conversation_state.totalQuestions || 0)
+                  index < (analysisFlow?.total_questions || 0)
                     ? 'bg-white/60'
                     : 'bg-white/20'
                 }`}
@@ -492,7 +495,7 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                 <span>Generating...</span>
               </div>
-            ) : (analysisFlow?.conversation_state.totalQuestions ?? 0) >= 4 ? (
+            ) : (analysisFlow?.total_questions ?? 0) >= 4 ? (
               isLoading ? 'Generating...' : 'Generate Image'
             ) : (
               'Next →'

@@ -217,8 +217,7 @@ const getStepNumber = (prompt: PromptDefinition): number => {
 //     'questions_generation': 'Generate questions from analysis',
 //     'conversational_question': 'Generate follow-up questions',
 //     'text_processing': 'Process text (utility)',
-//     'image_text_analysis': 'Analyze image with text prompt',
-//     'image_prompt_creation': 'Create final image generation prompt'
+// Removed deprecated prompt types
 //   }
 //   return descriptions[promptName as keyof typeof descriptions] || 'Unknown step'
 // }
@@ -231,10 +230,19 @@ export default function PromptDefinitionsPage() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [viewingSchema, setViewingSchema] = useState<{prompt: PromptDefinition, schema: 'input' | 'output' | 'return'} | null>(null)
+  const [activeTab, setActiveTab] = useState<{[key: string]: string}>({})
 
   useEffect(() => {
     loadPrompts()
   }, [])
+
+  const getActiveTab = (promptId: string) => {
+    return activeTab[promptId] || 'output-constraints'
+  }
+
+  const setActiveTabForPrompt = (promptId: string, tab: string) => {
+    setActiveTab(prev => ({ ...prev, [promptId]: tab }))
+  }
 
   const loadPrompts = async () => {
     try {
@@ -478,92 +486,115 @@ export default function PromptDefinitionsPage() {
                 )}
               </div>
 
-              {/* Output Constraints - Non-editable */}
+              {/* Tabbed Interface */}
               <div className="mt-4">
-                <h4 className="text-sm font-medium text-gray-700 mb-2">Output Constraints (Auto-appended by system)</h4>
-                <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
-                  <div className="text-xs text-blue-800 font-mono">
-                    <div className="font-semibold mb-1">Return Schema:</div>
-                    <pre className="text-xs">{JSON.stringify(prompt.return_schema, null, 2)}</pre>
-                    
-                    {prompt.type === 'conversational_question' && (
-                      <>
-                        <div className="mt-3 font-semibold">Schema Alignment Rules:</div>
-                        <div className="text-xs space-y-1">
-                          <div>• Questions array must match questions_generation schema exactly</div>
-                          <div>• Each question must have: id, text, type, options, required</div>
-                          <div>• type must be &quot;multiple_choice&quot; (matches questions_generation enum)</div>
-                          <div>• options array: 2-6 items, all strings</div>
-                          <div>• When done: true, questions array must be empty []</div>
-                          <div>• When done: false, questions array must have exactly 1 question</div>
-                          <div>• summary field only present when done: true</div>
-                        </div>
+                {/* Tab Navigation */}
+                <div className="border-b border-gray-200">
+                  <nav className="-mb-px flex space-x-8">
+                    <button
+                      onClick={() => setActiveTabForPrompt(prompt.id, 'output-constraints')}
+                      className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                        getActiveTab(prompt.id) === 'output-constraints'
+                          ? 'border-blue-500 text-blue-600'
+                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      }`}
+                    >
+                      Output Constraints
+                    </button>
+                    <button
+                      onClick={() => setActiveTabForPrompt(prompt.id, 'schemas')}
+                      className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                        getActiveTab(prompt.id) === 'schemas'
+                          ? 'border-blue-500 text-blue-600'
+                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      }`}
+                    >
+                      Schemas
+                    </button>
+                  </nav>
+                </div>
+
+                {/* Tab Content */}
+                <div className="mt-4">
+                  {getActiveTab(prompt.id) === 'output-constraints' && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+                      <div className="text-xs text-blue-800 font-mono">
+                        <div className="font-semibold mb-1">Return Schema:</div>
+                        <pre className="text-xs">{JSON.stringify(prompt.return_schema, null, 2)}</pre>
                         
-                        <div className="mt-3 font-semibold">End State Rules:</div>
-                        <div className="text-xs space-y-1">
-                          <div>• done: true → questions: [], summary: &quot;complete Q&A summary&quot;</div>
-                          <div>• done: false → questions: [single_question], no summary</div>
-                          <div>• Summary must include all 6 aspects covered in conversation</div>
-                          <div>• Summary should create detailed image generation prompt</div>
+                        {prompt.type === 'conversational_question' && (
+                          <>
+                            <div className="mt-3 font-semibold">Schema Alignment Rules:</div>
+                            <div className="text-xs space-y-1">
+                              <div>• Questions array must match questions_generation schema exactly</div>
+                              <div>• Each question must have: id, text, type, options, required</div>
+                              <div>• type must be &quot;multiple_choice&quot; (matches questions_generation enum)</div>
+                              <div>• options array: 2-6 items, all strings</div>
+                              <div>• When done: true, questions array must be empty []</div>
+                              <div>• When done: false, questions array must have exactly 1 question</div>
+                              <div>• summary field only present when done: true</div>
+                            </div>
+                            
+                            <div className="mt-3 font-semibold">End State Rules:</div>
+                            <div className="text-xs space-y-1">
+                              <div>• done: true → questions: [], summary: &quot;complete Q&A summary&quot;</div>
+                              <div>• done: false → questions: [single_question], no summary</div>
+                              <div>• Summary must include all 6 aspects covered in conversation</div>
+                              <div>• Summary should create detailed image generation prompt</div>
+                            </div>
+                          </>
+                        )}
+                        
+                        <div className="mt-3 font-semibold">JSON Formatting Rules:</div>
+                        <div className="text-xs">• No extra keys. No preamble. No markdown. Only JSON.</div>
+                        <div className="text-xs">• Follow the schema exactly.</div>
+                      </div>
+                    </div>
+                  )}
+
+                  {getActiveTab(prompt.id) === 'schemas' && (
+                    <div className="space-y-6">
+                      {/* Input/Output Types Summary */}
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-700 mb-4">Schema Summary</h4>
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                          <TypeDisplay 
+                            schema={prompt.input_schema} 
+                            title="Input" 
+                            type="input"
+                            onViewSchema={(schemaType) => setViewingSchema({prompt, schema: schemaType})}
+                          />
+                          <TypeDisplay 
+                            schema={prompt.output_schema} 
+                            title="Output" 
+                            type="output"
+                            onViewSchema={(schemaType) => setViewingSchema({prompt, schema: schemaType})}
+                          />
                         </div>
-                      </>
-                    )}
-                    
-                    <div className="mt-3 font-semibold">JSON Formatting Rules:</div>
-                    <div className="text-xs">• No extra keys. No preamble. No markdown. Only JSON.</div>
-                    <div className="text-xs">• Follow the schema exactly.</div>
-                  </div>
+                      </div>
+
+                      {/* Full Schemas */}
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-700 mb-4">Full Schemas</h4>
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                          <SchemaDisplay 
+                            schema={prompt.input_schema} 
+                            title="Input Schema" 
+                          />
+                          <SchemaDisplay 
+                            schema={prompt.output_schema} 
+                            title="Output Schema" 
+                          />
+                          <SchemaDisplay 
+                            schema={prompt.return_schema} 
+                            title="Return Schema" 
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
-
-
-              {/* Input/Output Types - Collapsible */}
-              <details className="group">
-                <summary className="cursor-pointer text-sm font-medium text-gray-700 hover:text-gray-900 flex items-center mb-4">
-                  <svg className="w-4 h-4 mr-2 transform group-open:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                  Input/Output Schemas
-                </summary>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <TypeDisplay 
-                    schema={prompt.input_schema} 
-                    title="Input" 
-                    type="input"
-                    onViewSchema={(schemaType) => setViewingSchema({prompt, schema: schemaType})}
-                  />
-                  <TypeDisplay 
-                    schema={prompt.output_schema} 
-                    title="Output" 
-                    type="output"
-                    onViewSchema={(schemaType) => setViewingSchema({prompt, schema: schemaType})}
-                  />
-                </div>
-              </details>
-
-              {/* Collapsible Full Schemas */}
-              <details className="group">
-                <summary className="cursor-pointer text-sm font-medium text-gray-700 hover:text-gray-900 flex items-center">
-                  <svg className="w-4 h-4 mr-2 transform group-open:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                  View Full Schemas
-                </summary>
-                <div className="mt-4 grid grid-cols-1 lg:grid-cols-3 gap-4">
-                  <SchemaDisplay 
-                    schema={prompt.input_schema} 
-                    title="Input Schema" 
-                  />
-                  <SchemaDisplay 
-                    schema={prompt.output_schema} 
-                    title="Output Schema" 
-                  />
-                  <SchemaDisplay 
-                    schema={prompt.return_schema} 
-                    title="Return Schema" 
-                  />
-                </div>
-              </details>
 
 
               {/* Metadata */}

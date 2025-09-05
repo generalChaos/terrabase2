@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabase, supabaseAdmin } from '@/lib/supabase';
 
 export async function GET(_request: NextRequest) {
   try {
@@ -37,7 +37,7 @@ export async function GET(_request: NextRequest) {
     // Test Supabase storage
     const storageTest: { accessible: boolean; error: string | null } = { accessible: false, error: null };
     try {
-      const { data: _data, error } = await supabase.storage
+      const { data: _data, error } = await supabaseAdmin.storage
         .from('images')
         .list('', { limit: 1 });
       
