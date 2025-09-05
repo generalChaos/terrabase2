@@ -337,12 +337,12 @@ export default function AnalysisFlowDetailsPage() {
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <div>
                   <label className="text-sm font-medium text-gray-500">Total Questions</label>
-                  <p className="mt-1 text-2xl font-bold text-gray-900">{analysisFlow.totalQuestions}</p>
+                  <p className="mt-1 text-2xl font-bold text-gray-900">{analysisFlow.total_questions}</p>
                   <p className="text-xs text-gray-500 mt-1">Initial + Conversational</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-500">Answered</label>
-                  <p className="mt-1 text-2xl font-bold text-gray-900">{analysisFlow.totalAnswers}</p>
+                  <p className="mt-1 text-2xl font-bold text-gray-900">{analysisFlow.total_answers}</p>
                   <p className="text-xs text-gray-500 mt-1">Conversational answers</p>
                 </div>
               </div>
@@ -533,7 +533,7 @@ export default function AnalysisFlowDetailsPage() {
                     <div>
                       <p className="text-sm font-medium text-green-900">Total Tokens</p>
                       <p className="text-2xl font-bold text-green-600">
-                        {(analysisFlow.totalTokens || 0).toLocaleString()}
+                        {(analysisFlow.total_tokens || 0).toLocaleString()}
                       </p>
                     </div>
                   </div>
@@ -660,7 +660,7 @@ export default function AnalysisFlowDetailsPage() {
                     <div>
                       <p className="text-sm font-medium text-green-900">Total Tokens</p>
                       <p className="text-2xl font-bold text-green-600">
-                        {(analysisFlow.totalTokens || 0).toLocaleString()}
+                        {(analysisFlow.total_tokens || 0).toLocaleString()}
                       </p>
                     </div>
                   </div>
@@ -814,7 +814,7 @@ export default function AnalysisFlowDetailsPage() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Conversational Flow</span>
-                  {analysisFlow.totalAnswers > 0 ? (
+                  {analysisFlow.total_answers > 0 ? (
                     <CheckCircle className="w-4 h-4 text-green-500" />
                   ) : (
                     <Clock className="w-4 h-4 text-yellow-500" />
