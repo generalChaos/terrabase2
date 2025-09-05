@@ -68,6 +68,16 @@ export async function GET(
       }, { status: 404 });
     }
 
+    // Debug logging to see what data we're getting
+    console.log('🔍 [API] Analysis flow data from database:', {
+      id: analysisFlow.id,
+      total_questions: analysisFlow.total_questions,
+      total_answers: analysisFlow.total_answers,
+      total_tokens: analysisFlow.total_tokens,
+      questions_count: analysisFlow.questions?.length || 0,
+      answers_count: analysisFlow.answers?.length || 0
+    });
+
     // Enhance flow with image paths
     const enhancedFlow = { ...analysisFlow }
     

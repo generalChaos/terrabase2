@@ -219,7 +219,14 @@ export class AnalysisFlowService {
       throw new Error(`Failed to update analysis flow: ${error.message}`)
     }
 
-    console.log('✅ [AnalysisFlowService] Analysis flow updated successfully');
+    console.log('✅ [AnalysisFlowService] Analysis flow updated successfully:', {
+      flowId: data.id,
+      totalQuestions: data.total_questions,
+      totalAnswers: data.total_answers,
+      totalTokens: data.total_tokens,
+      questionsCount: data.questions?.length || 0,
+      answersCount: data.answers?.length || 0
+    });
 
     return data
   }
@@ -270,6 +277,10 @@ export class AnalysisFlowService {
     console.log('✅ [AnalysisFlowService] Analysis flow found:', {
       flowId: data.id,
       totalQuestions: data.total_questions,
+      totalAnswers: data.total_answers,
+      totalTokens: data.total_tokens,
+      questionsCount: data.questions?.length || 0,
+      answersCount: data.answers?.length || 0,
       isActive: data.is_active
     });
 
