@@ -236,54 +236,130 @@ export default function AnalysisFlowDetailsPage() {
               </div>
             </div>
 
-            {/* Questions & Answers */}
+            {/* Complete Conversation Flow */}
             <div className="bg-white rounded-lg shadow-sm border p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                 <MessageSquare className="w-5 h-5 mr-2" />
-                Questions & Answers
+                Complete Conversation Flow
               </h2>
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Total Questions</label>
-                    <p className="mt-1 text-2xl font-bold text-gray-900">{analysisFlow.totalQuestions}</p>
-                    <p className="text-xs text-gray-500 mt-1">Initial + Conversational</p>
+              
+              {/* Summary Stats */}
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Total Questions</label>
+                  <p className="mt-1 text-2xl font-bold text-gray-900">{analysisFlow.totalQuestions}</p>
+                  <p className="text-xs text-gray-500 mt-1">Initial + Conversational</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Answered</label>
+                  <p className="mt-1 text-2xl font-bold text-gray-900">{analysisFlow.totalAnswers}</p>
+                  <p className="text-xs text-gray-500 mt-1">Conversational answers</p>
+                </div>
+              </div>
+
+              {/* Conversation Timeline */}
+              <div className="space-y-6">
+                {/* Step 1: Image Analysis */}
+                <div className="border-l-4 border-blue-500 pl-4">
+                  <div className="flex items-center mb-2">
+                    <div className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold mr-3">1</div>
+                    <h3 className="text-lg font-semibold text-gray-900">Image Analysis</h3>
                   </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Answered</label>
-                    <p className="mt-1 text-2xl font-bold text-gray-900">{analysisFlow.totalAnswers}</p>
-                    <p className="text-xs text-gray-500 mt-1">Conversational answers</p>
+                  <div className="ml-9 space-y-3">
+                    <div className="bg-blue-50 p-3 rounded-lg">
+                      <p className="text-sm font-medium text-blue-900 mb-1">Prompt Sent:</p>
+                      <p className="text-sm text-blue-800">"Analyze this image and describe what you see, focusing on artistic elements, composition, colors, and mood."</p>
+                    </div>
+                    <div className="bg-green-50 p-3 rounded-lg">
+                      <p className="text-sm font-medium text-green-900 mb-1">AI Response:</p>
+                      <p className="text-sm text-green-800">{analysisFlow.contextData?.imageAnalysis || 'No analysis available'}</p>
+                    </div>
                   </div>
                 </div>
 
-                {/* Questions List */}
-                {analysisFlow.questions && analysisFlow.questions.length > 0 && (
-                  <div>
-                    <label className="text-sm font-medium text-gray-500 mb-2 block">Questions</label>
-                    <div className="space-y-2">
-                      {analysisFlow.questions.map((question, index) => (
-                        <div key={question.id} className="p-3 bg-gray-50 rounded-lg">
-                          <p className="text-sm text-gray-900">
-                            <span className="font-medium">Q{index + 1}:</span> {question.text}
-                          </p>
-                        </div>
-                      ))}
+                {/* Step 2: Questions Generation */}
+                <div className="border-l-4 border-purple-500 pl-4">
+                  <div className="flex items-center mb-2">
+                    <div className="w-6 h-6 bg-purple-500 text-white rounded-full flex items-center justify-center text-xs font-bold mr-3">2</div>
+                    <h3 className="text-lg font-semibold text-gray-900">Questions Generation</h3>
+                  </div>
+                  <div className="ml-9 space-y-3">
+                    <div className="bg-purple-50 p-3 rounded-lg">
+                      <p className="text-sm font-medium text-purple-900 mb-1">Prompt Sent:</p>
+                      <p className="text-sm text-purple-800">"Generate engaging questions to help create a great artistic image based on this analysis."</p>
+                    </div>
+                    <div className="bg-green-50 p-3 rounded-lg">
+                      <p className="text-sm font-medium text-green-900 mb-1">Questions Generated:</p>
+                      <div className="space-y-2">
+                        {analysisFlow.questions && analysisFlow.questions.length > 0 ? (
+                          analysisFlow.questions.map((question, index) => (
+                            <div key={question.id} className="p-2 bg-white rounded border">
+                              <p className="text-sm text-gray-900">
+                                <span className="font-medium">Q{index + 1}:</span> {question.text}
+                              </p>
+                              {question.options && question.options.length > 0 && (
+                                <div className="mt-1">
+                                  <p className="text-xs text-gray-600">Options:</p>
+                                  <ul className="text-xs text-gray-700 ml-2">
+                                    {question.options.map((option, optIndex) => (
+                                      <li key={optIndex}>• {option}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-sm text-gray-500">No questions generated</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Step 3: Conversational Flow */}
+                {analysisFlow.answers && analysisFlow.answers.length > 0 && (
+                  <div className="border-l-4 border-orange-500 pl-4">
+                    <div className="flex items-center mb-2">
+                      <div className="w-6 h-6 bg-orange-500 text-white rounded-full flex items-center justify-center text-xs font-bold mr-3">3</div>
+                      <h3 className="text-lg font-semibold text-gray-900">Conversational Flow</h3>
+                    </div>
+                    <div className="ml-9 space-y-4">
+                      {analysisFlow.answers.map((answer, index) => {
+                        const question = analysisFlow.questions?.find(q => q.id === answer.questionId)
+                        return (
+                          <div key={answer.questionId} className="space-y-2">
+                            <div className="bg-orange-50 p-3 rounded-lg">
+                              <p className="text-sm font-medium text-orange-900 mb-1">Question {index + 1}:</p>
+                              <p className="text-sm text-orange-800">{question?.text || 'Question not found'}</p>
+                            </div>
+                            <div className="bg-green-50 p-3 rounded-lg">
+                              <p className="text-sm font-medium text-green-900 mb-1">User Answer:</p>
+                              <p className="text-sm text-green-800">{answer.answer}</p>
+                            </div>
+                          </div>
+                        )
+                      })}
                     </div>
                   </div>
                 )}
 
-                {/* Answers List */}
-                {analysisFlow.answers && analysisFlow.answers.length > 0 && (
-                  <div>
-                    <label className="text-sm font-medium text-gray-500 mb-2 block">Answers</label>
-                    <div className="space-y-2">
-                      {analysisFlow.answers.map((answer, index) => (
-                        <div key={answer.questionId} className="p-3 bg-blue-50 rounded-lg">
-                          <p className="text-sm text-gray-900">
-                            <span className="font-medium">A{index + 1}:</span> {answer.answer}
-                          </p>
-                        </div>
-                      ))}
+                {/* Step 4: Image Generation */}
+                {analysisFlow.final_image_id && (
+                  <div className="border-l-4 border-green-500 pl-4">
+                    <div className="flex items-center mb-2">
+                      <div className="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-xs font-bold mr-3">4</div>
+                      <h3 className="text-lg font-semibold text-gray-900">Image Generation</h3>
+                    </div>
+                    <div className="ml-9 space-y-3">
+                      <div className="bg-green-50 p-3 rounded-lg">
+                        <p className="text-sm font-medium text-green-900 mb-1">Generation Prompt:</p>
+                        <p className="text-sm text-green-800">"Generate an artistic image based on the original image analysis and user preferences from the conversation."</p>
+                      </div>
+                      <div className="bg-blue-50 p-3 rounded-lg">
+                        <p className="text-sm font-medium text-blue-900 mb-1">Final Image Generated:</p>
+                        <p className="text-sm text-blue-800">Image ID: {analysisFlow.final_image_id}</p>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -434,10 +510,18 @@ export default function AnalysisFlowDetailsPage() {
                           {step.error_message && (
                             <p className="text-xs text-red-600 mt-1">Error: {step.error_message}</p>
                           )}
+                          {step.prompt_content && (
+                            <div className="mt-2">
+                              <p className="text-xs font-medium text-gray-700 mb-1">Prompt Content:</p>
+                              <div className="text-xs text-gray-800 bg-blue-50 p-2 rounded border">
+                                {step.prompt_content}
+                              </div>
+                            </div>
+                          )}
                           {step.input_data && (
                             <details className="mt-2">
                               <summary className="text-xs text-gray-600 cursor-pointer hover:text-gray-800">Input Data</summary>
-                              <pre className="text-xs text-gray-800 bg-gray-100 p-2 rounded mt-1 overflow-auto max-h-32 border">
+                              <pre className="text-xs text-gray-800 bg-gray-100 p-2 rounded mt-1 overflow-auto max-h-32 border font-mono">
                                 {JSON.stringify(step.input_data, null, 2)}
                               </pre>
                             </details>
@@ -445,7 +529,7 @@ export default function AnalysisFlowDetailsPage() {
                           {step.output_data && (
                             <details className="mt-2">
                               <summary className="text-xs text-gray-600 cursor-pointer hover:text-gray-800">Output Data</summary>
-                              <pre className="text-xs text-gray-800 bg-gray-100 p-2 rounded mt-1 overflow-auto max-h-32 border">
+                              <pre className="text-xs text-gray-800 bg-gray-100 p-2 rounded mt-1 overflow-auto max-h-32 border font-mono">
                                 {JSON.stringify(step.output_data, null, 2)}
                               </pre>
                             </details>
