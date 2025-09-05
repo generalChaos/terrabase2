@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { Question, QuestionAnswer } from '@/lib/types'
-import { QuestionSessionService, QuestionSession } from '@/lib/questionSessionService'
+import { AnalysisFlowService, AnalysisFlow } from '@/lib/analysisFlowService'
 import { OpenAIService } from '@/lib/openai'
 import { supabase } from '@/lib/supabase'
 
@@ -23,28 +23,28 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
   onSkip,
   isLoading
 }) => {
-  const [questionSession, setQuestionSession] = useState<QuestionSession | null>(null)
+  const [analysisFlow, setAnalysisFlow] = useState<AnalysisFlow | null>(null)
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null)
   const [selectedAnswer, setSelectedAnswer] = useState<string>('')
   const [isGeneratingQuestion, setIsGeneratingQuestion] = useState(false)
-  const [sessionId] = useState(() => QuestionSessionService.generateSessionId())
+  const [sessionId] = useState(() => AnalysisFlowService.generateSessionId())
   const [error, setError] = useState<string | null>(null)
 
 
-  const finishConversation = useCallback(async (conv: QuestionSession) => {
-    console.log('🏁 [ConversationalQuestionFlow] Finishing conversation...', {
-      conversationId: conv.id,
-      questionsCount: conv.conversation_state.questions.length,
-      answeredQuestions: conv.conversation_state.questions.filter(q => q.answer).length
+  const finishConversation = useCallback(async (flow: AnalysisFlow) => {
+    console.log('🏁 [ConversationalQuestionFlow] Finishing analysis flow...', {
+      flowId: flow.id,
+      questionsCount: flow.conversation_state.questions.length,
+      answeredQuestions: flow.conversation_state.questions.filter(q => q.answer).length
     });
 
     try {
       // End conversation
       console.log('🔚 [ConversationalQuestionFlow] Ending conversation...');
-      await QuestionSessionService.deactivateQuestionSession(conv.id)
+      await AnalysisFlowService.deactivateAnalysisFlow(flow.id)
       
       // Convert to QuestionAnswer format
-      const questionAnswers: QuestionAnswer[] = conv.conversation_state.questions
+      const questionAnswers: QuestionAnswer[] = flow.conversation_state.questions
         .filter((q) => q.answer)
         .map((q) => ({
           questionId: q.id,
@@ -65,18 +65,18 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
     }
   }, [onSubmit])
 
-  const generateNextQuestion = useCallback(async (conv: QuestionSession) => {
+  const generateNextQuestion = useCallback(async (flow: AnalysisFlow) => {
     console.log('🔄 [ConversationalQuestionFlow] Generating next question for conversation:', {
-      conversationId: conv.id,
-      currentQuestionsCount: conv.conversation_state.questions.length,
-      totalQuestions: conv.conversation_state.totalQuestions
+      conversationId: flow.id,
+      currentQuestionsCount: flow.conversation_state.questions.length,
+      totalQuestions: flow.conversation_state.totalQuestions
     });
 
     try {
       setIsGeneratingQuestion(true)
       setError(null)
       
-      const previousAnswers = conv.conversation_state.contextData.previousAnswers || []
+      const previousAnswers = flow.conversation_state.contextData.previousAnswers || []
       console.log('📝 [ConversationalQuestionFlow] Previous answers:', previousAnswers);
 
       console.log('🤖 [ConversationalQuestionFlow] Calling OpenAI service with prompt system...');
@@ -84,8 +84,8 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
         imageAnalysis,
         previousAnswers,
         {
-          questions: conv.conversation_state.questions as Question[],
-          artisticDirection: conv.conversation_state.contextData.artisticDirection,
+          questions: flow.conversation_state.questions as Question[],
+          artisticDirection: flow.conversation_state.contextData.artisticDirection,
           previousAnswers: previousAnswers
         },
         imageId
@@ -119,8 +119,8 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
 
       // Add question to conversation
       console.log('💾 [ConversationalQuestionFlow] Adding question to conversation...');
-      const updatedConversation = await QuestionSessionService.addQuestion(
-        conv.id,
+      const updatedConversation = await AnalysisFlowService.addQuestion(
+        flow.id,
         {
           id: question.id,
           text: question.text,
@@ -201,12 +201,12 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
         
         // Check if there's already an active conversation
         console.log('🔍 [ConversationalQuestionFlow] Checking for existing conversation...');
-        let activeConversation = await QuestionSessionService.getActiveQuestionSession(imageId)
+        let activeConversation = await AnalysisFlowService.getActiveAnalysisFlow(imageId)
         
         if (!activeConversation) {
           console.log('📝 [ConversationalQuestionFlow] No existing conversation, creating new one...');
           // Create new conversation
-          activeConversation = await QuestionSessionService.createQuestionSession(
+          activeConversation = await AnalysisFlowService.createAnalysisFlow(
             imageId,
             sessionId,
             imageAnalysis
@@ -237,7 +237,7 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
 
   const handleNext = async () => {
     console.log('➡️ [ConversationalQuestionFlow] Handling next button click...', {
-      hasConversation: !!questionSession,
+      hasConversation: !!analysisFlow,
       hasCurrentQuestion: !!currentQuestion,
       hasSelectedAnswer: !!selectedAnswer,
       selectedAnswer: selectedAnswer
@@ -250,14 +250,14 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
 
     try {
       console.log('💾 [ConversationalQuestionFlow] Adding answer to conversation...', {
-        conversationId: questionSession.id,
+        conversationId: analysisFlow.id,
         questionId: currentQuestion.id,
         answer: selectedAnswer
       });
 
       // Add answer to conversation
-      const updatedConversation = await QuestionSessionService.addAnswer(
-        questionSession.id,
+      const updatedConversation = await AnalysisFlowService.addAnswer(
+        analysisFlow.id,
         currentQuestion.id,
         selectedAnswer
       )
@@ -290,9 +290,9 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
 
 
   const handleReset = async () => {
-    if (questionSession) {
+    if (analysisFlow) {
       try {
-        await QuestionSessionService.endQuestionSession(questionSession.id)
+        await AnalysisFlowService.endAnalysisFlow(analysisFlow.id)
       } catch (err) {
         console.warn('Failed to end conversation:', err)
       }
@@ -300,8 +300,8 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
     onReset()
   }
 
-  const progress = questionSession 
-    ? (questionSession.conversation_state.totalQuestions / 5) * 100 
+  const progress = analysisFlow 
+    ? (analysisFlow.conversation_state.totalQuestions / 5) * 100 
     : 0
 
   if (isGeneratingQuestion && !currentQuestion) {
