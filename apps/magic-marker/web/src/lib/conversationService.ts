@@ -49,6 +49,35 @@ export class ConversationService {
       imageAnalysisLength: imageAnalysis.length
     });
 
+    // First, deactivate any existing active conversations for this image
+    console.log('🔄 [ConversationService] Deactivating any existing active conversations...');
+    
+    // Check what active conversations exist first
+    const { data: activeConversations } = await supabase
+      .from('conversations')
+      .select('id, is_active, total_questions')
+      .eq('image_id', imageId)
+      .eq('is_active', true);
+
+    console.log('🔍 [ConversationService] Found active conversations before deactivation:', activeConversations);
+    
+    const { data: deactivatedData, error: deactivateError } = await supabase
+      .from('conversations')
+      .update({ is_active: false })
+      .eq('image_id', imageId)
+      .eq('is_active', true)
+      .select();
+
+    if (deactivateError) {
+      console.error('❌ [ConversationService] Error deactivating existing conversations:', deactivateError);
+      // Continue anyway, the insert might still work
+    } else {
+      console.log('✅ [ConversationService] Deactivated conversations:', deactivatedData);
+    }
+
+    // Add a small delay to ensure deactivation is processed
+    await new Promise(resolve => setTimeout(resolve, 100));
+
     const conversationState: ConversationState = {
       currentQuestionIndex: 0,
       totalQuestions: 0,
@@ -64,6 +93,12 @@ export class ConversationService {
       totalQuestions: conversationState.totalQuestions,
       questionsCount: conversationState.questions.length,
       contextDataKeys: Object.keys(conversationState.contextData)
+    });
+
+    console.log('🔄 [ConversationService] Attempting to create conversation with data:', {
+      imageId: imageId.substring(0, 8) + '...',
+      sessionId: sessionId.substring(0, 8) + '...',
+      isActive: true
     });
 
     const { data, error } = await supabase
@@ -82,6 +117,12 @@ export class ConversationService {
 
     if (error) {
       console.error('❌ [ConversationService] Error creating conversation:', error);
+      console.error('❌ [ConversationService] Error details:', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint
+      });
       throw new Error(`Failed to create conversation: ${error.message}`)
     }
 
@@ -92,6 +133,26 @@ export class ConversationService {
     });
 
     return data
+  }
+
+  /**
+   * Clean up broken conversations (active conversations with 0 questions)
+   */
+  static async cleanupBrokenConversations(imageId: string): Promise<void> {
+    console.log('🧹 [ConversationService] Cleaning up broken conversations for image:', imageId.substring(0, 8) + '...');
+    
+    const { error } = await supabase
+      .from('conversations')
+      .update({ is_active: false })
+      .eq('image_id', imageId)
+      .eq('is_active', true)
+      .eq('total_questions', 0);
+
+    if (error) {
+      console.error('❌ [ConversationService] Error cleaning up broken conversations:', error);
+    } else {
+      console.log('✅ [ConversationService] Broken conversations cleaned up');
+    }
   }
 
   /**
@@ -116,7 +177,21 @@ export class ConversationService {
       throw new Error(`Failed to get conversation: ${error.message}`)
     }
 
-    console.log('✅ [ConversationService] Found active conversation:', {
+    console.log('🔍 [ConversationService] Found conversation:', {
+      conversationId: data.id,
+      totalQuestions: data.total_questions,
+      questionsCount: data.conversation_state?.questions?.length || 0,
+      isActive: data.is_active
+    });
+
+    // Check if this is a broken conversation (0 questions)
+    if (data.total_questions === 0 || (data.conversation_state?.questions?.length || 0) === 0) {
+      console.log('🧹 [ConversationService] Found broken conversation, cleaning up...');
+      await this.cleanupBrokenConversations(imageId);
+      return null; // Return null so a new conversation can be created
+    }
+
+    console.log('✅ [ConversationService] Found valid active conversation:', {
       conversationId: data.id,
       questionsCount: data.conversation_state?.questions?.length || 0,
       totalQuestions: data.conversation_state?.totalQuestions || 0

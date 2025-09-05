@@ -12,12 +12,10 @@ let openai: OpenAI | null = null;
 
 function getOpenAIClient(): OpenAI {
   if (!openai) {
-    if (!process.env.OPENAI_API_KEY) {
-      console.error('❌ OpenAI API key not found in environment variables');
-      throw new Error('OpenAI API key not found in environment variables');
-    }
+    // Don't check for API key here - let the actual API call handle auth errors
+    // This allows us to distinguish between missing key and invalid key
     openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
+      apiKey: process.env.OPENAI_API_KEY || 'dummy-key', // Use dummy key if not set
     });
   }
   return openai;
@@ -213,13 +211,7 @@ export class PromptExecutor {
     input: PromptInput<T>,
     requestId: string
   ): Promise<unknown> {
-    const startTime = Date.now();
-
     try {
-      console.log(`🔑 [${requestId}] Checking OpenAI API key...`);
-      console.log(`🔑 [${requestId}] OPENAI_API_KEY exists:`, !!process.env.OPENAI_API_KEY);
-      console.log(`🔑 [${requestId}] OPENAI_API_KEY length:`, process.env.OPENAI_API_KEY?.length || 0);
-      
       const openai = getOpenAIClient();
       console.log(`🤖 [${requestId}] Making OpenAI API call...`);
       console.log(`📝 [${requestId}] PROMPT:`, prompt);
@@ -326,6 +318,12 @@ export class PromptExecutor {
       
       // Enhanced OpenAI error handling
       const errorObj = error as { code?: string; message?: string; status?: number };
+      
+      // Check for missing API key first
+      if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'dummy-key') {
+        throw new Error('OpenAI API key not found in environment variables. Please check your configuration.');
+      }
+      
       if (errorObj.code === 'rate_limit_exceeded') {
         throw new Error('OpenAI rate limit exceeded. Please try again in a moment.');
       } else if (errorObj.code === 'insufficient_quota') {

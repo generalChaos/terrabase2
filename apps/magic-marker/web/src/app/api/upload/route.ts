@@ -168,7 +168,7 @@ export async function POST(request: NextRequest) {
         id: imageId,
         original_image_path: publicUrl,
         analysis_result: analysisResult.response,
-        questions: JSON.stringify(questionsResult.questions)
+        questions: JSON.stringify(questionsResult.questions) // Store generated questions
       });
 
     if (insertError) {
@@ -229,7 +229,7 @@ export async function POST(request: NextRequest) {
       imageAnalysisId: imageId,
       originalImagePath: publicUrl,
       analysis: analysisResult.response,
-      questions: questionsResult.questions
+      questions: questionsResult.questions // Return generated questions
     });
 
   } catch (error) {

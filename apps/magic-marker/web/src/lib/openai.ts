@@ -132,7 +132,7 @@ export class OpenAIService {
     console.log(`💬 [${requestId}] Generating conversational question with prompt system`);
 
     try {
-      // Build conversation context for the AI
+      // Build conversation context for the AI in the format the prompt expects
       const conversationHistory = conversationContext.questions
         .map((q, index) => `Q${index + 1}: ${q.text}\nA${index + 1}: ${q.answer || 'Not answered'}`)
         .join('\n\n');
@@ -159,7 +159,13 @@ Current Context: ${conversationContext.artisticDirection || 'No specific directi
       let context: { reasoning: string; builds_on: string; artistic_focus: string } | undefined;
 
       if (!result.done && result.questions.length > 0) {
-        question = result.questions[0];
+        const firstQuestion = result.questions[0];
+        question = {
+          id: firstQuestion.id,
+          text: firstQuestion.text,
+          options: firstQuestion.options,
+          required: firstQuestion.required
+        };
         context = {
           reasoning: `AI generated question based on conversation history`,
           builds_on: previousAnswers.join(', ') || 'Initial conversation',
