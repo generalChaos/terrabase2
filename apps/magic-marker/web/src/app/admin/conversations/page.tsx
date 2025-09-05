@@ -219,7 +219,7 @@ export default function AnalysisFlowsPage() {
                       
                       <div className="text-right">
                         <div className="text-sm text-gray-500">
-                          {conversation.conversation_state.questions.filter(q => q.answer).length} answered
+                          {conversation.conversation_state.questions.filter((q: any) => q.answer).length} answered
                         </div>
                       </div>
                     </div>
@@ -329,7 +329,7 @@ export default function AnalysisFlowsPage() {
                             No questions generated yet
                           </div>
                         ) : (
-                          selectedAnalysisFlow.conversation_state.questions.map((q, index) => (
+                          selectedAnalysisFlow.conversation_state.questions.map((q: any, index: number) => (
                             <div key={q.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
                               <div className="font-semibold text-gray-900 mb-2">
                                 Q{index + 1}: {q.text}
@@ -368,7 +368,7 @@ export default function AnalysisFlowsPage() {
                           <p className="text-gray-500">No previous answers</p>
                         ) : (
                           <div className="space-y-2">
-                            {selectedAnalysisFlow.conversation_state.contextData.previousAnswers.map((answer, index) => (
+                            {selectedAnalysisFlow.conversation_state.contextData.previousAnswers.map((answer: any, index: number) => (
                               <div key={index} className="text-sm text-gray-700">
                                 <span className="font-medium">Answer {index + 1}:</span> {answer}
                               </div>
