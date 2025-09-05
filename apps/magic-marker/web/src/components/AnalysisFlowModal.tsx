@@ -79,7 +79,7 @@ export default function AnalysisFlowModal({ analysisFlow, isOpen, onClose }: Ana
         {/* Modal */}
         <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all w-full h-full max-w-none max-h-none">
           {/* Header */}
-          <div className="bg-white px-6 py-4 border-b border-gray-200">
+          <div className="bg-white px-6 py-4 border-b border-gray-200 sticky top-0 z-10">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-medium text-gray-900">
@@ -97,7 +97,7 @@ export default function AnalysisFlowModal({ analysisFlow, isOpen, onClose }: Ana
           </div>
 
           {/* Content */}
-          <div className="bg-white px-6 py-4 max-h-96 overflow-y-auto">
+          <div className="bg-white px-6 py-4 h-full overflow-y-auto">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Images */}
               <div>

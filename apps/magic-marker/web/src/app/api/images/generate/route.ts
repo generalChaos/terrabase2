@@ -51,6 +51,7 @@ export async function POST(request: NextRequest) {
         flow_id: analysisFlow.id,
         step_type: 'answer_analysis',
         step_order: 3,
+        prompt_content: 'Analyze user answers and prepare for image generation',
         input_data: { questions, answers: answerStrings },
         output_data: { analyzed_answers: answerStrings },
         response_time_ms: 0, // This is just processing, no AI call
@@ -118,6 +119,7 @@ Style: Artistic and creative interpretation of the user's preferences`
         flow_id: analysisFlow.id,
         step_type: 'image_generation',
         step_order: 4,
+        prompt_content: `Generate an artistic image based on the original image analysis and user preferences: ${answerStrings.join(', ')}`,
         input_data: { prompt: `Generated image based on answers: ${answerStrings.join(', ')}` },
         output_data: { image_base64_length: imageGenerationResult.image_base64.length },
         response_time_ms: imageGenerationTime,

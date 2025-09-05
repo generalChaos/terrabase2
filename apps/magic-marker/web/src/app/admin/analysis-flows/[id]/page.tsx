@@ -116,7 +116,7 @@ export default function AnalysisFlowDetailsPage() {
   }
 
   return (
-    <div className="fixed inset-0 bg-gray-50 z-50 overflow-y-auto">
+    <div className="fixed inset-0 bg-gray-50 z-50 overflow-y-auto h-screen">
       {/* Header */}
       <div className="bg-white shadow-sm border-b sticky top-0 z-10">
         <div className="px-4 sm:px-6 lg:px-8">
@@ -145,7 +145,7 @@ export default function AnalysisFlowDetailsPage() {
         </div>
       </div>
 
-      <div className="px-4 sm:px-6 lg:px-8 py-8">
+      <div className="px-4 sm:px-6 lg:px-8 py-8 min-h-full">
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
           {/* Main Content */}
           <div className="xl:col-span-3 space-y-6">
@@ -293,16 +293,19 @@ export default function AnalysisFlowDetailsPage() {
                       <div className="space-y-2">
                         {analysisFlow.questions && analysisFlow.questions.length > 0 ? (
                           analysisFlow.questions.map((question, index) => (
-                            <div key={question.id} className="p-2 bg-white rounded border">
-                              <p className="text-sm text-gray-900">
-                                <span className="font-medium">Q{index + 1}:</span> {question.text}
+                            <div key={question.id} className="p-3 bg-gray-50 rounded border border-gray-200">
+                              <p className="text-sm text-gray-900 font-medium">
+                                <span className="font-bold">Q{index + 1}:</span> {question.text}
                               </p>
                               {question.options && question.options.length > 0 && (
-                                <div className="mt-1">
-                                  <p className="text-xs text-gray-600">Options:</p>
-                                  <ul className="text-xs text-gray-700 ml-2">
+                                <div className="mt-2">
+                                  <p className="text-xs font-medium text-gray-700 mb-1">Options:</p>
+                                  <ul className="text-xs text-gray-800 space-y-1">
                                     {question.options.map((option, optIndex) => (
-                                      <li key={optIndex}>• {option}</li>
+                                      <li key={optIndex} className="flex items-start">
+                                        <span className="mr-2 text-gray-600">•</span>
+                                        <span>{option}</span>
+                                      </li>
                                     ))}
                                   </ul>
                                 </div>
