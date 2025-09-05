@@ -146,9 +146,9 @@ export default function AnalysisFlowDetailsPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
           {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="xl:col-span-3 space-y-6">
             {/* Basic Information */}
             <div className="bg-white rounded-lg shadow-sm border p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
@@ -170,12 +170,18 @@ export default function AnalysisFlowDetailsPage() {
                     <Calendar className="w-4 h-4 mr-1" />
                     {formatDate(analysisFlow.created_at)}
                   </p>
+                  <p className="text-xs text-gray-500 mt-1 font-mono">
+                    {new Date(analysisFlow.created_at).toISOString()}
+                  </p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-500">Updated At</label>
                   <p className="mt-1 text-sm text-gray-900 flex items-center">
                     <Calendar className="w-4 h-4 mr-1" />
                     {formatDate(analysisFlow.updated_at)}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1 font-mono">
+                    {new Date(analysisFlow.updated_at).toISOString()}
                   </p>
                 </div>
               </div>
@@ -387,6 +393,137 @@ export default function AnalysisFlowDetailsPage() {
               </div>
             )}
 
+            {/* Processing Steps Timeline */}
+            <div className="bg-white rounded-lg shadow-sm border p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <Activity className="w-5 h-5 mr-2" />
+                Processing Steps Timeline
+              </h2>
+              <div className="space-y-4">
+                {processingSteps.length > 0 ? (
+                  processingSteps
+                    .sort((a, b) => a.step_order - b.step_order)
+                    .map((step, index) => (
+                      <div key={step.id} className="flex items-start space-x-4 p-4 bg-gray-50 rounded-lg">
+                        <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                          step.success ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        }`}>
+                          {step.step_order}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <h3 className="text-sm font-medium text-gray-900 capitalize">
+                              {step.step_type.replace('_', ' ')}
+                            </h3>
+                            <div className="flex items-center space-x-2">
+                              {step.response_time_ms && (
+                                <span className="text-xs text-gray-500">
+                                  {step.response_time_ms}ms
+                                </span>
+                              )}
+                              {step.success ? (
+                                <CheckCircle className="w-4 h-4 text-green-500" />
+                              ) : (
+                                <XCircle className="w-4 h-4 text-red-500" />
+                              )}
+                            </div>
+                          </div>
+                          {step.model_used && (
+                            <p className="text-xs text-gray-500 mt-1">Model: {step.model_used}</p>
+                          )}
+                          {step.error_message && (
+                            <p className="text-xs text-red-600 mt-1">Error: {step.error_message}</p>
+                          )}
+                          {step.input_data && (
+                            <details className="mt-2">
+                              <summary className="text-xs text-gray-600 cursor-pointer">Input Data</summary>
+                              <pre className="text-xs text-gray-700 bg-white p-2 rounded mt-1 overflow-auto max-h-32">
+                                {JSON.stringify(step.input_data, null, 2)}
+                              </pre>
+                            </details>
+                          )}
+                          {step.output_data && (
+                            <details className="mt-2">
+                              <summary className="text-xs text-gray-600 cursor-pointer">Output Data</summary>
+                              <pre className="text-xs text-gray-700 bg-white p-2 rounded mt-1 overflow-auto max-h-32">
+                                {JSON.stringify(step.output_data, null, 2)}
+                              </pre>
+                            </details>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                ) : (
+                  <p className="text-gray-500 text-sm">No processing steps found</p>
+                )}
+              </div>
+            </div>
+
+            {/* Performance Metrics */}
+            <div className="bg-white rounded-lg shadow-sm border p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <BarChart3 className="w-5 h-5 mr-2" />
+                Performance Metrics
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <div className="flex items-center">
+                    <Zap className="w-5 h-5 text-blue-600 mr-2" />
+                    <div>
+                      <p className="text-sm font-medium text-blue-900">Total Cost</p>
+                      <p className="text-2xl font-bold text-blue-600">
+                        ${(analysisFlow.totalCostUsd || 0).toFixed(4)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <div className="flex items-center">
+                    <Hash className="w-5 h-5 text-green-600 mr-2" />
+                    <div>
+                      <p className="text-sm font-medium text-green-900">Total Tokens</p>
+                      <p className="text-2xl font-bold text-green-600">
+                        {(analysisFlow.totalTokens || 0).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-purple-50 p-4 rounded-lg">
+                  <div className="flex items-center">
+                    <Clock className="w-5 h-5 text-purple-600 mr-2" />
+                    <div>
+                      <p className="text-sm font-medium text-purple-900">Processing Time</p>
+                      <p className="text-2xl font-bold text-purple-600">
+                        {processingSteps.reduce((total, step) => total + (step.response_time_ms || 0), 0)}ms
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Error Summary */}
+            {processingSteps.some(step => !step.success) && (
+              <div className="bg-white rounded-lg shadow-sm border p-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                  <AlertTriangle className="w-5 h-5 mr-2 text-red-500" />
+                  Error Summary
+                </h2>
+                <div className="space-y-2">
+                  {processingSteps
+                    .filter(step => !step.success)
+                    .map((step, index) => (
+                      <div key={index} className="p-3 bg-red-50 rounded-lg border border-red-200">
+                        <p className="text-sm font-medium text-red-800 capitalize">
+                          {step.step_type.replace('_', ' ')}
+                        </p>
+                        <p className="text-xs text-red-600 mt-1">{step.error_message}</p>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+
             {/* Raw Flow Data */}
             <div className="bg-white rounded-lg shadow-sm border p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
@@ -400,7 +537,7 @@ export default function AnalysisFlowDetailsPage() {
           </div>
 
           {/* Sidebar */}
-          <div className="space-y-6">
+          <div className="xl:col-span-1 space-y-6">
             {/* Token Usage */}
             <div className="bg-white rounded-lg shadow-sm border p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
