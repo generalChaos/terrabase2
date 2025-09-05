@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { OpenAIService } from '@/lib/openaiNew';
+import { OpenAIService } from '@/lib/openai';
 
 // GET /api/test-new-prompt-system - Test the new prompt system
 export async function GET() {

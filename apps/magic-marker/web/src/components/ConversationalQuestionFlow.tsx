@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { Question, QuestionAnswer } from '@/lib/types'
 import { ConversationService, Conversation } from '@/lib/conversationService'
-import { OpenAIService } from '@/lib/openaiNew'
+import { OpenAIService } from '@/lib/openai'
 import { supabase } from '@/lib/supabase'
 
 interface ConversationalQuestionFlowProps {
@@ -42,7 +42,7 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
       const previousAnswers = conv.conversation_state.contextData.previousAnswers || []
       console.log('📝 [ConversationalQuestionFlow] Previous answers:', previousAnswers);
 
-      console.log('🤖 [ConversationalQuestionFlow] Calling OpenAI service with new prompt system...');
+      console.log('🤖 [ConversationalQuestionFlow] Calling OpenAI service with prompt system...');
       const { question, context, questions, done, summary } = await OpenAIService.generateConversationalQuestion(
         imageAnalysis,
         previousAnswers,

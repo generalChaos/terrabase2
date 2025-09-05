@@ -38,10 +38,10 @@ interface ProcessingStep {
   image_id: string
   step_type: string
   step_order: number
-  input_data: any
-  output_data: any
-  input_schema?: any
-  output_schema?: any
+  input_data: Record<string, unknown>
+  output_data: Record<string, unknown>
+  input_schema?: Record<string, unknown>
+  output_schema?: Record<string, unknown>
   response_time_ms: number
   model_used: string
   success: boolean

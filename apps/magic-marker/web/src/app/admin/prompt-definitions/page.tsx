@@ -8,16 +8,16 @@ interface PromptDefinition {
   name: string
   type: string
   prompt_text: string
-  input_schema: Record<string, any>
-  output_schema: Record<string, any>
-  return_schema: Record<string, any>
+  input_schema: Record<string, unknown>
+  output_schema: Record<string, unknown>
+  return_schema: Record<string, unknown>
   active: boolean
   created_at: string
   updated_at: string
 }
 
 // Component for displaying schema in a readable format
-function SchemaDisplay({ schema, title }: { schema: Record<string, any>, title: string }) {
+function SchemaDisplay({ schema, title }: { schema: Record<string, unknown>, title: string }) {
   return (
     <div className="bg-gray-50 rounded-md p-4">
       <h4 className="text-sm font-medium text-gray-700 mb-2">{title}</h4>
@@ -35,19 +35,19 @@ function TypeDisplay({
   type,
   onViewSchema
 }: { 
-  schema: Record<string, any>, 
+  schema: Record<string, unknown>, 
   title: string, 
   type: 'input' | 'output',
   onViewSchema: (schema: 'input' | 'output' | 'return') => void
 }) {
-  const getTypeSummary = (schema: Record<string, any>) => {
+  const getTypeSummary = (schema: Record<string, unknown>) => {
     if (!schema.properties) return 'No properties defined'
     
     const required = schema.required || []
-    const properties = Object.entries(schema.properties).map(([key, prop]: [string, any]) => {
+    const properties = Object.entries(schema.properties).map(([key, prop]: [string, unknown]) => {
       const isRequired = required.includes(key)
-      const propType = prop.type || 'unknown'
-      const isOptional = prop.optional || !isRequired
+      const propType = (prop as { type?: string }).type || 'unknown'
+      const isOptional = (prop as { optional?: boolean }).optional || !isRequired
       
       return {
         name: key,

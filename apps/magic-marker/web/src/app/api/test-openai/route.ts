@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { OpenAIService } from '@/lib/openaiNew';
+import { OpenAIService } from '@/lib/openai';
 
 // GET /api/test-openai - Test OpenAI service
 export async function GET() {

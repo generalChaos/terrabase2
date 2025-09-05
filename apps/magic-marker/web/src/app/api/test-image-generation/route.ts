@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { OpenAIService } from '@/lib/openaiNew';
+import { OpenAIService } from '@/lib/openai';
 import { supabase } from '@/lib/supabase';
 
 // POST /api/test-image-generation - Test image generation with step logging

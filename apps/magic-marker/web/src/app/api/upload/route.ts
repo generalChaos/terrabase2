@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '@/lib/supabase';
-import { OpenAIService } from '@/lib/openaiNew';
+import { OpenAIService } from '@/lib/openai';
 import { StepService } from '@/lib/stepService';
 
 export async function POST(request: NextRequest) {
@@ -138,8 +138,8 @@ export async function POST(request: NextRequest) {
     const base64Image = buffer.toString('base64');
     console.log(`🔄 [${requestId}] Converted to base64, length:`, base64Image.length);
 
-    // Step 1: Analyze image with OpenAI using new prompt system
-    console.log(`🤖 [${requestId}] Starting OpenAI analysis with new prompt system...`);
+    // Step 1: Analyze image with OpenAI using prompt system
+    console.log(`🤖 [${requestId}] Starting OpenAI analysis with prompt system...`);
     const analysisStartTime = Date.now();
     const analysisResult = await OpenAIService.analyzeImage(
       base64Image, 
@@ -150,8 +150,8 @@ export async function POST(request: NextRequest) {
     console.log(`✅ [${requestId}] OpenAI analysis completed in ${analysisTime}ms`);
     console.log(`📝 [${requestId}] Analysis length:`, analysisResult.response?.length || 0);
 
-    // Step 2: Generate questions from analysis using new prompt system
-    console.log(`❓ [${requestId}] Starting questions generation with new prompt system...`);
+    // Step 2: Generate questions from analysis using prompt system
+    console.log(`❓ [${requestId}] Starting questions generation with prompt system...`);
     const questionsStartTime = Date.now();
     const questions = await OpenAIService.generateQuestions(analysisResult.response, imageId);
     const questionsTime = Date.now() - questionsStartTime;
