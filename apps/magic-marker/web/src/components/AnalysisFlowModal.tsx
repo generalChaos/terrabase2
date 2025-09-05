@@ -75,8 +75,14 @@ export default function AnalysisFlowModal({ analysisFlow, isOpen, onClose }: Ana
 
   if (!isOpen || !analysisFlow) return null
 
+  console.log('🔍 [AnalysisFlowModal] Rendering modal with data:', {
+    total_questions: analysisFlow.total_questions,
+    total_answers: analysisFlow.total_answers,
+    total_tokens: analysisFlow.total_tokens
+  });
+
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
+    <div className="fixed inset-0 z-50 overflow-y-auto" key={analysisFlow.id}>
       <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
         {/* Backdrop */}
         <div 
