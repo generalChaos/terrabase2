@@ -3,22 +3,22 @@ import { supabase } from '@/lib/supabase'
 
 export async function GET() {
   try {
-    const { data: conversations, error } = await supabase
-      .from('conversations')
+    const { data: analysisFlows, error } = await supabase
+      .from('analysis_flows')
       .select('*')
       .order('created_at', { ascending: false })
 
     if (error) {
-      console.error('Error fetching conversations:', error)
+      console.error('Error fetching analysis flows:', error)
       return NextResponse.json(
-        { error: 'Failed to fetch conversations' },
+        { error: 'Failed to fetch analysis flows' },
         { status: 500 }
       )
     }
 
-    return NextResponse.json(conversations)
+    return NextResponse.json(analysisFlows)
   } catch (error) {
-    console.error('Error in conversations API:', error)
+    console.error('Error in analysis flows API:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

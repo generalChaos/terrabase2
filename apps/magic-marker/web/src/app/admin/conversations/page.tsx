@@ -33,34 +33,7 @@ const CollapsibleSection = ({ title, children, defaultOpen = false }: { title: s
   )
 }
 
-interface Conversation {
-  id: string
-  image_id: string
-  session_id: string
-  conversation_state: {
-    currentQuestionIndex: number
-    totalQuestions: number
-    questions: Array<{
-      id: string
-      text: string
-      options: string[]
-      answer?: string
-      context?: {
-        reasoning: string
-        builds_on: string
-        artistic_focus: string
-      }
-    }>
-    contextData: {
-      imageAnalysis: string
-      previousAnswers: string[]
-      artisticDirection: string
-    }
-  }
-  is_active: boolean
-  created_at: string
-  updated_at: string
-}
+import { AnalysisFlow } from '@/lib/analysisFlowService'
 
 interface ProcessingStep {
   id: string
@@ -78,30 +51,30 @@ interface ProcessingStep {
   created_at: string
 }
 
-export default function ConversationsPage() {
-  const [conversations, setConversations] = useState<Conversation[]>([])
+export default function AnalysisFlowsPage() {
+  const [analysisFlows, setAnalysisFlows] = useState<AnalysisFlow[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null)
+  const [selectedAnalysisFlow, setSelectedAnalysisFlow] = useState<AnalysisFlow | null>(null)
   const [processingSteps, setProcessingSteps] = useState<ProcessingStep[]>([])
   const [isLoadingSteps, setIsLoadingSteps] = useState(false)
   const [activeTab, setActiveTab] = useState<'overview' | 'steps'>('overview')
 
   useEffect(() => {
-    fetchConversations()
+    fetchAnalysisFlows()
   }, [])
 
-  const fetchConversations = async () => {
+  const fetchAnalysisFlows = async () => {
     try {
       setIsLoading(true)
-      const response = await fetch('/api/admin/conversations')
+      const response = await fetch('/api/admin/analysisFlows')
       if (!response.ok) {
-        throw new Error('Failed to fetch conversations')
+        throw new Error('Failed to fetch analysisFlows')
       }
       const data = await response.json()
-      setConversations(data)
+      setAnalysisFlows(data)
     } catch (err) {
-      console.error('Error fetching conversations:', err)
+      console.error('Error fetching analysisFlows:', err)
       setError(err instanceof Error ? err.message : 'Unknown error')
     } finally {
       setIsLoading(false)
@@ -135,8 +108,8 @@ export default function ConversationsPage() {
     }
   }
 
-  const handleConversationSelect = (conversation: Conversation) => {
-    setSelectedConversation(conversation)
+  const handleAnalysisFlowSelect = (conversation: AnalysisFlow) => {
+    setSelectedAnalysisFlow(conversation)
     setActiveTab('overview')
     fetchProcessingSteps(conversation.image_id)
   }
@@ -147,7 +120,7 @@ export default function ConversationsPage() {
 
   if (error) {
     return (
-      <AdminLayout title="Conversations">
+      <AdminLayout title="AnalysisFlows">
         <div className="bg-red-50 border border-red-200 rounded-md p-4">
           <div className="flex">
             <div className="ml-3">
@@ -161,16 +134,16 @@ export default function ConversationsPage() {
   }
 
   return (
-    <AdminLayout title="Conversations">
+    <AdminLayout title="AnalysisFlows">
       <div className="space-y-6">
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Conversations</h1>
+            <h1 className="text-2xl font-bold text-gray-900">AnalysisFlows</h1>
             <p className="text-gray-600">View and manage conversational question flows</p>
           </div>
           <button
-            onClick={fetchConversations}
+            onClick={fetchAnalysisFlows}
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
           >
             Refresh
@@ -180,48 +153,48 @@ export default function ConversationsPage() {
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="bg-white p-4 rounded-lg shadow">
-            <div className="text-2xl font-bold text-gray-900">{conversations.length}</div>
-            <div className="text-sm text-gray-600">Total Conversations</div>
+            <div className="text-2xl font-bold text-gray-900">{analysisFlows.length}</div>
+            <div className="text-sm text-gray-600">Total AnalysisFlows</div>
           </div>
           <div className="bg-white p-4 rounded-lg shadow">
             <div className="text-2xl font-bold text-green-600">
-              {conversations.filter(c => c.is_active).length}
+              {analysisFlows.filter(c => c.is_active).length}
             </div>
             <div className="text-sm text-gray-600">Active</div>
           </div>
           <div className="bg-white p-4 rounded-lg shadow">
             <div className="text-2xl font-bold text-gray-600">
-              {conversations.filter(c => !c.is_active).length}
+              {analysisFlows.filter(c => !c.is_active).length}
             </div>
             <div className="text-sm text-gray-600">Completed</div>
           </div>
           <div className="bg-white p-4 rounded-lg shadow">
             <div className="text-2xl font-bold text-blue-600">
-              {conversations.reduce((sum, c) => sum + c.conversation_state.totalQuestions, 0)}
+              {analysisFlows.reduce((sum, c) => sum + c.conversation_state.totalQuestions, 0)}
             </div>
             <div className="text-sm text-gray-600">Total Questions</div>
           </div>
         </div>
 
-        {/* Conversations List */}
+        {/* AnalysisFlows List */}
         <div className="bg-white shadow overflow-hidden sm:rounded-md">
           <div className="px-4 py-5 sm:p-6">
             <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
-              All Conversations
+              All AnalysisFlows
             </h3>
             
-            {conversations.length === 0 ? (
+            {analysisFlows.length === 0 ? (
               <div className="text-center py-8">
-                <div className="text-gray-500 text-lg">No conversations found</div>
+                <div className="text-gray-500 text-lg">No analysisFlows found</div>
                 <p className="mt-2 text-gray-400">Start using conversational questions to see data here</p>
               </div>
             ) : (
               <div className="space-y-4">
-                {conversations.map((conversation) => (
+                {analysisFlows.map((conversation) => (
                   <div
                     key={conversation.id}
                     className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 cursor-pointer"
-                    onClick={() => handleConversationSelect(conversation)}
+                    onClick={() => handleAnalysisFlowSelect(conversation)}
                   >
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
@@ -257,17 +230,17 @@ export default function ConversationsPage() {
           </div>
         </div>
 
-        {/* Conversation Detail Modal */}
-        {selectedConversation && (
+        {/* AnalysisFlow Detail Modal */}
+        {selectedAnalysisFlow && (
           <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
             <div className="relative top-10 mx-auto p-5 border w-11/12 md:w-4/5 lg:w-3/4 xl:w-2/3 shadow-lg rounded-md bg-white max-h-[90vh] overflow-y-auto">
               <div className="mt-3">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-medium text-gray-900">
-                    Conversation Details
+                    AnalysisFlow Details
                   </h3>
                   <button
-                    onClick={() => setSelectedConversation(null)}
+                    onClick={() => setSelectedAnalysisFlow(null)}
                     className="text-gray-400 hover:text-gray-600"
                   >
                     ✕
@@ -303,37 +276,37 @@ export default function ConversationsPage() {
                 {/* Tab Content */}
                 {activeTab === 'overview' && (
                   <div className="space-y-6">
-                    {/* Conversation Metadata */}
-                    <CollapsibleSection title="Conversation Metadata" defaultOpen={true}>
+                    {/* AnalysisFlow Metadata */}
+                    <CollapsibleSection title="AnalysisFlow Metadata" defaultOpen={true}>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-3">
                           <div>
-                            <span className="text-sm font-medium text-gray-600">Conversation ID:</span>
-                            <p className="text-sm text-gray-900 font-mono">{selectedConversation.id}</p>
+                            <span className="text-sm font-medium text-gray-600">AnalysisFlow ID:</span>
+                            <p className="text-sm text-gray-900 font-mono">{selectedAnalysisFlow.id}</p>
                           </div>
                           <div>
                             <span className="text-sm font-medium text-gray-600">Image ID:</span>
-                            <p className="text-sm text-gray-900 font-mono">{selectedConversation.image_id}</p>
+                            <p className="text-sm text-gray-900 font-mono">{selectedAnalysisFlow.image_id}</p>
                           </div>
                           <div>
                             <span className="text-sm font-medium text-gray-600">Session ID:</span>
-                            <p className="text-sm text-gray-900 font-mono">{selectedConversation.session_id}</p>
+                            <p className="text-sm text-gray-900 font-mono">{selectedAnalysisFlow.session_id}</p>
                           </div>
                         </div>
                         <div className="space-y-3">
                           <div>
                             <span className="text-sm font-medium text-gray-600">Status:</span>
-                            <span className={`ml-2 px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(selectedConversation.is_active)}`}>
-                              {selectedConversation.is_active ? 'Active' : 'Completed'}
+                            <span className={`ml-2 px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(selectedAnalysisFlow.is_active)}`}>
+                              {selectedAnalysisFlow.is_active ? 'Active' : 'Completed'}
                             </span>
                           </div>
                           <div>
                             <span className="text-sm font-medium text-gray-600">Created:</span>
-                            <p className="text-sm text-gray-900">{formatDate(selectedConversation.created_at)}</p>
+                            <p className="text-sm text-gray-900">{formatDate(selectedAnalysisFlow.created_at)}</p>
                           </div>
                           <div>
                             <span className="text-sm font-medium text-gray-600">Updated:</span>
-                            <p className="text-sm text-gray-900">{formatDate(selectedConversation.updated_at)}</p>
+                            <p className="text-sm text-gray-900">{formatDate(selectedAnalysisFlow.updated_at)}</p>
                           </div>
                         </div>
                       </div>
@@ -343,7 +316,7 @@ export default function ConversationsPage() {
                     <CollapsibleSection title="Image Analysis" defaultOpen={true}>
                       <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                         <p className="text-gray-700 leading-relaxed">
-                          {selectedConversation.conversation_state.contextData.imageAnalysis}
+                          {selectedAnalysisFlow.conversation_state.contextData.imageAnalysis}
                         </p>
                       </div>
                     </CollapsibleSection>
@@ -351,12 +324,12 @@ export default function ConversationsPage() {
                     {/* Questions & Answers */}
                     <CollapsibleSection title="Questions & Answers" defaultOpen={true}>
                       <div className="space-y-4">
-                        {selectedConversation.conversation_state.questions.length === 0 ? (
+                        {selectedAnalysisFlow.conversation_state.questions.length === 0 ? (
                           <div className="text-center py-8 text-gray-500">
                             No questions generated yet
                           </div>
                         ) : (
-                          selectedConversation.conversation_state.questions.map((q, index) => (
+                          selectedAnalysisFlow.conversation_state.questions.map((q, index) => (
                             <div key={q.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
                               <div className="font-semibold text-gray-900 mb-2">
                                 Q{index + 1}: {q.text}
@@ -383,7 +356,7 @@ export default function ConversationsPage() {
                     <CollapsibleSection title="Artistic Direction">
                       <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                         <p className="text-gray-700">
-                          {selectedConversation.conversation_state.contextData.artisticDirection || 'Not set'}
+                          {selectedAnalysisFlow.conversation_state.contextData.artisticDirection || 'Not set'}
                         </p>
                       </div>
                     </CollapsibleSection>
@@ -391,11 +364,11 @@ export default function ConversationsPage() {
                     {/* Previous Answers Summary */}
                     <CollapsibleSection title="Previous Answers Summary">
                       <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                        {selectedConversation.conversation_state.contextData.previousAnswers.length === 0 ? (
+                        {selectedAnalysisFlow.conversation_state.contextData.previousAnswers.length === 0 ? (
                           <p className="text-gray-500">No previous answers</p>
                         ) : (
                           <div className="space-y-2">
-                            {selectedConversation.conversation_state.contextData.previousAnswers.map((answer, index) => (
+                            {selectedAnalysisFlow.conversation_state.contextData.previousAnswers.map((answer, index) => (
                               <div key={index} className="text-sm text-gray-700">
                                 <span className="font-medium">Answer {index + 1}:</span> {answer}
                               </div>
