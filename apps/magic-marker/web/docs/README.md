@@ -10,6 +10,7 @@ AI-powered image analysis and generation tool with advanced computer vision capa
 - [Setup Guide](#setup-guide)
 - [API Reference](#api-reference)
 - [Development](#development)
+- [Debug Endpoints](#debug-endpoints)
 - [Testing](#testing)
 - [Deployment](#deployment)
 - [Troubleshooting](#troubleshooting)
@@ -271,6 +272,10 @@ The admin interface provides comprehensive management tools for the Magic Marker
 
 ## 📚 **API Reference**
 
+### **Production API Endpoints**
+
+The following are the main production API endpoints for the Magic Marker application:
+
 ### **Upload Image**
 ```http
 POST /api/upload
@@ -377,13 +382,24 @@ pnpm test:e2e:debug
 - **Integration**: Full user journey from upload to generation
 
 ### **Manual Testing**
+
+#### **Using Debug Endpoints**
 ```bash
+# Test system health
+curl http://localhost:3002/api/debug/deployment
+
 # Test OpenAI connectivity
-curl http://localhost:3002/api/test-openai
+curl http://localhost:3002/api/debug/openai
 
 # Test error handling
-curl http://localhost:3002/api/test-errors
+curl "http://localhost:3002/api/debug/errors?type=openai"
 
+# Test analysis flow system
+curl "http://localhost:3002/api/debug/analysis-flows?type=all"
+```
+
+#### **Production API Testing**
+```bash
 # Test image upload (use Postman or similar)
 curl -X POST -F "image=@test-image.jpg" http://localhost:3002/api/upload
 
@@ -392,6 +408,8 @@ curl -X POST http://localhost:3002/api/test-prompt \
   -H "Content-Type: application/json" \
   -d '{"promptName": "conversational_question", "input": {"prompt": "I want to create an image. Help me discover my artistic preferences through a fun conversation."}}'
 ```
+
+For comprehensive debug endpoint documentation, see the [Debug Endpoints](#debug-endpoints) section.
 
 ### **Conversational Q&A Testing**
 The admin interface includes a specialized testing tool for conversational prompts:
@@ -410,6 +428,75 @@ The admin interface includes a specialized testing tool for conversational promp
 - **Conversation Tracking**: See all questions and answers in one place
 - **AI Summary**: Get a summary of what the AI learned
 - **Reset & Restart**: Start new conversations for repeated testing
+
+## 🐛 **Debug Endpoints**
+
+Magic Marker includes a comprehensive set of debug API endpoints for development, troubleshooting, and system validation. These endpoints are designed to be called directly from the terminal, browser, or admin interface.
+
+### **Available Debug Endpoints**
+
+#### **System Health & Diagnostics**
+- **`/api/debug/deployment`** - System health check and environment validation
+- **`/api/debug/prompts`** - Prompt system validation and database connectivity
+- **`/api/debug/errors`** - Error handling validation with various error scenarios
+
+#### **OpenAI Integration Tests**
+- **`/api/debug/openai`** - OpenAI API connectivity and basic functionality
+- **`/api/debug/image-generation`** - Complete image generation pipeline test
+- **`/api/debug/image-text`** - Image analysis and text extraction test
+
+#### **Analysis Flow System**
+- **`/api/debug/analysis-flows`** - Test the new analysis flow system
+  - `?type=create` - Test creating new analysis flows
+  - `?type=list` - Test listing analysis flows
+  - `?type=active` - Test getting active analysis flows
+  - `?type=all` - Run comprehensive analysis flow tests
+
+### **Usage Examples**
+
+#### **Quick System Check**
+```bash
+# Check system health
+curl http://localhost:3002/api/debug/deployment
+
+# Test prompt system
+curl http://localhost:3002/api/debug/prompts
+
+# Test OpenAI integration
+curl http://localhost:3002/api/debug/openai
+```
+
+#### **Error Testing**
+```bash
+# Test different error scenarios
+curl "http://localhost:3002/api/debug/errors?type=openai"
+curl "http://localhost:3002/api/debug/errors?type=supabase"
+curl "http://localhost:3002/api/debug/errors?type=timeout"
+```
+
+#### **Analysis Flow Testing**
+```bash
+# Test analysis flow system
+curl "http://localhost:3002/api/debug/analysis-flows?type=all"
+curl "http://localhost:3002/api/debug/analysis-flows?type=create"
+```
+
+### **Integration with Admin UI**
+
+Debug endpoints are accessible through the admin interface:
+- **Admin Dashboard** (`/admin`) - Quick action buttons for system tests
+- **Admin Status Page** (`/admin/status`) - Detailed system diagnostics
+- **Admin Prompt Tester** (`/admin/prompt-tester`) - Interactive prompt testing
+
+### **Important Notes**
+
+- **Development Only**: These endpoints are for development and debugging only
+- **Not Production Ready**: Do not expose these endpoints in production
+- **Sensitive Information**: May return sensitive system information
+- **Manual Testing**: Designed for manual testing via curl, browser, or admin UI
+- **Not Integration Tests**: These are debug tools, not automated integration tests
+
+For more detailed information, see the [Debug Endpoints Documentation](../src/app/api/debug/README.md).
 
 ## 🚀 **Deployment**
 
@@ -434,11 +521,27 @@ Set these in your Vercel dashboard:
 pnpm build
 pnpm start
 
-# Verify all API endpoints work
-curl http://localhost:3000/api/test-openai
+# Verify all API endpoints work using debug endpoints
+curl http://localhost:3002/api/debug/deployment
+curl http://localhost:3002/api/debug/openai
+curl http://localhost:3002/api/debug/prompts
 ```
 
 ## 🔧 **Troubleshooting**
+
+### **Using Debug Endpoints for Troubleshooting**
+
+The debug endpoints are invaluable for diagnosing issues:
+
+```bash
+# Comprehensive system health check
+curl http://localhost:3002/api/debug/deployment
+
+# Test specific components
+curl http://localhost:3002/api/debug/openai
+curl http://localhost:3002/api/debug/prompts
+curl "http://localhost:3002/api/debug/errors?type=openai"
+```
 
 ### **Common Issues**
 
@@ -447,7 +550,10 @@ curl http://localhost:3000/api/test-openai
 # Check API key
 echo $OPENAI_API_KEY
 
-# Test API connectivity
+# Test API connectivity using debug endpoint
+curl http://localhost:3002/api/debug/openai
+
+# Test API connectivity directly
 curl -H "Authorization: Bearer $OPENAI_API_KEY" https://api.openai.com/v1/models
 ```
 
@@ -455,6 +561,9 @@ curl -H "Authorization: Bearer $OPENAI_API_KEY" https://api.openai.com/v1/models
 ```bash
 # Verify environment variables
 cat .env.local
+
+# Test Supabase connectivity using debug endpoint
+curl http://localhost:3002/api/debug/deployment
 
 # Check Supabase project status in dashboard
 ```
