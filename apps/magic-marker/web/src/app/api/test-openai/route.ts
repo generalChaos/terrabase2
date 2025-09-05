@@ -10,10 +10,7 @@ export async function GET() {
     const result = await OpenAIService.analyzeImage(
       testImageBase64,
       undefined, // no imageId for test
-      'This is a test image',
-      'general',
-      ['composition', 'colors'],
-      'Focus on the artistic elements'
+      'This is a test image'
     );
     
     return NextResponse.json({

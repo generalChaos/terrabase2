@@ -13,10 +13,11 @@ import AnimatedHomepage from '@/components/AnimatedHomepage'
 const API_BASE = '/api'
 
 export default function HomePage() {
-  const [currentStep, setCurrentStep] = useState<'homepage' | 'upload' | 'questions' | 'generating'>('homepage')
+  const [currentStep, setCurrentStep] = useState<'homepage' | 'upload' | 'questions' | 'conversational' | 'generating'>('homepage')
   const [currentImageAnalysis, setCurrentImageAnalysis] = useState<ImageAnalysis | null>(null)
   const [errors, setErrors] = useState<string[]>([])
   const [logs, setLogs] = useState<string[]>([])
+  const [currentStepIndex, setCurrentStepIndex] = useState(0)
   const queryClient = useQueryClient()
 
   const addError = (error: string) => {
@@ -35,6 +36,35 @@ export default function HomePage() {
     setErrors([])
     setLogs([])
   }
+
+  // Get current step based on dynamic flow
+  const getCurrentStepInfo = () => {
+    if (!promptDefinitions || currentStepIndex >= promptDefinitions.length) {
+      return null
+    }
+    return promptDefinitions[currentStepIndex]
+  }
+
+  // Move to next step in the dynamic flow
+  const moveToNextStep = () => {
+    if (promptDefinitions && currentStepIndex < promptDefinitions.length - 1) {
+      setCurrentStepIndex(prev => prev + 1)
+    } else {
+      // All steps completed, go to generating
+      setCurrentStep('generating')
+    }
+  }
+
+  // Fetch prompt definitions for dynamic flow
+  const { data: promptDefinitions } = useQuery(
+    'prompt-definitions',
+    async () => {
+      const response = await axios.get(`${API_BASE}/admin/prompt-definitions`)
+      return response.data.prompts
+        .filter((prompt: { active: boolean }) => prompt.active)
+        .sort((a: { sort_order: number }, b: { sort_order: number }) => a.sort_order - b.sort_order)
+    }
+  )
 
   // Fetch existing images
   const { isLoading: imagesLoading } = useQuery<ImageAnalysis[]>(
@@ -88,24 +118,42 @@ export default function HomePage() {
           createdAt: new Date(),
           updatedAt: new Date()
         })
-        setCurrentStep('questions')
+        setCurrentStepIndex(0) // Start with first step in dynamic flow
         queryClient.invalidateQueries('images')
       },
-      onError: (error: Error) => {
+      onError: (error: unknown) => {
         console.error('🚨 Upload failed:', error)
-        const errorObj = error as { response?: { status?: number; statusText?: string; data?: { error?: string } }; code?: string }
-        console.error('🚨 Error details:', {
-          status: errorObj.response?.status,
-          statusText: errorObj.response?.statusText,
-          data: JSON.stringify(errorObj.response?.data),
-          message: error.message,
-          code: errorObj.code
-        })
         
-        const errorMessage = errorObj.response?.data?.error || error.message || 'Unknown error occurred'
+        // Safely extract error details
+        const errorObj = error as { 
+          message?: string; 
+          response?: { status?: number; statusText?: string; data?: { error?: string } }; 
+          code?: string; 
+          stack?: string 
+        }
+        
+        const errorDetails = {
+          message: errorObj?.message || 'Unknown error',
+          status: errorObj?.response?.status || 'No status',
+          statusText: errorObj?.response?.statusText || 'No status text',
+          data: errorObj?.response?.data ? JSON.stringify(errorObj.response.data) : 'No data',
+          code: errorObj?.code || 'No code',
+          stack: errorObj?.stack || 'No stack trace'
+        }
+        
+        console.error('🚨 Error details:', errorDetails)
+        
+        // Extract error message safely
+        let errorMessage = 'Unknown error occurred'
+        if (errorObj?.response?.data?.error) {
+          errorMessage = errorObj.response.data.error
+        } else if (errorObj?.message) {
+          errorMessage = errorObj.message
+        } else if (errorObj?.response?.statusText) {
+          errorMessage = errorObj.response.statusText
+        }
+        
         addError(`Upload failed: ${errorMessage}`)
-        
-        // Error is already logged and displayed in DebugPanel
       }
     }
   )
@@ -153,13 +201,21 @@ export default function HomePage() {
   }
 
   const handleQuestionsSubmit = (answers: QuestionAnswer[]) => {
-    setCurrentStep('generating')
-    generateMutation.mutate(answers)
+    // Store the answers and move to next step in dynamic flow
+    setCurrentImageAnalysis(prev => prev ? { ...prev, answers } : null)
+    moveToNextStep()
+  }
+
+  const handleConversationalComplete = (conversationData: unknown) => {
+    // Store conversation data and move to next step
+    setCurrentImageAnalysis(prev => prev ? { ...prev, conversationData } : null)
+    moveToNextStep()
   }
 
   const handleReset = () => {
     setCurrentStep('homepage')
     setCurrentImageAnalysis(null)
+    setCurrentStepIndex(0)
     clearDebug()
   }
 
@@ -188,16 +244,114 @@ export default function HomePage() {
       {currentStep !== 'homepage' && currentStep !== 'upload' && (
         <div className="container mx-auto px-4 py-8">
           <main className="max-w-4xl mx-auto">
+            
+            {/* Progress Indicator */}
+            {promptDefinitions && currentStep !== 'generating' && (
+              <div className="mb-8">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900">Progress</h3>
+                  <span className="text-sm text-gray-600">
+                    Step {currentStepIndex + 1} of {promptDefinitions.length}
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div 
+                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${((currentStepIndex + 1) / promptDefinitions.length) * 100}%` }}
+                  ></div>
+                </div>
+                <div className="flex justify-between mt-2 text-xs text-gray-600">
+                  {promptDefinitions.map((prompt: { id: string; name: string }, index: number) => (
+                    <span 
+                      key={prompt.id}
+                      className={`${index <= currentStepIndex ? 'text-blue-600 font-medium' : 'text-gray-400'}`}
+                    >
+                      {prompt.name.replace('_', ' ')}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
 
-          {currentStep === 'questions' && currentImageAnalysis && (
-            <QuestionFlow
-              questions={currentImageAnalysis.questions}
-              originalImagePath={currentImageAnalysis.originalImagePath}
-              onSubmit={handleQuestionsSubmit}
-              onReset={handleReset}
-              isLoading={generateMutation.isLoading}
-            />
-          )}
+          {/* Dynamic Flow Steps */}
+          {currentStep !== 'homepage' && currentStep !== 'upload' && currentStep !== 'generating' && currentImageAnalysis && (() => {
+            const currentStepInfo = getCurrentStepInfo()
+            if (!currentStepInfo) return null
+
+            // Render based on prompt type
+            switch (currentStepInfo.type) {
+              case 'questions_generation':
+                return (
+                  <QuestionFlow
+                    questions={currentImageAnalysis.questions}
+                    originalImagePath={currentImageAnalysis.originalImagePath}
+                    onSubmit={handleQuestionsSubmit}
+                    onReset={handleReset}
+                    isLoading={generateMutation.isLoading}
+                  />
+                )
+              
+              case 'conversational_question':
+                return (
+                  <div className="text-center py-8">
+                    <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                      Step {currentStepIndex + 1}: {currentStepInfo.name.replace('_', ' ').toUpperCase()}
+                    </h2>
+                    <p className="text-gray-600 mb-6">
+                      Let&apos;s have a conversation to understand your artistic preferences better!
+                    </p>
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                      <p className="text-blue-800">
+                        This is where the conversational flow would go. The AI will ask you questions one at a time 
+                        to understand your artistic preferences before generating your image.
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleConversationalComplete({})}
+                      className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      Complete Conversation (Demo)
+                    </button>
+                  </div>
+                )
+              
+              case 'text_processing':
+                return (
+                  <div className="text-center py-8">
+                    <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                      Step {currentStepIndex + 1}: {currentStepInfo.name.replace('_', ' ').toUpperCase()}
+                    </h2>
+                    <p className="text-gray-600 mb-6">
+                      Processing your conversation and preparing for image generation...
+                    </p>
+                    <button
+                      onClick={moveToNextStep}
+                      className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                    >
+                      Continue to Next Step
+                    </button>
+                  </div>
+                )
+              
+              default:
+                return (
+                  <div className="text-center py-8">
+                    <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                      Step {currentStepIndex + 1}: {currentStepInfo.name.replace('_', ' ').toUpperCase()}
+                    </h2>
+                    <p className="text-gray-600 mb-6">
+                      Processing step: {currentStepInfo.type}
+                    </p>
+                    <button
+                      onClick={moveToNextStep}
+                      className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      Continue
+                    </button>
+                  </div>
+                )
+            }
+          })()}
 
           {currentStep === 'generating' && (
             <div className="text-center py-12">

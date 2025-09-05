@@ -204,20 +204,46 @@ case 'color_analysis':
 - `/api/test-simple` - Test text processing
 - `/api/test-image-text` - Test image + text analysis
 
-### 2. Check Admin Interface
+### 2. Interactive Prompt Tester
+- Visit `/admin/prompt-tester` - Interactive testing interface
+- **Select your prompt** from the dropdown (only active prompts shown)
+- **Upload images** directly for image-based prompts
+- **Test with real inputs** and see live validation
+- **View generated images** for image generation prompts
+- **Test conversational flows** with the specialized Q&A interface
+
+### 3. Conversational Q&A Testing
+For conversational prompts, use the specialized testing interface:
+
+1. **Select "conversational_question"** from the prompt list
+2. **Click "Run Test"** to start the conversation
+3. **Answer questions** by clicking on the provided options
+4. **Click "Next Question"** to generate follow-up questions
+5. **Watch the conversation evolve** as the AI learns about preferences
+6. **View the summary** when the conversation completes
+
+**Features:**
+- **Step-by-step Instructions**: Clear guidance on how to test conversation flows
+- **Visual Progress Tracking**: Progress bar and question status indicators
+- **Answer Selection**: Interactive multiple-choice question answering
+- **Conversation Summary**: AI-generated summary when conversation completes
+- **Statistics Dashboard**: Track questions asked, answered, and completion status
+- **Reset Functionality**: Start new conversations for repeated testing
+
+### 4. Check Admin Interface
 - Visit `/admin/prompt-definitions` - Manage prompt definitions
 - Visit `/admin/conversations` - View conversation details with complete prompt/response data
 - Verify schemas are displayed correctly
 - Test editing prompt text
 - Validate placeholder usage
 
-### 3. Monitor Performance
+### 5. Monitor Performance
 - Check response times
 - Verify output validation
 - Monitor error rates
 - Test with various inputs
 
-### 4. Debug with Conversation Details
+### 6. Debug with Conversation Details
 - View complete prompt/response data for each conversation
 - Inspect processing steps with input/output details
 - Identify validation failures and schema mismatches
