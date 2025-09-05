@@ -122,7 +122,7 @@ export default function HomePage() {
       return response.data
     },
     {
-      onSuccess: (data) => {
+      onSuccess: (_data) => {
         addLog('Image generated successfully!')
         setCurrentStep('upload')
         setCurrentImageAnalysis(null)

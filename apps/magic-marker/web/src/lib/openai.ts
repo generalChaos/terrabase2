@@ -226,8 +226,8 @@ Current Context: ${conversationContext.artisticDirection || 'No specific directi
   static async analyzeImageWithText(
     imageBase64: string,
     textPrompt: string,
-    context?: string,
-    instructions?: string
+    _context?: string,
+    _instructions?: string
   ): Promise<{ response: string }> {
     const requestId = Math.random().toString(36).substring(7);
     console.log(`🖼️📝 [${requestId}] Analyzing image with text prompt using prompt system`);
