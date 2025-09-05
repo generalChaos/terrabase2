@@ -23,6 +23,9 @@ export default function HomePage() {
   const [currentStepIndex, setCurrentStepIndex] = useState(0)
   const hasTriggeredGeneration = useRef(false)
   const { toasts, removeToast, success, error, warning, info } = useToast()
+  
+  // Type assertion to help TypeScript understand the error function
+  const showError = error as (title: string, message: string) => void
 
   // Log when currentStepIndex changes
   useEffect(() => {
@@ -195,8 +198,8 @@ export default function HomePage() {
         if (errorObj?.response?.data?.error) {
           errorMessage = errorObj.response.data.error
           // Check if there's debug info in the response
-          if (errorObj.response.data.debug) {
-            debugInfo = errorObj.response.data.debug
+          if (errorObj.response.data && 'debug' in errorObj.response.data) {
+            debugInfo = (errorObj.response.data as any).debug
           }
         } else if (errorObj?.message) {
           errorMessage = errorObj.message
@@ -205,7 +208,7 @@ export default function HomePage() {
         }
         
         // Show user-friendly error toast
-        error(
+        showError(
           'Upload Failed',
           errorMessage
         )
@@ -272,7 +275,7 @@ export default function HomePage() {
         const errorMessage = errorObj.response?.data?.error || error.message || 'Unknown error occurred'
         
         // Show user-friendly error toast
-        error(
+        showError(
           'Image Generation Failed',
           errorMessage
         )
@@ -296,7 +299,7 @@ export default function HomePage() {
     if (shouldTriggerGeneration) {
       console.log('🎨 [GENERATION] Triggering image generation with answers:', currentImageAnalysis.answers)
       hasTriggeredGeneration.current = true
-      generateMutation.mutate(currentImageAnalysis.answers)
+      generateMutation.mutate(currentImageAnalysis.answers || [])
     }
   }, [currentStep, currentImageAnalysis?.answers, generateMutation])
 

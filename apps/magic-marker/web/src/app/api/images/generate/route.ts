@@ -70,6 +70,11 @@ Style: Artistic and creative interpretation of the user's preferences`
       });
       const imageGenerationTime = Date.now() - imageGenerationStartTime;
       
+      // Type guard to ensure we have the image_base64 property
+      if (!('image_base64' in imageGenerationResult)) {
+        throw new Error('Image generation failed: No image data returned');
+      }
+      
       // Convert base64 image to buffer
       const imageBuffer = Buffer.from(imageGenerationResult.image_base64, 'base64');
       

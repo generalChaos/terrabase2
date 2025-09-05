@@ -25,6 +25,10 @@ export interface AnalysisFlow {
   additional_image_ids: string[];
   final_image_id?: string;
   
+  // Image paths (added by API enhancement)
+  original_image_path?: string;
+  final_image_path?: string;
+  
   // Normalized counters
   total_questions: number;
   total_answers: number;

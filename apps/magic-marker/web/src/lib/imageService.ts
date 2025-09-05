@@ -2,6 +2,9 @@
 import { supabase } from '@/lib/supabase';
 import { Image, ImageType } from './newTypes';
 
+// Re-export types for external use
+export type { Image, ImageType };
+
 export class ImageService {
   /**
    * Create a new image record

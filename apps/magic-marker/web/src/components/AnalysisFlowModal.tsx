@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { AnalysisFlow } from '@/lib/analysisFlowService'
+import { AnalysisFlow, Question, QuestionAnswer } from '@/lib/analysisFlowService'
 import { Image } from '@/lib/imageService'
 import { X, Calendar, MessageSquare, Image as ImageIcon, CheckCircle, XCircle, Clock, FileText, Activity, AlertTriangle, Database, Zap, BarChart3, Code, Hash } from 'lucide-react'
 
@@ -41,16 +41,22 @@ export default function AnalysisFlowModal({ analysisFlow, isOpen, onClose }: Ana
       if (analysisFlow.original_image_id && (analysisFlow as any).original_image_path) {
         setOriginalImage({
           id: analysisFlow.original_image_id,
-          originalPath: (analysisFlow as any).original_image_path,
-          type: 'original'
+          file_path: (analysisFlow as any).original_image_path,
+          image_type: 'original' as any,
+          analysis_result: '',
+          created_at: '',
+          updated_at: ''
         })
       }
 
       if (analysisFlow.final_image_id && (analysisFlow as any).final_image_path) {
         setFinalImage({
           id: analysisFlow.final_image_id,
-          originalPath: (analysisFlow as any).final_image_path,
-          type: 'final'
+          file_path: (analysisFlow as any).final_image_path,
+          image_type: 'final' as any,
+          analysis_result: '',
+          created_at: '',
+          updated_at: ''
         })
       }
     } catch (error) {
@@ -122,9 +128,9 @@ export default function AnalysisFlowModal({ analysisFlow, isOpen, onClose }: Ana
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(analysisFlow.isActive)}`}>
-                {getStatusIcon(analysisFlow.isActive)}
-                <span className="ml-1">{analysisFlow.isActive ? 'Active' : 'Inactive'}</span>
+              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(analysisFlow.is_active)}`}>
+                {getStatusIcon(analysisFlow.is_active)}
+                <span className="ml-1">{analysisFlow.is_active ? 'Active' : 'Inactive'}</span>
               </span>
             </div>
           </div>
@@ -148,7 +154,7 @@ export default function AnalysisFlowModal({ analysisFlow, isOpen, onClose }: Ana
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-500">Session ID</label>
-                  <p className="mt-1 text-sm text-gray-900 font-mono">{analysisFlow.sessionId}</p>
+                  <p className="mt-1 text-sm text-gray-900 font-mono">{analysisFlow.session_id}</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-500">Created At</label>
@@ -186,13 +192,13 @@ export default function AnalysisFlowModal({ analysisFlow, isOpen, onClose }: Ana
                   {originalImage ? (
                     <div className="mt-2 flex items-center space-x-3">
                       <img
-                        src={originalImage.originalPath}
+                        src={originalImage.file_path}
                         alt="Original"
                         className="w-16 h-16 object-cover rounded-lg border"
                       />
                       <div>
                         <p className="text-sm text-gray-900 font-mono">{originalImage.id}</p>
-                        <p className="text-xs text-gray-500">Type: {originalImage.type}</p>
+                        <p className="text-xs text-gray-500">Type: {originalImage.image_type}</p>
                       </div>
                     </div>
                   ) : (
@@ -206,13 +212,13 @@ export default function AnalysisFlowModal({ analysisFlow, isOpen, onClose }: Ana
                   {finalImage ? (
                     <div className="mt-2 flex items-center space-x-3">
                       <img
-                        src={finalImage.originalPath}
+                        src={finalImage.file_path}
                         alt="Final"
                         className="w-16 h-16 object-cover rounded-lg border"
                       />
                       <div>
                         <p className="text-sm text-gray-900 font-mono">{finalImage.id}</p>
-                        <p className="text-xs text-gray-500">Type: {finalImage.type}</p>
+                        <p className="text-xs text-gray-500">Type: {finalImage.image_type}</p>
                       </div>
                     </div>
                   ) : (
@@ -232,16 +238,22 @@ export default function AnalysisFlowModal({ analysisFlow, isOpen, onClose }: Ana
               </h2>
 
               <div className="space-y-6">
-                {processingSteps.map((step, index) => {
+                {processingSteps.filter((step, index) => {
+                  // Filter out duplicate conversational steps - only show the first one
+                  if (step.step_type === 'conversational_question' || step.step_type === 'answer_analysis') {
+                    return index === processingSteps.findIndex(s => s.step_type === 'conversational_question' || s.step_type === 'answer_analysis')
+                  }
+                  return true
+                }).map((step, index) => {
                   const stepColors = {
-                    'image_analysis': 'blue',
-                    'questions_generation': 'purple', 
+                    'analysis': 'blue',
+                    'questions': 'purple', 
                     'conversational_question': 'orange',
                     'answer_analysis': 'orange',
                     'image_generation': 'green'
                   }
                   const color = stepColors[step.step_type as keyof typeof stepColors] || 'gray'
-                  const colorClasses = {
+                  const colorClasses: Record<string, string> = {
                     blue: 'border-blue-500 bg-blue-500',
                     purple: 'border-purple-500 bg-purple-500',
                     orange: 'border-orange-500 bg-orange-500',
@@ -315,40 +327,50 @@ export default function AnalysisFlowModal({ analysisFlow, isOpen, onClose }: Ana
                         )}
                         
                         {/* Questions Generated (for questions_generation step) */}
-                        {step.step_type === 'questions_generation' && analysisFlow.questions && analysisFlow.questions.length > 0 && (
+                        {step.step_type === 'questions' && analysisFlow.questions && analysisFlow.questions.length > 0 && (
                           <div className="bg-purple-50 p-3 rounded-lg">
-                            <p className="text-sm font-medium text-purple-900 mb-3">Questions Generated:</p>
+                            <p className="text-sm font-medium text-purple-900 mb-3">Questions Generated with Answers:</p>
                             <div className="space-y-4">
-                              {analysisFlow.questions.map((question, qIndex) => (
-                                <div key={question.id} className="bg-white p-3 rounded border border-purple-200">
-                                  <p className="text-sm font-medium text-gray-900 mb-2">
-                                    Q{qIndex + 1}: {question.text}
-                                  </p>
-                                  {question.options && question.options.length > 0 && (
-                                    <div className="flex flex-wrap gap-2">
-                                      {question.options.map((option, optIndex) => (
-                                        <span
-                                          key={optIndex}
-                                          className="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded-full border"
-                                        >
-                                          {option}
-                                        </span>
-                                      ))}
-                                    </div>
-                                  )}
-                                </div>
-                              ))}
+                              {analysisFlow.questions.map((question: Question, qIndex: number) => {
+                                const answer = analysisFlow.answers?.find((a: QuestionAnswer) => a.questionId === question.id)
+                                return (
+                                  <div key={question.id} className="bg-white p-3 rounded border border-purple-200">
+                                    <p className="text-sm font-medium text-gray-900 mb-2">
+                                      Q{qIndex + 1}: {question.text}
+                                    </p>
+                                    {question.options && question.options.length > 0 && (
+                                      <div className="flex flex-wrap gap-2">
+                                        {question.options.map((option: string, optIndex: number) => {
+                                          const isSelected = answer && option === answer.answer
+                                          return (
+                                            <span
+                                              key={optIndex}
+                                              className={`px-3 py-1 text-xs rounded-full border ${
+                                                isSelected
+                                                  ? 'bg-green-100 text-green-800 border-green-300 font-medium'
+                                                  : 'bg-gray-100 text-gray-700 border-gray-300'
+                                              }`}
+                                            >
+                                              {option}
+                                            </span>
+                                          )
+                                        })}
+                                      </div>
+                                    )}
+                                  </div>
+                                )
+                              })}
                             </div>
                           </div>
                         )}
                         
-                        {/* Conversational Questions & Answers - Show all Q&A for conversational steps */}
-                        {(step.step_type === 'conversational_question' || step.step_type === 'answer_analysis') && analysisFlow.answers && analysisFlow.answers.length > 0 && (
+                        {/* Conversational Questions & Answers - Show all Q&A for conversational steps (only once) */}
+                        {(step.step_type === 'conversational_question' || step.step_type === 'answer_analysis') && analysisFlow.answers && analysisFlow.answers.length > 0 && index === processingSteps.findIndex(s => s.step_type === 'conversational_question' || s.step_type === 'answer_analysis') && (
                           <div className="bg-orange-50 p-3 rounded-lg">
                             <p className="text-sm font-medium text-orange-900 mb-3">All Conversational Q&A:</p>
                             <div className="space-y-4">
-                              {analysisFlow.answers.map((answer, aIndex) => {
-                                const question = analysisFlow.questions?.find(q => q.id === answer.questionId)
+                              {analysisFlow.answers.map((answer: QuestionAnswer, aIndex: number) => {
+                                const question = analysisFlow.questions?.find((q: Question) => q.id === answer.questionId)
                                 if (!question) return null
                                 
                                 return (
@@ -358,7 +380,7 @@ export default function AnalysisFlowModal({ analysisFlow, isOpen, onClose }: Ana
                                     </p>
                                     {question.options && question.options.length > 0 && (
                                       <div className="flex flex-wrap gap-2">
-                                        {question.options.map((option, optIndex) => {
+                                        {question.options.map((option: string, optIndex: number) => {
                                           const isSelected = option === answer.answer
                                           return (
                                             <span
@@ -378,6 +400,16 @@ export default function AnalysisFlowModal({ analysisFlow, isOpen, onClose }: Ana
                                   </div>
                                 )
                               })}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Image Generation Prompt (for image_generation step) */}
+                        {step.step_type === 'image_generation' && step.prompt_content && (
+                          <div className="bg-green-50 p-3 rounded-lg">
+                            <p className="text-sm font-medium text-green-900 mb-3">Image Generation Prompt:</p>
+                            <div className="bg-white p-3 rounded border border-green-200">
+                              <p className="text-sm text-green-800 font-mono">{step.prompt_content}</p>
                             </div>
                           </div>
                         )}
@@ -437,6 +469,48 @@ export default function AnalysisFlowModal({ analysisFlow, isOpen, onClose }: Ana
               </div>
             </div>
 
+            {/* Final Generated Image - Big Display */}
+            {finalImage && (
+              <div className="bg-white rounded-lg shadow-sm border p-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                  <ImageIcon className="w-5 h-5 mr-2" />
+                  Final Generated Image
+                </h2>
+                
+                {/* Image Generation Prompt */}
+                {(() => {
+                  const imageGenStep = processingSteps.find(step => step.step_type === 'image_generation' && step.prompt_content)
+                  return imageGenStep ? (
+                    <div className="mb-6">
+                      <h3 className="text-md font-medium text-gray-900 mb-3">Generation Prompt:</h3>
+                      <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                        <p className="text-sm text-green-800 font-mono leading-relaxed">
+                          {imageGenStep.prompt_content}
+                        </p>
+                      </div>
+                    </div>
+                  ) : null
+                })()}
+                
+                <div className="flex justify-center">
+                  <div className="max-w-2xl w-full">
+                    <img
+                      src={finalImage.file_path}
+                      alt="Final generated image"
+                      className="w-full h-auto rounded-lg shadow-lg border border-gray-200"
+                    />
+                    <div className="mt-4 text-center">
+                      <p className="text-sm text-gray-600">
+                        Generated from analysis flow: {analysisFlow.id}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {finalImage.file_path}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
           </div>
 
@@ -491,7 +565,7 @@ export default function AnalysisFlowModal({ analysisFlow, isOpen, onClose }: Ana
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Flow Complete</span>
-                  {analysisFlow.currentStep === 'completed' ? (
+                  {analysisFlow.current_step === 'completed' ? (
                     <CheckCircle className="w-4 h-4 text-green-500" />
                   ) : (
                     <Clock className="w-4 h-4 text-yellow-500" />

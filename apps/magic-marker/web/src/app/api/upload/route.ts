@@ -149,6 +149,10 @@ export async function POST(request: NextRequest) {
     });
     const analysisTime = Date.now() - analysisStartTime;
     console.log(`✅ [${requestId}] Image analysis completed in ${analysisTime}ms`);
+    // Type guard to ensure we have the response property
+    if (!('response' in analysisResult)) {
+      throw new Error('Analysis failed: No response returned');
+    }
     console.log(`📝 [${requestId}] Analysis length:`, analysisResult.response?.length || 0);
 
     // Step 2: Generate questions from analysis using prompt system
@@ -160,6 +164,10 @@ export async function POST(request: NextRequest) {
     const questionsTime = Date.now() - questionsStartTime;
     console.log(`✅ [${requestId}] Questions generation completed in ${questionsTime}ms`);
     console.log(`🔍 [${requestId}] Questions result structure:`, JSON.stringify(questionsResult, null, 2));
+    // Type guard to ensure we have the questions property
+    if (!('questions' in questionsResult)) {
+      throw new Error('Questions generation failed: No questions returned');
+    }
     console.log(`❓ [${requestId}] Questions count:`, questionsResult.questions?.length || 0);
 
     // Create image record using ImageService

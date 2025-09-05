@@ -117,7 +117,7 @@ const EnhancedImageModal: React.FC<EnhancedImageModalProps> = ({ image, isOpen, 
           ].map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as string)}
+              onClick={() => setActiveTab(tab.id as 'overview' | 'pipeline' | 'details')}
               className={`flex items-center space-x-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === tab.id
                   ? 'border-blue-500 text-blue-400'

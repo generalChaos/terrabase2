@@ -134,7 +134,7 @@ export class OpenAIService {
     try {
       // Build conversation context for the AI in the format the prompt expects
       const conversationHistory = conversationContext.questions
-        .map((q, index) => `Q${index + 1}: ${q.text}\nA${index + 1}: ${q.answer || 'Not answered'}`)
+        .map((q: any, index: number) => `Q${index + 1}: ${q.text}\nA${index + 1}: ${q.answer || 'Not answered'}`)
         .join('\n\n');
       
       const prompt = `Image Analysis: ${analysis}
@@ -164,6 +164,7 @@ Current Context: ${conversationContext.artisticDirection || 'No specific directi
         question = {
           id: `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           text: firstQuestion.text,
+          type: 'multiple_choice' as const,
           options: firstQuestion.options,
           required: firstQuestion.required
         };
@@ -269,6 +270,12 @@ Current Context: ${conversationContext.artisticDirection || 'No specific directi
     try {
       // Use PromptExecutor for image generation
       const result = await PromptExecutor.execute('image_generation', { prompt });
+      
+      // Type guard to ensure we have the image_base64 property
+      if (!('image_base64' in result)) {
+        throw new Error('Image generation failed: No image data returned');
+      }
+      
       const imageBase64 = result.image_base64;
 
       const responseTime = Date.now() - startTime;

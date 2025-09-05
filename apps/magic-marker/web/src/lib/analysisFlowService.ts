@@ -1,6 +1,9 @@
 import { supabase } from '@/lib/supabase'
 import { AnalysisFlow, Question, QuestionAnswer } from './newTypes'
 
+// Re-export types for external use
+export type { AnalysisFlow, Question, QuestionAnswer }
+
 export interface AnalysisFlowState {
   currentQuestionIndex: number
   totalQuestions: number
@@ -380,7 +383,7 @@ export class AnalysisFlowService {
 
     return this.updateAnalysisFlow(flowId, {
       additional_image_ids: updatedAdditionalImages
-    })
+    } as any)
   }
 
   /**
@@ -413,8 +416,8 @@ export class AnalysisFlowService {
     }
 
     return this.updateAnalysisFlow(flowId, {
-      total_cost_usd: currentFlow.total_cost_usd + costUsd,
-      total_tokens: currentFlow.total_tokens + tokens
+      totalCostUsd: currentFlow.total_cost_usd + costUsd,
+      totalTokens: currentFlow.total_tokens + tokens
     })
   }
 
