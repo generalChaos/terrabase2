@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { supabase } from '@/lib/supabase';
 import OpenAI from 'openai';
 import { 
   PromptType, 
@@ -16,6 +16,7 @@ function getOpenAIClient(): OpenAI {
     // This allows us to distinguish between missing key and invalid key
     openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY || 'dummy-key', // Use dummy key if not set
+      dangerouslyAllowBrowser: true, // Allow browser usage for development
     });
   }
   return openai;

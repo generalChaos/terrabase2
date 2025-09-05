@@ -1,4 +1,4 @@
-import { supabase } from './supabase'
+import { supabase } from '@/lib/supabase'
 
 export interface ConversationState {
   currentQuestionIndex: number
@@ -39,8 +39,8 @@ export class ConversationService {
    * Create a new conversation for an image
    */
   static async createConversation(
-    imageId: string, 
-    sessionId: string, 
+    imageId: string,
+    sessionId: string,
     imageAnalysis: string
   ): Promise<Conversation> {
     console.log('🔄 [ConversationService] Creating conversation:', {
@@ -48,35 +48,6 @@ export class ConversationService {
       sessionId: sessionId.substring(0, 8) + '...',
       imageAnalysisLength: imageAnalysis.length
     });
-
-    // First, deactivate any existing active conversations for this image
-    console.log('🔄 [ConversationService] Deactivating any existing active conversations...');
-    
-    // Check what active conversations exist first
-    const { data: activeConversations } = await supabase
-      .from('conversations')
-      .select('id, is_active, total_questions')
-      .eq('image_id', imageId)
-      .eq('is_active', true);
-
-    console.log('🔍 [ConversationService] Found active conversations before deactivation:', activeConversations);
-    
-    const { data: deactivatedData, error: deactivateError } = await supabase
-      .from('conversations')
-      .update({ is_active: false })
-      .eq('image_id', imageId)
-      .eq('is_active', true)
-      .select();
-
-    if (deactivateError) {
-      console.error('❌ [ConversationService] Error deactivating existing conversations:', deactivateError);
-      // Continue anyway, the insert might still work
-    } else {
-      console.log('✅ [ConversationService] Deactivated conversations:', deactivatedData);
-    }
-
-    // Add a small delay to ensure deactivation is processed
-    await new Promise(resolve => setTimeout(resolve, 100));
 
     const conversationState: ConversationState = {
       currentQuestionIndex: 0,
@@ -95,12 +66,13 @@ export class ConversationService {
       contextDataKeys: Object.keys(conversationState.contextData)
     });
 
-    console.log('🔄 [ConversationService] Attempting to create conversation with data:', {
+    console.log('🔄 [ConversationService] Creating new conversation:', {
       imageId: imageId.substring(0, 8) + '...',
       sessionId: sessionId.substring(0, 8) + '...',
       isActive: true
     });
 
+    // Create a new conversation - each conversation is treated as completely separate
     const { data, error } = await supabase
       .from('conversations')
       .insert({
@@ -126,7 +98,7 @@ export class ConversationService {
       throw new Error(`Failed to create conversation: ${error.message}`)
     }
 
-    console.log('✅ [ConversationService] Conversation created successfully:', {
+    console.log('✅ [ConversationService] Conversation created/updated successfully:', {
       conversationId: data.id,
       imageId: data.image_id.substring(0, 8) + '...',
       sessionId: data.session_id.substring(0, 8) + '...'

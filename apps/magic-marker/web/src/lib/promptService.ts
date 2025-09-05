@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { supabase } from '@/lib/supabase';
 
 /**
  * @deprecated This service is deprecated. Use the new prompt system with PromptExecutor and prompt_definitions table instead.

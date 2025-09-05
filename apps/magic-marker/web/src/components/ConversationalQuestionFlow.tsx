@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { Question, QuestionAnswer } from '@/lib/types'
-import { ConversationService, Conversation } from '@/lib/conversationService'
+import { QuestionSessionService, QuestionSession } from '@/lib/questionSessionService'
 import { OpenAIService } from '@/lib/openai'
 import { supabase } from '@/lib/supabase'
 
@@ -23,15 +23,15 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
   onSkip,
   isLoading
 }) => {
-  const [conversation, setConversation] = useState<Conversation | null>(null)
+  const [questionSession, setQuestionSession] = useState<QuestionSession | null>(null)
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null)
   const [selectedAnswer, setSelectedAnswer] = useState<string>('')
   const [isGeneratingQuestion, setIsGeneratingQuestion] = useState(false)
-  const [sessionId] = useState(() => ConversationService.generateSessionId())
+  const [sessionId] = useState(() => QuestionSessionService.generateSessionId())
   const [error, setError] = useState<string | null>(null)
 
 
-  const finishConversation = useCallback(async (conv: Conversation) => {
+  const finishConversation = useCallback(async (conv: QuestionSession) => {
     console.log('🏁 [ConversationalQuestionFlow] Finishing conversation...', {
       conversationId: conv.id,
       questionsCount: conv.conversation_state.questions.length,
@@ -41,7 +41,7 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
     try {
       // End conversation
       console.log('🔚 [ConversationalQuestionFlow] Ending conversation...');
-      await ConversationService.endConversation(conv.id)
+      await QuestionSessionService.deactivateQuestionSession(conv.id)
       
       // Convert to QuestionAnswer format
       const questionAnswers: QuestionAnswer[] = conv.conversation_state.questions
@@ -65,7 +65,7 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
     }
   }, [onSubmit])
 
-  const generateNextQuestion = useCallback(async (conv: Conversation) => {
+  const generateNextQuestion = useCallback(async (conv: QuestionSession) => {
     console.log('🔄 [ConversationalQuestionFlow] Generating next question for conversation:', {
       conversationId: conv.id,
       currentQuestionsCount: conv.conversation_state.questions.length,
@@ -119,7 +119,7 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
 
       // Add question to conversation
       console.log('💾 [ConversationalQuestionFlow] Adding question to conversation...');
-      const updatedConversation = await ConversationService.addQuestion(
+      const updatedConversation = await QuestionSessionService.addQuestion(
         conv.id,
         {
           id: question.id,
@@ -133,7 +133,7 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
         newQuestionsCount: updatedConversation.conversation_state.questions.length
       });
 
-      setConversation(updatedConversation)
+      setQuestionSession(updatedConversation)
       setCurrentQuestion(question)
       setSelectedAnswer('')
     } catch (err) {
@@ -201,12 +201,12 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
         
         // Check if there's already an active conversation
         console.log('🔍 [ConversationalQuestionFlow] Checking for existing conversation...');
-        let activeConversation = await ConversationService.getActiveConversation(imageId)
+        let activeConversation = await QuestionSessionService.getActiveQuestionSession(imageId)
         
         if (!activeConversation) {
           console.log('📝 [ConversationalQuestionFlow] No existing conversation, creating new one...');
           // Create new conversation
-          activeConversation = await ConversationService.createConversation(
+          activeConversation = await QuestionSessionService.createQuestionSession(
             imageId,
             sessionId,
             imageAnalysis
@@ -237,7 +237,7 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
 
   const handleNext = async () => {
     console.log('➡️ [ConversationalQuestionFlow] Handling next button click...', {
-      hasConversation: !!conversation,
+      hasConversation: !!questionSession,
       hasCurrentQuestion: !!currentQuestion,
       hasSelectedAnswer: !!selectedAnswer,
       selectedAnswer: selectedAnswer
@@ -250,19 +250,19 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
 
     try {
       console.log('💾 [ConversationalQuestionFlow] Adding answer to conversation...', {
-        conversationId: conversation.id,
+        conversationId: questionSession.id,
         questionId: currentQuestion.id,
         answer: selectedAnswer
       });
 
       // Add answer to conversation
-      const updatedConversation = await ConversationService.addAnswer(
-        conversation.id,
+      const updatedConversation = await QuestionSessionService.addAnswer(
+        questionSession.id,
         currentQuestion.id,
         selectedAnswer
       )
       
-      setConversation(updatedConversation)
+      setQuestionSession(updatedConversation)
       
       console.log('✅ [ConversationalQuestionFlow] Answer added:', {
         questionsCount: updatedConversation.conversation_state.questions.length,
@@ -290,9 +290,9 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
 
 
   const handleReset = async () => {
-    if (conversation) {
+    if (questionSession) {
       try {
-        await ConversationService.endConversation(conversation.id)
+        await QuestionSessionService.endQuestionSession(questionSession.id)
       } catch (err) {
         console.warn('Failed to end conversation:', err)
       }
@@ -300,8 +300,8 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
     onReset()
   }
 
-  const progress = conversation 
-    ? (conversation.conversation_state.totalQuestions / 5) * 100 
+  const progress = questionSession 
+    ? (questionSession.conversation_state.totalQuestions / 5) * 100 
     : 0
 
   if (isGeneratingQuestion && !currentQuestion) {
