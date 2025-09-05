@@ -12,7 +12,7 @@ export default function AnimatedHomepage({ onStartUpload }: AnimatedHomepageProp
   const [isScrolling, setIsScrolling] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
+  // const containerRef = useRef<HTMLDivElement>(null) // Unused for now
 
   const steps = [
     {
@@ -86,7 +86,7 @@ export default function AnimatedHomepage({ onStartUpload }: AnimatedHomepageProp
 
     window.addEventListener('scroll', handleScroll, { passive: true })
     return () => window.removeEventListener('scroll', handleScroll)
-  }, [currentStep, isMobile, isScrolling])
+  }, [currentStep, isMobile, isScrolling, steps.length])
 
   const handleStepClick = (stepIndex: number) => {
     if (stepIndex === steps.length - 1) {

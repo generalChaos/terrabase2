@@ -64,7 +64,7 @@ export default function StepsPage() {
 
   useEffect(() => {
     fetchSteps();
-  }, [filters, pagination.offset]);
+  }, [fetchSteps, filters, pagination.offset]);
 
   const getStepTypeColor = (stepType: string) => {
     switch (stepType) {

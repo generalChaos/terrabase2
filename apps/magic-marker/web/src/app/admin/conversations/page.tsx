@@ -343,7 +343,7 @@ export default function ConversationsPage() {
                       <div className="space-y-4">
                         {processingSteps
                           .sort((a, b) => a.step_order - b.step_order)
-                          .map((step, index) => (
+                          .map((step, _index) => (
                             <div key={step.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
                               <div className="flex justify-between items-start mb-4">
                                 <div className="flex-1">

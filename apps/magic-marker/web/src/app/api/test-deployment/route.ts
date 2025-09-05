@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     console.log('Test deployment endpoint called');
     
@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     // Test Supabase connection
     const supabaseTest: { connected: boolean; error: string | null } = { connected: false, error: null };
     try {
-      const { data, error } = await supabase
+      const { data: _data, error } = await supabase
         .from('images')
         .select('count')
         .limit(1);
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
     // Test Supabase storage
     const storageTest: { accessible: boolean; error: string | null } = { accessible: false, error: null };
     try {
-      const { data, error } = await supabase.storage
+      const { data: _data, error } = await supabase.storage
         .from('images')
         .list('', { limit: 1 });
       

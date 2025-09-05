@@ -105,7 +105,7 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
     } finally {
       setIsGeneratingQuestion(false)
     }
-  }, [imageAnalysis, imageId])
+  }, [imageAnalysis, imageId, finishConversation])
 
   // Initialize conversation
   useEffect(() => {
