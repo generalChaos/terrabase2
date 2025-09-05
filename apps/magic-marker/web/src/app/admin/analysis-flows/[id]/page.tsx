@@ -90,7 +90,9 @@ export default function AnalysisFlowDetailsPage() {
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString()
+    if (!dateString) return 'N/A'
+    const date = new Date(dateString)
+    return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleString()
   }
 
 
@@ -155,14 +157,14 @@ export default function AnalysisFlowDetailsPage() {
                   <label className="text-sm font-medium text-gray-500">Created At</label>
                   <p className="mt-1 text-sm text-gray-900 flex items-center">
                     <Calendar className="w-4 h-4 mr-1" />
-                    {formatDate(analysisFlow.createdAt)}
+                    {formatDate(analysisFlow.created_at)}
                   </p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-500">Updated At</label>
                   <p className="mt-1 text-sm text-gray-900 flex items-center">
                     <Calendar className="w-4 h-4 mr-1" />
-                    {formatDate(analysisFlow.updatedAt)}
+                    {formatDate(analysisFlow.updated_at)}
                   </p>
                 </div>
               </div>
