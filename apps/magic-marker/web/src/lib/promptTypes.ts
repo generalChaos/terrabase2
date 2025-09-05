@@ -50,8 +50,9 @@ export interface PromptTypeMap {
       prompt: string // Full conversation context
     }
     output: {
-      response: string // AI's response (question or final summary)
+      questions: Question[] // Single question when not done, empty when done
       done: boolean // AI decides when conversation is complete
+      summary?: string // Final summary when done=true
     }
   }
 }
