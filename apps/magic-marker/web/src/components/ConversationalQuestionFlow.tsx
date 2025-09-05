@@ -43,7 +43,7 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
       console.log('📝 [ConversationalQuestionFlow] Previous answers:', previousAnswers);
 
       console.log('🤖 [ConversationalQuestionFlow] Calling OpenAI service with new prompt system...');
-      const { question, context, response, done } = await OpenAIService.generateConversationalQuestion(
+      const { question, context, questions, done, summary } = await OpenAIService.generateConversationalQuestion(
         imageAnalysis,
         previousAnswers,
         {
@@ -57,7 +57,8 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
       console.log('✅ [ConversationalQuestionFlow] AI response received:', {
         done,
         hasQuestion: !!question,
-        responseLength: response.length
+        questionsCount: questions.length,
+        hasSummary: !!summary
       });
 
       if (done) {

@@ -127,7 +127,7 @@ export class OpenAIService {
       previousAnswers: string[];
     },
     imageId?: string
-  ): Promise<{ question?: Question; context?: { reasoning: string; builds_on: string; artistic_focus: string }; response: string; done: boolean }> {
+  ): Promise<{ question?: Question; context?: { reasoning: string; builds_on: string; artistic_focus: string }; questions: Question[]; done: boolean; summary?: string }> {
     const requestId = Math.random().toString(36).substring(7);
     console.log(`💬 [${requestId}] Generating conversational question with new prompt system`);
 
@@ -146,49 +146,25 @@ Current Context: ${conversationContext.artisticDirection || 'No specific directi
 
       const result = await PromptExecutor.execute('conversational_question', {
         prompt
-      }) as { response: string; done: boolean };
+      }) as { questions: Question[]; done: boolean; summary?: string };
 
       console.log(`✅ [${requestId}] Conversational response received:`, {
         done: result.done,
-        responseLength: result.response.length
+        questionsCount: result.questions.length,
+        hasSummary: !!result.summary
       });
 
-      // If not done, parse the response as a question with options
+      // Extract the first question if not done
       let question: Question | undefined;
       let context: { reasoning: string; builds_on: string; artistic_focus: string } | undefined;
 
-      if (!result.done) {
-        try {
-          // Try to parse the response as JSON with question/options
-          const parsed = JSON.parse(result.response);
-          if (parsed.question && parsed.options) {
-            question = {
-              id: Math.random().toString(36).substring(7),
-              text: parsed.question,
-              options: parsed.options,
-              answer: undefined
-            };
-            context = {
-              reasoning: `AI generated question based on conversation history`,
-              builds_on: previousAnswers.join(', ') || 'Initial conversation',
-              artistic_focus: conversationContext.artisticDirection || 'General artistic preferences'
-            };
-          }
-        } catch (parseError) {
-          console.warn(`⚠️ [${requestId}] Could not parse question from response, treating as text:`, parseError);
-          // If parsing fails, create a simple question from the response
-          question = {
-            id: Math.random().toString(36).substring(7),
-            text: result.response,
-            options: ['Yes', 'No', 'Maybe', 'None'],
-            answer: undefined
-          };
-          context = {
-            reasoning: `AI provided text response that was converted to question`,
-            builds_on: previousAnswers.join(', ') || 'Initial conversation',
-            artistic_focus: conversationContext.artisticDirection || 'General artistic preferences'
-          };
-        }
+      if (!result.done && result.questions.length > 0) {
+        question = result.questions[0];
+        context = {
+          reasoning: `AI generated question based on conversation history`,
+          builds_on: previousAnswers.join(', ') || 'Initial conversation',
+          artistic_focus: conversationContext.artisticDirection || 'General artistic preferences'
+        };
       }
 
       // Log the step if imageId is provided
@@ -213,8 +189,9 @@ Current Context: ${conversationContext.artisticDirection || 'No specific directi
       return {
         question,
         context,
-        response: result.response,
-        done: result.done
+        questions: result.questions,
+        done: result.done,
+        summary: result.summary
       };
     } catch (error: unknown) {
       console.error(`❌ [${requestId}] Conversational question generation failed:`, error);
