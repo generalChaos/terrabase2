@@ -270,13 +270,19 @@ export default function HomePage() {
     }
   )
 
-  // Trigger image generation when step becomes 'generating'
+  // Trigger image generation when step becomes 'generating' or when we reach image_generation step
   useEffect(() => {
-    if (currentStep === 'generating' && currentImageAnalysis?.answers && currentImageAnalysis.answers.length > 0) {
+    const shouldTriggerGeneration = 
+      (currentStep === 'generating' || 
+       (currentStep === 'dynamic' && promptDefinitions && currentStepIndex < promptDefinitions.length && promptDefinitions[currentStepIndex]?.type === 'image_generation')) &&
+      currentImageAnalysis?.answers && 
+      currentImageAnalysis.answers.length > 0
+
+    if (shouldTriggerGeneration) {
       console.log('🎨 [GENERATION] Triggering image generation with answers:', currentImageAnalysis.answers)
       generateMutation.mutate(currentImageAnalysis.answers)
     }
-  }, [currentStep, currentImageAnalysis?.answers, generateMutation])
+  }, [currentStep, currentImageAnalysis?.answers, generateMutation, promptDefinitions, currentStepIndex])
 
   const handleImageUpload = (file: File) => {
     // Show info toast when upload starts
