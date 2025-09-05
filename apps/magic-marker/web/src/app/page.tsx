@@ -118,6 +118,14 @@ export default function HomePage() {
     }
   )
 
+  // Trigger image generation when step becomes 'generating'
+  useEffect(() => {
+    if (currentStep === 'generating' && currentImageAnalysis?.answers && currentImageAnalysis.answers.length > 0) {
+      console.log('🎨 [GENERATION] Triggering image generation with answers:', currentImageAnalysis.answers)
+      generateMutation.mutate(currentImageAnalysis.answers)
+    }
+  }, [currentStep, currentImageAnalysis?.answers, generateMutation])
+
   // Upload and analyze image mutation
   const uploadMutation = useMutation(
     async (file: File) => {
