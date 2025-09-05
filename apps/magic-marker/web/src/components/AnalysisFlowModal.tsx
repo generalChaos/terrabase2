@@ -165,12 +165,14 @@ export default function AnalysisFlowModal({ analysisFlow, isOpen, onClose }: Ana
                       <p className="mt-1 text-2xl font-bold text-gray-900">
                         {analysisFlow.totalQuestions || 0}
                       </p>
+                      <p className="text-xs text-gray-500 mt-1">Total generated</p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-500">Answers</label>
+                      <label className="text-sm font-medium text-gray-500">Answered</label>
                       <p className="mt-1 text-2xl font-bold text-gray-900">
                         {analysisFlow.totalAnswers || 0}
                       </p>
+                      <p className="text-xs text-gray-500 mt-1">Conversational</p>
                     </div>
                   </div>
                   
