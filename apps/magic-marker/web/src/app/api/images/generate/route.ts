@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
-import { OpenAIService } from '@/lib/openaiNew';
+import { OpenAIService } from '@/lib/openai';
 import { QuestionAnswer } from '@/lib/types';
 import { StepService } from '@/lib/stepService';
 

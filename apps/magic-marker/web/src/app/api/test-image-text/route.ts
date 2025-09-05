@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { OpenAIService } from '@/lib/openaiNew';
+import { OpenAIService } from '@/lib/openai';
 
 // POST /api/test-image-text - Test image + text analysis
 export async function POST(request: Request) {

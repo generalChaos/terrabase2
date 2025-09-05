@@ -4,7 +4,7 @@ import { supabase } from './supabase';
  * @deprecated This service is deprecated. Use the new prompt system with PromptExecutor and prompt_definitions table instead.
  * See: /admin/prompt-definitions for the new interface
  * See: /lib/promptExecutor.ts for the new execution system
- * See: /lib/openaiNew.ts for the new OpenAI service
+ * See: /lib/openai.ts for the new OpenAI service
  */
 
 export interface Prompt {

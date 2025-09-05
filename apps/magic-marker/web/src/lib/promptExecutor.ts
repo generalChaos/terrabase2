@@ -31,9 +31,9 @@ export class PromptExecutor {
   /**
    * Safely log data without exposing base64 image strings
    */
-  private static safeLogData(data: any, label: string): void {
+  private static safeLogData(data: unknown, label: string): void {
     if (typeof data === 'object' && data !== null) {
-      const sanitized = { ...data };
+      const sanitized = { ...data } as Record<string, unknown>;
       
       // Remove or truncate base64 image data
       if (sanitized.image && typeof sanitized.image === 'string' && sanitized.image.length > 100) {
@@ -230,7 +230,7 @@ export class PromptExecutor {
         console.log(`🖼️ [${requestId}] Using DALL-E API for image generation`);
         
         // Extract prompt from input (should be { prompt: string })
-        const imagePrompt = (input as any).prompt;
+        const imagePrompt = (input as { prompt: string }).prompt;
         if (!imagePrompt || typeof imagePrompt !== 'string') {
           throw new Error('Image generation requires a prompt string');
         }

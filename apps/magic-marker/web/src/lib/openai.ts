@@ -4,7 +4,7 @@ import { StepService } from './stepService';
 
 export class OpenAIService {
   /**
-   * Analyze an image using the new prompt system
+   * Analyze an image using the prompt system
    */
   static async analyzeImage(
     imageBase64: string, 
@@ -12,7 +12,7 @@ export class OpenAIService {
     prompt?: string
   ): Promise<{ response: string }> {
     const requestId = Math.random().toString(36).substring(7);
-    console.log(`🤖 [${requestId}] Analyzing image with new prompt system`);
+    console.log(`🤖 [${requestId}] Analyzing image with prompt system`);
 
     try {
       const result = await PromptExecutor.execute('image_analysis', {
@@ -64,14 +64,14 @@ export class OpenAIService {
   }
 
   /**
-   * Generate questions using the new prompt system
+   * Generate questions using the prompt system
    */
   static async generateQuestions(
     prompt: string, 
     imageId?: string
   ): Promise<Question[]> {
     const requestId = Math.random().toString(36).substring(7);
-    console.log(`❓ [${requestId}] Generating questions with new prompt system`);
+    console.log(`❓ [${requestId}] Generating questions with prompt system`);
 
     try {
       const result = await PromptExecutor.execute('questions_generation', {
@@ -116,7 +116,7 @@ export class OpenAIService {
   }
 
   /**
-   * Generate a conversational question using the new prompt system
+   * Generate a conversational question using the prompt system
    */
   static async generateConversationalQuestion(
     analysis: string,
@@ -129,7 +129,7 @@ export class OpenAIService {
     imageId?: string
   ): Promise<{ question?: Question; context?: { reasoning: string; builds_on: string; artistic_focus: string }; questions: Question[]; done: boolean; summary?: string }> {
     const requestId = Math.random().toString(36).substring(7);
-    console.log(`💬 [${requestId}] Generating conversational question with new prompt system`);
+    console.log(`💬 [${requestId}] Generating conversational question with prompt system`);
 
     try {
       // Build conversation context for the AI
@@ -221,7 +221,7 @@ Current Context: ${conversationContext.artisticDirection || 'No specific directi
 
 
   /**
-   * Analyze image with text prompt using the new prompt system
+   * Analyze image with text prompt using the prompt system
    */
   static async analyzeImageWithText(
     imageBase64: string,
@@ -230,7 +230,7 @@ Current Context: ${conversationContext.artisticDirection || 'No specific directi
     instructions?: string
   ): Promise<{ response: string }> {
     const requestId = Math.random().toString(36).substring(7);
-    console.log(`🖼️📝 [${requestId}] Analyzing image with text prompt using new prompt system`);
+    console.log(`🖼️📝 [${requestId}] Analyzing image with text prompt using prompt system`);
 
     try {
       const result = await PromptExecutor.execute('image_text_analysis', {
