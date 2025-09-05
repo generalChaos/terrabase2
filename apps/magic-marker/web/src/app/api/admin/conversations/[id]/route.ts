@@ -18,34 +18,34 @@ export async function PATCH(
     }
 
     const { data, error } = await supabase
-      .from('conversations')
+      .from('analysis_flows')
       .update({ is_active })
       .eq('id', id)
       .select()
       .single()
 
     if (error) {
-      console.error('Error updating conversation:', error)
+      console.error('Error updating analysis flow:', error)
       return NextResponse.json({ 
         success: false, 
-        error: 'Failed to update conversation' 
+        error: 'Failed to update analysis flow' 
       }, { status: 500 });
     }
 
     if (!data) {
       return NextResponse.json({ 
         success: false, 
-        error: 'Conversation not found' 
+        error: 'Analysis flow not found' 
       }, { status: 404 });
     }
 
     return NextResponse.json({
       success: true,
-      conversation: data
+      analysisFlow: data
     });
 
   } catch (error: unknown) {
-    console.error('Error in conversation update API:', error);
+    console.error('Error in analysis flow update API:', error);
     return NextResponse.json({
       success: false,
       error: 'Internal server error'

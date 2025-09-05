@@ -413,7 +413,7 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
       {/* Progress Bar */}
       <div className="mb-8">
         <div className="flex justify-between text-sm text-white/80 mb-2">
-          <span>Question {conversation?.conversation_state.totalQuestions || 0} of 5</span>
+          <span>Question {analysisFlow?.conversation_state.totalQuestions || 0} of 5</span>
           <span>{Math.round(progress)}% Complete</span>
         </div>
         <div className="w-full bg-white/20 rounded-full h-2">
@@ -474,7 +474,7 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
               <div
                 key={index}
                 className={`w-3 h-3 rounded-full transition-all duration-200 ${
-                  index < (conversation?.conversation_state.totalQuestions || 0)
+                  index < (analysisFlow?.conversation_state.totalQuestions || 0)
                     ? 'bg-white/60'
                     : 'bg-white/20'
                 }`}
@@ -492,7 +492,7 @@ const ConversationalQuestionFlow: React.FC<ConversationalQuestionFlowProps> = ({
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                 <span>Generating...</span>
               </div>
-            ) : (conversation?.conversation_state.totalQuestions ?? 0) >= 4 ? (
+            ) : (analysisFlow?.conversation_state.totalQuestions ?? 0) >= 4 ? (
               isLoading ? 'Generating...' : 'Generate Image'
             ) : (
               'Next →'
