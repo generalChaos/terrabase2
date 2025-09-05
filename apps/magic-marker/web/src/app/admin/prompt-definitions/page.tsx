@@ -43,7 +43,7 @@ function TypeDisplay({
   const getTypeSummary = (schema: Record<string, unknown>) => {
     if (!schema.properties) return 'No properties defined'
     
-    const required = schema.required || []
+    const required = (schema.required as string[]) || []
     const properties = Object.entries(schema.properties).map(([key, prop]: [string, unknown]) => {
       const isRequired = required.includes(key)
       const propType = (prop as { type?: string }).type || 'unknown'
@@ -54,7 +54,7 @@ function TypeDisplay({
         type: propType,
         required: isRequired,
         optional: isOptional,
-        description: prop.description || ''
+        description: (prop as { description?: string }).description || ''
       }
     })
     

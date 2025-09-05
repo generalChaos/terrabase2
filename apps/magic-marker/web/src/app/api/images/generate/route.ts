@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
       
       // Step 3: Answer Analysis
       console.log('🔍 Starting answer analysis...');
-      const answerAnalysisStartTime = Date.now();
+      const _answerAnalysisStartTime = Date.now();
       const answerStrings = (answers as QuestionAnswer[]).map(a => a.answer);
       
       // Log answer analysis step
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
       const filename = `generated-${imageAnalysisId}-${Date.now()}.png`;
       
       // Upload to Supabase Storage
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      const { data: _uploadData, error: uploadError } = await supabase.storage
         .from('images')
         .upload(filename, buffer, {
           contentType: 'image/png',

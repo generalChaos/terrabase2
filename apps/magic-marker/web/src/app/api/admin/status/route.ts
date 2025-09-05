@@ -10,7 +10,7 @@ export async function GET() {
     // Check database connection
     const databaseStatus = { connected: false, error: undefined as string | undefined }
     try {
-      const { data, error } = await supabaseAdmin.from('prompt_definitions').select('count').limit(1)
+      const { data: _data, error } = await supabaseAdmin.from('prompt_definitions').select('count').limit(1)
       if (error) {
         databaseStatus.error = error.message
       } else {
