@@ -20,7 +20,7 @@ export interface PromptTypeMap {
   
   'questions_generation': {
     input: {
-      analysis: string
+      response: string
     }
     output: {
       questions: Question[]
@@ -47,12 +47,14 @@ export interface PromptTypeMap {
   
   'conversational_question': {
     input: {
-      prompt: string // Full conversation context
+      response: string // Image analysis response
+      previousAnswers: string[] // Previous user answers
     }
     output: {
       questions: Question[] // Single question when not done, empty when done
       done: boolean // AI decides when conversation is complete
       summary?: string // Final summary when done=true
+      response: string // AI response text
     }
   }
 }
@@ -187,10 +189,25 @@ export const OUTPUT_SCHEMAS: Record<PromptType, JSONSchema> = {
   'conversational_question': {
     type: 'object',
     properties: {
-      response: { type: 'string', minLength: 10 },
-      done: { type: 'boolean' }
+      questions: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            text: { type: 'string' },
+            type: { type: 'string', enum: ['multiple_choice'] },
+            options: { type: 'array', items: { type: 'string' } },
+            required: { type: 'boolean' }
+          },
+          required: ['id', 'text', 'type', 'options', 'required']
+        }
+      },
+      done: { type: 'boolean' },
+      summary: { type: 'string' },
+      response: { type: 'string', minLength: 10 }
     },
-    required: ['response', 'done']
+    required: ['questions', 'done']
   }
 
 }

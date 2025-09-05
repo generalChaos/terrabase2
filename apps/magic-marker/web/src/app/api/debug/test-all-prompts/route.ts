@@ -30,7 +30,7 @@ export async function GET() {
   try {
     console.log('Testing questions_generation...');
     results.questions_generation = await PromptExecutor.execute('questions_generation', {
-      analysis: testAnalysis
+      response: testAnalysis
     });
     console.log('✅ questions_generation passed');
   } catch (error) {
@@ -78,7 +78,7 @@ export async function GET() {
   try {
     console.log('Testing questions_generation...');
     results.questions_generation = await PromptExecutor.execute('questions_generation', {
-      analysis: 'This is a test image showing a beautiful landscape with mountains and a lake at sunset. The composition is well-balanced with warm colors and dramatic lighting.'
+      response: 'This is a test image showing a beautiful landscape with mountains and a lake at sunset. The composition is well-balanced with warm colors and dramatic lighting.'
     });
     console.log('✅ questions_generation passed');
   } catch (error) {

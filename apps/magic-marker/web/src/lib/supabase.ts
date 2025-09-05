@@ -1,19 +1,52 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// Global instances to prevent multiple client creation
+declare global {
+  var __supabase: SupabaseClient | undefined
+  var __supabaseAdmin: SupabaseClient | undefined
+}
+
+// Singleton pattern using global variables (works in both server and client)
+export const supabase = (() => {
+  if (typeof window !== 'undefined') {
+    // Client-side: use global variable
+    if (!globalThis.__supabase) {
+      globalThis.__supabase = createClient(supabaseUrl, supabaseAnonKey)
+    }
+    return globalThis.__supabase
+  } else {
+    // Server-side: create new instance
+    return createClient(supabaseUrl, supabaseAnonKey)
+  }
+})()
 
 // Admin client with service role key for full database access
-// Falls back to anon key if service role key is not available
-export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey || supabaseAnonKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false
+export const supabaseAdmin = (() => {
+  if (typeof window !== 'undefined') {
+    // Client-side: use global variable
+    if (!globalThis.__supabaseAdmin) {
+      globalThis.__supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey || supabaseAnonKey, {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      })
+    }
+    return globalThis.__supabaseAdmin
+  } else {
+    // Server-side: create new instance
+    return createClient(supabaseUrl, supabaseServiceKey || supabaseAnonKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    })
   }
-})
+})()
 
 // Database types
 export interface Question {

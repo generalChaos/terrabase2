@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { StepService } from '@/lib/stepService';
 
 // GET /api/admin/steps - Get all processing steps with optional filtering
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const imageId = searchParams.get('image_id');
+    const flowId = searchParams.get('flow_id');
     const stepType = searchParams.get('step_type');
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = parseInt(searchParams.get('offset') || '0');
@@ -14,14 +16,34 @@ export async function GET(request: NextRequest) {
       .from('image_processing_steps')
       .select(`
         *,
-        images!inner(original_image_path, final_image_path)
+        analysis_flows!inner(
+          original_image_id,
+          final_image_id,
+          images_original!inner(file_path),
+          images_final(file_path)
+        )
       `)
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
     // Apply filters
-    if (imageId) {
-      query = query.eq('image_id', imageId);
+    if (flowId) {
+      query = query.eq('flow_id', flowId);
+    } else if (imageId) {
+      // If imageId is provided, find the analysis flow for that image
+      const { data: flowData } = await supabase
+        .from('analysis_flows')
+        .select('id')
+        .eq('original_image_id', imageId)
+        .eq('is_active', true)
+        .single();
+      
+      if (flowData) {
+        query = query.eq('flow_id', flowData.id);
+      } else {
+        // No flow found, return empty result
+        return NextResponse.json({ steps: [], total: 0 });
+      }
     }
     if (stepType) {
       query = query.eq('step_type', stepType);

@@ -24,6 +24,50 @@ export async function GET() {
   }
 }
 
+// POST /api/admin/prompt-definitions - Create a new prompt definition
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json()
+    const { name, type, prompt_text, active, input_schema, output_schema, return_schema, model, response_format, max_tokens, temperature, sort_order } = body
+
+    if (!name || !type) {
+      return NextResponse.json({ error: 'Name and type are required' }, { status: 400 })
+    }
+
+    const { data, error } = await supabase
+      .from('prompt_definitions')
+      .insert({
+        name,
+        type,
+        prompt_text: prompt_text || '',
+        active: active !== undefined ? active : true,
+        input_schema: input_schema || {},
+        output_schema: output_schema || {},
+        return_schema: return_schema || {},
+        model: model || 'gpt-4o',
+        response_format: response_format || 'json_object',
+        max_tokens: max_tokens || null,
+        temperature: temperature || null,
+        sort_order: sort_order || 1
+      })
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error creating prompt definition:', error)
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    return NextResponse.json({ prompt: data })
+  } catch (error) {
+    console.error('Error in prompt definitions create API:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+
 // PUT /api/admin/prompt-definitions - Update a prompt definition
 export async function PUT(request: NextRequest) {
   try {

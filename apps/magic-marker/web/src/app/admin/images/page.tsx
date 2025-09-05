@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useQuery } from 'react-query'
 import axios from 'axios'
 import Link from 'next/link'
-import { ImageAnalysis } from '@/lib/types'
+import { ImageAnalysis, Question, QuestionAnswer } from '@/lib/types'
 import ImageGallery from '@/components/ImageGallery'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import AdminLayout from '@/components/AdminLayout'
@@ -13,13 +13,21 @@ const API_BASE = '/api'
 
 interface ApiImageResponse {
   id: string
-  original_image_path: string
-  analysis_result: string
-  questions: string
-  answers?: string
-  final_image_path?: string
-  created_at: string
-  updated_at: string
+  originalImagePath: string
+  analysisResult: string
+  questions: Question[]
+  answers?: QuestionAnswer[]
+  finalImagePath?: string
+  createdAt: string
+  updatedAt: string
+  // New fields from analysis flows
+  sessionId?: string
+  totalQuestions?: number
+  totalAnswers?: number
+  currentStep?: string
+  totalCostUsd?: number
+  totalTokens?: number
+  isActive?: boolean
 }
 
 export default function AdminImagesPage() {
@@ -34,16 +42,24 @@ export default function AdminImagesPage() {
     'images',
     async () => {
       const response = await axios.get(`${API_BASE}/images`)
-      // Transform snake_case API response to camelCase frontend types
+      // The API now returns the combined data structure directly
       return response.data.map((item: ApiImageResponse) => ({
         id: item.id,
-        originalImagePath: item.original_image_path,
-        analysisResult: item.analysis_result,
-        questions: item.questions,
-        answers: item.answers,
-        finalImagePath: item.final_image_path,
-        createdAt: new Date(item.created_at),
-        updatedAt: new Date(item.updated_at)
+        originalImagePath: item.originalImagePath,
+        analysisResult: item.analysisResult,
+        questions: item.questions || [],
+        answers: item.answers || [],
+        finalImagePath: item.finalImagePath,
+        createdAt: new Date(item.createdAt),
+        updatedAt: new Date(item.updatedAt),
+        // New fields from analysis flows
+        sessionId: item.sessionId,
+        totalQuestions: item.totalQuestions || 0,
+        totalAnswers: item.totalAnswers || 0,
+        currentStep: item.currentStep,
+        totalCostUsd: item.totalCostUsd || 0,
+        totalTokens: item.totalTokens || 0,
+        isActive: item.isActive || false
       }))
     },
     {

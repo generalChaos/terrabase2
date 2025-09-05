@@ -23,7 +23,7 @@ export class OpenAIService {
       // Log the step if imageId is provided
       if (imageId) {
         await StepService.logStep({
-          image_id: imageId,
+          flow_id: imageId,
           step_type: 'analysis',
           step_order: 1,
           input_data: { 
@@ -44,7 +44,7 @@ export class OpenAIService {
       // Log the error step if imageId is provided
       if (imageId) {
         await StepService.logStep({
-          image_id: imageId,
+          flow_id: imageId,
           step_type: 'analysis',
           step_order: 1,
           input_data: { 
@@ -75,13 +75,13 @@ export class OpenAIService {
 
     try {
       const result = await PromptExecutor.execute('questions_generation', {
-        prompt
+        response: prompt
       }) as { questions: Question[] };
 
       // Log the step if imageId is provided
       if (imageId) {
         await StepService.logStep({
-          image_id: imageId,
+          flow_id: imageId,
           step_type: 'questions',
           step_order: 2,
           input_data: { prompt },
@@ -99,7 +99,7 @@ export class OpenAIService {
       // Log the error step if imageId is provided
       if (imageId) {
         await StepService.logStep({
-          image_id: imageId,
+          flow_id: imageId,
           step_type: 'questions',
           step_order: 2,
           input_data: { prompt },
@@ -145,7 +145,8 @@ ${conversationHistory}
 Current Context: ${conversationContext.artisticDirection || 'No specific direction yet'}`;
 
       const result = await PromptExecutor.execute('conversational_question', {
-        prompt
+        response: analysis,
+        previousAnswers: previousAnswers
       }) as { questions: Question[]; done: boolean; summary?: string };
 
       console.log(`✅ [${requestId}] Conversational response received:`, {
@@ -176,7 +177,7 @@ Current Context: ${conversationContext.artisticDirection || 'No specific directi
       // Log the step if imageId is provided
       if (imageId) {
         await StepService.logStep({
-          image_id: imageId,
+          flow_id: imageId,
           step_type: 'conversational_question',
           step_order: 3,
           input_data: { 
@@ -205,7 +206,7 @@ Current Context: ${conversationContext.artisticDirection || 'No specific directi
       // Log the error step if imageId is provided
       if (imageId) {
         await StepService.logStep({
-          image_id: imageId,
+          flow_id: imageId,
           step_type: 'conversational_question',
           step_order: 3,
           input_data: { 
@@ -239,7 +240,8 @@ Current Context: ${conversationContext.artisticDirection || 'No specific directi
     console.log(`🖼️📝 [${requestId}] Analyzing image with text prompt using prompt system`);
 
     try {
-      const result = await PromptExecutor.execute('image_text_analysis', {
+      // Removed deprecated image_text_analysis prompt type
+      const result = await PromptExecutor.execute('image_analysis', {
         image: imageBase64,
         prompt: textPrompt
       }) as { response: string };
@@ -275,7 +277,7 @@ Current Context: ${conversationContext.artisticDirection || 'No specific directi
       // Log the step if imageId is provided
       if (imageId) {
         await StepService.logStep({
-          image_id: imageId,
+          flow_id: imageId,
           step_type: 'image_generation',
           step_order: 4,
           input_data: { prompt },
@@ -294,7 +296,7 @@ Current Context: ${conversationContext.artisticDirection || 'No specific directi
       // Log the error step if imageId is provided
       if (imageId) {
         await StepService.logStep({
-          image_id: imageId,
+          flow_id: imageId,
           step_type: 'image_generation',
           step_order: 4,
           input_data: { prompt },
