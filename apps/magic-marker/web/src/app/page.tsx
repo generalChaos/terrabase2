@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
 import axios from 'axios'
 import { ImageAnalysis, QuestionAnswer } from '@/lib/types'
@@ -20,6 +20,7 @@ export default function HomePage() {
   const [errors, setErrors] = useState<string[]>([])
   const [logs, setLogs] = useState<string[]>([])
   const [currentStepIndex, setCurrentStepIndex] = useState(0)
+  const hasTriggeredGeneration = useRef(false)
   const { toasts, removeToast, success, error, warning, info } = useToast()
 
   // Log when currentStepIndex changes
@@ -276,13 +277,22 @@ export default function HomePage() {
       (currentStep === 'generating' || 
        (currentStep === 'dynamic' && promptDefinitions && currentStepIndex < promptDefinitions.length && promptDefinitions[currentStepIndex]?.type === 'image_generation')) &&
       currentImageAnalysis?.answers && 
-      currentImageAnalysis.answers.length > 0
+      currentImageAnalysis.answers.length > 0 &&
+      !hasTriggeredGeneration.current
 
     if (shouldTriggerGeneration) {
       console.log('🎨 [GENERATION] Triggering image generation with answers:', currentImageAnalysis.answers)
+      hasTriggeredGeneration.current = true
       generateMutation.mutate(currentImageAnalysis.answers)
     }
-  }, [currentStep, currentImageAnalysis?.answers, generateMutation, promptDefinitions, currentStepIndex])
+  }, [currentStep, currentImageAnalysis?.answers, generateMutation])
+
+  // Reset generation trigger when starting new flow
+  useEffect(() => {
+    if (currentStep === 'homepage' || currentStep === 'upload') {
+      hasTriggeredGeneration.current = false
+    }
+  }, [currentStep])
 
   const handleImageUpload = (file: File) => {
     // Show info toast when upload starts
