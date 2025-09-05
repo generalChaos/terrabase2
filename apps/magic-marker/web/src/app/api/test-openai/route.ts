@@ -18,13 +18,7 @@ export async function GET() {
     
     return NextResponse.json({
       success: true,
-      analysis: result.analysis,
-      analysisMetadata: {
-        confidence_score: result.confidence_score,
-        identified_elements: result.identified_elements,
-        artistic_notes: result.artistic_notes,
-        technical_notes: result.technical_notes
-      },
+      response: result.response,
       message: 'OpenAI service with new prompt system is working correctly!'
     });
   } catch (error) {

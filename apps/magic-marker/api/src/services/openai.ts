@@ -91,14 +91,15 @@ export class OpenAIService {
         n: 1,
         size: "1024x1024",
         quality: "standard",
+        response_format: "b64_json" // Return base64 instead of URL
       });
 
-      const imageUrl = response.data[0]?.url;
-      if (!imageUrl) {
+      const imageBase64 = response.data[0]?.b64_json;
+      if (!imageBase64) {
         throw new Error('No image generated');
       }
 
-      return imageUrl;
+      return imageBase64;
     } catch (error) {
       console.error('OpenAI image generation error:', error);
       throw new Error('Failed to generate image');

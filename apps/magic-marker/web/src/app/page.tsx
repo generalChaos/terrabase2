@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from 'react-query'
 import axios from 'axios'
 import { ImageAnalysis, QuestionAnswer } from '@/lib/types'
 import ImageUpload from '@/components/ImageUpload'
-import ConversationalQuestionFlow from '@/components/ConversationalQuestionFlow'
+import QuestionFlow from '@/components/QuestionFlow'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import DebugPanel from '@/components/DebugPanel'
 import AnimatedHomepage from '@/components/AnimatedHomepage'
@@ -105,14 +105,7 @@ export default function HomePage() {
         const errorMessage = errorObj.response?.data?.error || error.message || 'Unknown error occurred'
         addError(`Upload failed: ${errorMessage}`)
         
-        // Show user-friendly error
-        if (errorObj.response?.status === 413) {
-          alert('File too large. Please select an image smaller than 10MB.')
-        } else if (errorObj.response?.status === 400) {
-          alert('Invalid file type. Please select a valid image file.')
-        } else {
-          alert(`Upload failed: ${errorMessage}`)
-        }
+        // Error is already logged and displayed in DebugPanel
       }
     }
   )
@@ -150,7 +143,6 @@ export default function HomePage() {
         
         const errorMessage = errorObj.response?.data?.error || error.message || 'Unknown error occurred'
         addError(`Image generation failed: ${errorMessage}`)
-        alert(`Failed to generate image: ${errorMessage}`)
         setCurrentStep('questions')
       }
     }
@@ -198,9 +190,8 @@ export default function HomePage() {
           <main className="max-w-4xl mx-auto">
 
           {currentStep === 'questions' && currentImageAnalysis && (
-            <ConversationalQuestionFlow
-              imageId={currentImageAnalysis.id}
-              imageAnalysis={currentImageAnalysis.analysisResult}
+            <QuestionFlow
+              questions={currentImageAnalysis.questions}
               originalImagePath={currentImageAnalysis.originalImagePath}
               onSubmit={handleQuestionsSubmit}
               onReset={handleReset}
