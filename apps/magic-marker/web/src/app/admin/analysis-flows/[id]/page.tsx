@@ -116,10 +116,10 @@ export default function AnalysisFlowDetailsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="fixed inset-0 bg-gray-50 z-50 overflow-y-auto">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="bg-white shadow-sm border-b sticky top-0 z-10">
+        <div className="px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
               <button
@@ -145,7 +145,7 @@ export default function AnalysisFlowDetailsPage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
           {/* Main Content */}
           <div className="xl:col-span-3 space-y-6">
@@ -387,7 +387,7 @@ export default function AnalysisFlowDetailsPage() {
             {analysisFlow.contextData && Object.keys(analysisFlow.contextData).length > 0 && (
               <div className="bg-white rounded-lg shadow-sm border p-6">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Context Data</h2>
-                <pre className="text-xs text-gray-700 bg-gray-50 p-4 rounded-lg overflow-auto">
+                <pre className="text-xs text-gray-800 bg-gray-100 p-4 rounded-lg overflow-auto border font-mono">
                   {JSON.stringify(analysisFlow.contextData, null, 2)}
                 </pre>
               </div>
@@ -436,16 +436,16 @@ export default function AnalysisFlowDetailsPage() {
                           )}
                           {step.input_data && (
                             <details className="mt-2">
-                              <summary className="text-xs text-gray-600 cursor-pointer">Input Data</summary>
-                              <pre className="text-xs text-gray-700 bg-white p-2 rounded mt-1 overflow-auto max-h-32">
+                              <summary className="text-xs text-gray-600 cursor-pointer hover:text-gray-800">Input Data</summary>
+                              <pre className="text-xs text-gray-800 bg-gray-100 p-2 rounded mt-1 overflow-auto max-h-32 border">
                                 {JSON.stringify(step.input_data, null, 2)}
                               </pre>
                             </details>
                           )}
                           {step.output_data && (
                             <details className="mt-2">
-                              <summary className="text-xs text-gray-600 cursor-pointer">Output Data</summary>
-                              <pre className="text-xs text-gray-700 bg-white p-2 rounded mt-1 overflow-auto max-h-32">
+                              <summary className="text-xs text-gray-600 cursor-pointer hover:text-gray-800">Output Data</summary>
+                              <pre className="text-xs text-gray-800 bg-gray-100 p-2 rounded mt-1 overflow-auto max-h-32 border">
                                 {JSON.stringify(step.output_data, null, 2)}
                               </pre>
                             </details>
@@ -530,7 +530,7 @@ export default function AnalysisFlowDetailsPage() {
                 <Code className="w-5 h-5 mr-2" />
                 Raw Flow Data
               </h2>
-              <pre className="text-xs text-gray-700 bg-gray-50 p-4 rounded-lg overflow-auto max-h-96">
+              <pre className="text-xs text-gray-800 bg-gray-100 p-4 rounded-lg overflow-auto max-h-96 border font-mono">
                 {JSON.stringify(analysisFlow, null, 2)}
               </pre>
             </div>
