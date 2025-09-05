@@ -174,7 +174,7 @@ export default function AdminDashboard() {
                 Test the prompt system and verify database connectivity
               </p>
               <a
-                href="/api/test-prompts"
+                href="/api/debug/prompts"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
@@ -189,7 +189,7 @@ export default function AdminDashboard() {
                 Check environment variables and system configuration
               </p>
               <a
-                href="/api/test-deployment"
+                href="/api/debug/deployment"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
