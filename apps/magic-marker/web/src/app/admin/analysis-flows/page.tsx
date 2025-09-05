@@ -28,23 +28,13 @@ export default function AnalysisFlowsPage() {
     const thumbnails: Record<string, string> = {}
     
     for (const flow of flows) {
-      try {
-        if (flow.original_image_id) {
-          const response = await fetch(`/api/images/${flow.original_image_id}`)
-          if (response.ok) {
-            const imageData = await response.json()
-            thumbnails[flow.original_image_id] = imageData.originalImagePath || imageData.file_path
-          }
-        }
-        if (flow.final_image_id) {
-          const response = await fetch(`/api/images/${flow.final_image_id}`)
-          if (response.ok) {
-            const imageData = await response.json()
-            thumbnails[flow.final_image_id] = imageData.originalImagePath || imageData.file_path
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching image thumbnail:', error)
+      // Use the image paths that are now included in the API response
+      if (flow.original_image_id && (flow as any).original_image_path) {
+        thumbnails[flow.original_image_id] = (flow as any).original_image_path
+      }
+      
+      if (flow.final_image_id && (flow as any).final_image_path) {
+        thumbnails[flow.final_image_id] = (flow as any).final_image_path
       }
     }
     

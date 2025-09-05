@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { AnalysisFlowService } from '@/lib/analysisFlowService'
+import { ImageService } from '@/lib/imageService'
 
 // PATCH /api/admin/analysis-flows/[id] - Update analysis flow
 export async function PATCH(
@@ -51,7 +52,7 @@ export async function PATCH(
   }
 }
 
-// GET /api/admin/analysis-flows/[id] - Get specific analysis flow
+// GET /api/admin/analysis-flows/[id] - Get specific analysis flow with image paths
 export async function GET(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
@@ -67,10 +68,34 @@ export async function GET(
       }, { status: 404 });
     }
 
-    return NextResponse.json({
-      success: true,
-      analysisFlow
-    });
+    // Enhance flow with image paths
+    const enhancedFlow = { ...analysisFlow }
+    
+    // Get original image path
+    if (analysisFlow.original_image_id) {
+      try {
+        const originalImage = await ImageService.getImage(analysisFlow.original_image_id)
+        if (originalImage) {
+          enhancedFlow.original_image_path = originalImage.file_path
+        }
+      } catch (error) {
+        console.warn('Failed to fetch original image path:', error)
+      }
+    }
+    
+    // Get final image path
+    if (analysisFlow.final_image_id) {
+      try {
+        const finalImage = await ImageService.getImage(analysisFlow.final_image_id)
+        if (finalImage) {
+          enhancedFlow.final_image_path = finalImage.file_path
+        }
+      } catch (error) {
+        console.warn('Failed to fetch final image path:', error)
+      }
+    }
+
+    return NextResponse.json(enhancedFlow);
 
   } catch (error: unknown) {
     console.error('Error in analysis flow get API:', error);
