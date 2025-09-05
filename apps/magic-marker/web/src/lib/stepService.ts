@@ -7,16 +7,35 @@ export class StepService {
    */
   static async logStep(step: Omit<ProcessingStep, 'id' | 'created_at'>): Promise<void> {
     try {
-      // First, check if the analysis flow exists in the database
+      // First, check if the analysis flow exists in the database with retry logic
       console.log(`🔍 [StepService] Checking if analysis flow exists: ${step.flow_id}`);
-      const { data: flowData, error: flowError } = await supabase
-        .from('analysis_flows')
-        .select('id')
-        .eq('id', step.flow_id)
-        .single();
+      
+      let flowData = null;
+      let flowError = null;
+      let retries = 3;
+      
+      while (retries > 0) {
+        const result = await supabase
+          .from('analysis_flows')
+          .select('id')
+          .eq('id', step.flow_id)
+          .single();
+          
+        flowData = result.data;
+        flowError = result.error;
+        
+        if (flowData || (flowError && flowError.code !== 'PGRST116')) {
+          break; // Found the flow or got a different error
+        }
+        
+        // Flow not found, wait a bit and retry
+        console.log(`⏳ [StepService] Flow not found, retrying in 100ms... (${4-retries} attempts left)`);
+        await new Promise(resolve => setTimeout(resolve, 100));
+        retries--;
+      }
 
       if (flowError || !flowData) {
-        console.error(`❌ [StepService] Analysis flow ${step.flow_id} not found in database:`, flowError);
+        console.error(`❌ [StepService] Analysis flow ${step.flow_id} not found in database after retries:`, flowError);
         console.log(`⚠️ [StepService] Skipping step logging for non-existent flow`);
         return;
       }
