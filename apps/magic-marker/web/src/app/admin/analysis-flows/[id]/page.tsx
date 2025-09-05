@@ -53,6 +53,11 @@ export default function AnalysisFlowDetailsPage() {
           const stepsResponse = await fetch(`/api/admin/steps?flowId=${flowId}`)
           if (stepsResponse.ok) {
             const stepsData = await stepsResponse.json()
+            console.log('🔍 [AnalysisFlowDetail] Fetched processing steps:', {
+              flowId,
+              stepsCount: stepsData.steps?.length || 0,
+              steps: stepsData.steps
+            });
             setProcessingSteps(stepsData.steps || [])
           }
         } catch (err) {
@@ -288,7 +293,7 @@ export default function AnalysisFlowDetailsPage() {
                       <div className="mb-4">
                         <h4 className="text-sm font-medium text-gray-700 mb-2">Input Data:</h4>
                         <div className="bg-gray-50 p-3 rounded border">
-                          <pre className="text-sm text-gray-800 whitespace-pre-wrap font-mono max-h-32 overflow-y-auto">
+                          <pre className="text-sm text-gray-800 whitespace-pre-wrap font-mono">
                             {JSON.stringify(step.input_data, null, 2)}
                           </pre>
                         </div>
@@ -300,7 +305,7 @@ export default function AnalysisFlowDetailsPage() {
                       <div className="mb-4">
                         <h4 className="text-sm font-medium text-gray-700 mb-2">AI Response:</h4>
                         <div className="bg-green-50 p-3 rounded border">
-                          <pre className="text-sm text-green-900 whitespace-pre-wrap font-mono max-h-32 overflow-y-auto">
+                          <pre className="text-sm text-green-900 whitespace-pre-wrap font-mono">
                             {JSON.stringify(step.output_data, null, 2)}
                           </pre>
                         </div>
@@ -748,7 +753,7 @@ export default function AnalysisFlowDetailsPage() {
                 <div>
                   <h3 className="text-md font-medium text-gray-900 mb-3">Questions Preview</h3>
                   {analysisFlow.questions && analysisFlow.questions.length > 0 ? (
-                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                    <div className="space-y-2">
                       {analysisFlow.questions.map((q, index) => (
                         <div key={q.id || index} className="p-2 bg-gray-50 rounded border text-xs">
                           <div className="font-medium text-gray-900">Q{index + 1}: {q.text || q.question}</div>
