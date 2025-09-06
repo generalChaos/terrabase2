@@ -25,6 +25,14 @@ lerna-debug.log*
 # Tests
 /coverage
 /.nyc_output
+**/test-results/
+**/playwright-report/
+**/coverage/
+
+# Uploads and test images
+**/uploads/
+**/test-images/
+**/temp-images/
 
 # IDEs and editors
 /.idea

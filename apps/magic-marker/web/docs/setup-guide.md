@@ -43,8 +43,23 @@ cp apps/magic-marker/web/.env.example apps/magic-marker/web/.env.local
 Follow the detailed setup sections below for Supabase and OpenAI.
 
 ### **5. Start Development**
+
+#### **Option A: Using Setup Script (Recommended)**
+
+```bash
+# From project root - setup everything automatically
+pnpm setup:magic-marker
+
+# Then start development
+pnpm dev:magic-marker
+```
+
+#### **Option B: Manual Setup**
+
 ```bash
 cd apps/magic-marker/web
+supabase start
+supabase db reset
 pnpm dev
 ```
 
@@ -52,7 +67,79 @@ The application will be available at `http://localhost:3002`.
 
 ## 🗄️ **Supabase Setup**
 
-### **1. Create Supabase Project**
+### **Option 1: Local Development (Recommended)**
+
+For local development, we use Supabase CLI to run a local instance. This provides faster development and doesn't require cloud resources.
+
+#### **1. Install Supabase CLI**
+
+```bash
+# Install Supabase CLI
+npm install -g supabase
+
+# Verify installation
+supabase --version
+```
+
+#### **2. Initialize Supabase Project**
+
+```bash
+cd apps/magic-marker/web
+supabase init
+```
+
+#### **3. Start Local Supabase**
+
+```bash
+# Start local Supabase services (PostgreSQL, Storage, etc.)
+supabase start
+
+# This will output your local credentials:
+# API URL: http://127.0.0.1:54321
+# anon key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+# service_role key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+#### **4. Apply Database Migrations**
+
+```bash
+# Apply all migrations to local database
+supabase db reset
+
+# Or apply specific migrations
+supabase migration up
+```
+
+The migrations include:
+- `prompt_definitions` table for AI prompt management
+- `images` table for image storage and metadata
+- `analysis_flows` table for conversational question flows
+- `image_processing_steps` table for step logging
+- Proper indexes and constraints
+- Row Level Security policies
+
+#### **5. Set Up Storage**
+
+The local Supabase instance automatically creates the `images` bucket with public access.
+
+#### **6. Verify Local Setup**
+
+```bash
+# Check if Supabase is running
+supabase status
+
+# Test database connection
+supabase db ping
+
+# View local dashboard
+supabase dashboard
+```
+
+### **Option 2: Cloud Supabase (Production)**
+
+For production deployment, use a cloud Supabase project.
+
+#### **1. Create Supabase Project**
 
 1. Go to [supabase.com](https://supabase.com/)
 2. Click "Start your project"
@@ -65,14 +152,14 @@ The application will be available at `http://localhost:3002`.
    - **Region**: Choose closest to your location
 7. Click "Create new project"
 
-### **2. Get Project Credentials**
+#### **2. Get Project Credentials**
 
 1. In your Supabase dashboard, go to **Settings** > **API**
 2. Copy the following values:
    - **Project URL** (e.g., `https://your-project.supabase.co`)
    - **Anon Key** (starts with `eyJ...`)
 
-### **3. Set Up Database**
+#### **3. Set Up Database**
 
 1. Go to **SQL Editor** in your Supabase dashboard
 2. Click "New Query"
@@ -117,7 +204,7 @@ CREATE TRIGGER update_images_updated_at
 
 4. Click "Run" to execute the SQL
 
-### **4. Set Up Storage**
+#### **4. Set Up Storage**
 
 1. Go to **Storage** in your Supabase dashboard
 2. Click "Create a new bucket"
@@ -172,13 +259,32 @@ touch .env.local
 
 Edit `.env.local` and add the following:
 
+#### **For Local Development (Recommended):**
+
 ```env
-# Supabase Configuration
+# Local Supabase Development Environment
+NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
+
+# OpenAI API Configuration (for server-side API routes)
+OPENAI_API_KEY=sk-proj-your-openai-api-key-here
+
+# Prompt Management Configuration
+USE_DATABASE_PROMPTS=true
+```
+
+#### **For Production Deployment:**
+
+```env
+# Cloud Supabase Configuration
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
-# OpenAI API Configuration
+# OpenAI API Configuration (for server-side API routes)
 OPENAI_API_KEY=sk-proj-your-openai-api-key-here
+
+# Prompt Management Configuration
+USE_DATABASE_PROMPTS=true
 ```
 
 ### **3. Verify Configuration**
@@ -338,6 +444,23 @@ pnpm dev
 **Problem**: Cannot connect to Supabase.
 
 **Solutions**:
+
+**For Local Development:**
+```bash
+# Check if local Supabase is running
+supabase status
+
+# Start local Supabase if not running
+supabase start
+
+# Check environment variables
+cat apps/magic-marker/web/.env.local
+
+# Test local Supabase connection
+curl -H "apikey: YOUR_ANON_KEY" http://127.0.0.1:54321/rest/v1/
+```
+
+**For Cloud Supabase:**
 ```bash
 # Check Supabase URL and key
 cat apps/magic-marker/web/.env.local

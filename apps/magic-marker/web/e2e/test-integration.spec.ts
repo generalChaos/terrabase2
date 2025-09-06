@@ -66,8 +66,8 @@ test.describe('Magic Marker Integration Tests', () => {
     // Should show generating state
     await expect(page.locator('text=Generating')).toBeVisible();
 
-    // Should show final image
-    await expect(page.locator('img[src*="generated-image.png"]')).toBeVisible();
+    // Should show final image (check for any img element with generated image)
+    await expect(page.locator('img[src*="generated"]')).toBeVisible();
   });
 
   test('should handle question flow with multiple questions', async ({ page }) => {

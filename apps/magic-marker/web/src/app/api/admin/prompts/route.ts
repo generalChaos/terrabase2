@@ -272,7 +272,7 @@ export async function PATCH(request: NextRequest) {
   }
 }
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const { data, error } = await supabaseAdmin
       .from('prompts')

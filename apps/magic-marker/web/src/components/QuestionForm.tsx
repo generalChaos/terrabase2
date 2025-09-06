@@ -15,12 +15,14 @@ const QuestionForm: React.FC<QuestionFormProps> = ({
   isLoading
 }) => {
   const [answers, setAnswers] = useState<{ [key: string]: string }>({})
+  const [error, setError] = useState<string | null>(null)
 
   const handleAnswerChange = (questionId: string, value: string) => {
     setAnswers(prev => ({
       ...prev,
       [questionId]: value
     }))
+    setError(null) // Clear error when user starts answering
   }
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -31,7 +33,7 @@ const QuestionForm: React.FC<QuestionFormProps> = ({
     const missingAnswers = requiredQuestions.filter(q => !answers[q.id]?.trim())
     
     if (missingAnswers.length > 0) {
-      alert(`Please answer all required questions: ${missingAnswers.map(q => q.text).join(', ')}`)
+      setError(`Please answer all required questions: ${missingAnswers.map(q => q.text).join(', ')}`)
       return
     }
 
@@ -72,6 +74,17 @@ const QuestionForm: React.FC<QuestionFormProps> = ({
         AI has analyzed your image and generated {questions.length} questions. 
         Please answer them to help create your new image.
       </p>
+
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <div className="flex items-center space-x-2 text-red-800">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 19.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+            <span className="font-medium">{error}</span>
+          </div>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {questions.map((question, index) => (
