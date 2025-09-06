@@ -34,9 +34,13 @@ export class PromptExecutor {
     if (typeof data === 'object' && data !== null) {
       const sanitized = { ...data } as Record<string, unknown>;
       
-      // Remove or truncate base64 image data
+      // Remove or truncate base64 image data (check both 'image' and 'image_base64' fields)
       if (sanitized.image && typeof sanitized.image === 'string' && sanitized.image.length > 100) {
         sanitized.image = `[BASE64_IMAGE_DATA:${sanitized.image.length}chars]`;
+      }
+      
+      if (sanitized.image_base64 && typeof sanitized.image_base64 === 'string' && sanitized.image_base64.length > 100) {
+        sanitized.image_base64 = `[BASE64_IMAGE_DATA:${sanitized.image_base64.length}chars]`;
       }
       
       // Remove any other potential base64 fields
@@ -45,6 +49,11 @@ export class PromptExecutor {
           sanitized[key] = `[BASE64_DATA:${sanitized[key].length}chars]`;
         }
       });
+      
+      // Truncate long response text if it's too verbose
+      if (sanitized.response && typeof sanitized.response === 'string' && sanitized.response.length > 500) {
+        sanitized.response = sanitized.response.substring(0, 500) + `... [truncated, ${sanitized.response.length} chars total]`;
+      }
       
       console.log(`${label}:`, JSON.stringify(sanitized, null, 2));
     } else {
@@ -87,12 +96,12 @@ export class PromptExecutor {
       // 4. Execute with OpenAI
       const response = await this.callOpenAI(fullPrompt, definition, input, requestId);
 
-      // 5. Validate output against return_schema
+      // 5. Validate output against output_schema
       console.log(`🔍 [${requestId}] Validating output against schema...`);
       this.safeLogData(response, `📄 [${requestId}] Response to validate`);
-      console.log(`📋 [${requestId}] Expected schema:`, JSON.stringify(definition.return_schema, null, 2));
+      console.log(`📋 [${requestId}] Expected schema:`, JSON.stringify(definition.output_schema, null, 2));
       
-      const outputValidation = this.validateSchema(response, definition.return_schema);
+      const outputValidation = this.validateSchema(response, definition.output_schema);
       if (!outputValidation.valid) {
         console.error(`❌ [${requestId}] Output validation failed:`, outputValidation.errors);
         this.safeLogData(response, `❌ [${requestId}] Response that failed validation`);
@@ -174,8 +183,13 @@ export class PromptExecutor {
     let promptText = definition.prompt_text;
 
     // Replace {prompt} placeholder if it exists
-    if ('prompt' in input && input.prompt) {
-      promptText = promptText.replace('{prompt}', input.prompt);
+    if ('prompt' in input) {
+      if (input.prompt) {
+        promptText = promptText.replace('{prompt}', input.prompt);
+      } else {
+        // If prompt field exists but is empty, replace with empty string
+        promptText = promptText.replace('{prompt}', '');
+      }
     }
 
     // Add context from input if available
@@ -195,9 +209,9 @@ export class PromptExecutor {
       promptText += `\n\nUser Instructions: ${input.user_instructions}`;
     }
 
-    // Auto-append return schema
-    const returnSchema = JSON.stringify(definition.return_schema, null, 2);
-    promptText += `\n\nReturn ONLY JSON with this exact schema:\n${returnSchema}\n\nRules:\n- No extra keys. No preamble. No markdown. Only JSON.\n- Follow the schema exactly.`;
+    // Auto-append output schema
+    const outputSchema = JSON.stringify(definition.output_schema, null, 2);
+    promptText += `\n\nReturn ONLY JSON with this exact schema:\n${outputSchema}\n\nRules:\n- No extra keys. No preamble. No markdown. Only JSON.\n- Follow the schema exactly.`;
 
     return promptText;
   }
@@ -255,21 +269,25 @@ export class PromptExecutor {
       
       const messageContent = this.buildMessageContent(definition, prompt, input);
       
-      const response = await openai.chat.completions.create({
+      // Log the complete message structure being sent to OpenAI
+      const fullMessage = {
+        role: "user",
+        content: messageContent
+      };
+      console.log(`📤 [${requestId}] COMPLETE MESSAGE TO OPENAI:`, JSON.stringify(fullMessage, null, 2));
+      
+      const apiParams = {
         model: definition.model,
-        messages: [
-          {
-            role: "user",
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            content: messageContent as any
-          }
-        ],
+        messages: [fullMessage],
         response_format: definition.response_format === 'json_object' 
           ? { type: "json_object" } 
           : undefined,
         max_tokens: definition.max_tokens,
         temperature: definition.temperature,
-      });
+      };
+      console.log(`🔧 [${requestId}] API PARAMETERS:`, JSON.stringify(apiParams, null, 2));
+      
+      const response = await openai.chat.completions.create(apiParams);
 
       const tokensUsed = response.usage?.total_tokens;
       const rawResponse = response.choices[0]?.message?.content;
@@ -300,12 +318,22 @@ export class PromptExecutor {
         }
       }
 
+      // Check for refusal responses
+      if (rawResponse.includes("I'm sorry, I can't help with that") || 
+          rawResponse.includes("I can't help with that") ||
+          rawResponse.includes("I'm not able to help") ||
+          rawResponse.includes("I cannot help")) {
+        console.error(`❌ [${requestId}] AI refused to process the request:`, rawResponse);
+        throw new Error('AI refused to process the request. This may be due to content filtering or prompt issues.');
+      }
+
       // Parse JSON if needed
       if (definition.response_format === 'json_object') {
         try {
           return JSON.parse(rawResponse);
         } catch (parseError) {
           console.error(`❌ [${requestId}] JSON parsing failed:`, parseError);
+          console.error(`❌ [${requestId}] Raw response was:`, rawResponse);
           throw new Error('Failed to parse JSON response from OpenAI');
         }
       }
@@ -355,30 +383,17 @@ export class PromptExecutor {
     prompt: string,
     input: PromptInput<T>
   ): string | Array<{ type: "text" | "image_url"; text?: string; image_url?: { url: string } }> {
-    // For image analysis, we need to handle image input and optional text fields
+    console.log(`🔨 [buildMessageContent] Building message for type: ${definition.type}`);
+    console.log(`🔨 [buildMessageContent] Input keys:`, Object.keys(input));
+    console.log(`🔨 [buildMessageContent] Prompt length:`, prompt.length);
+    // For image analysis, we need to handle image input and prompt field
     if (definition.type === 'image_analysis' && 'image' in input) {
-      // Build enhanced prompt with optional text fields
-      let enhancedPrompt = prompt;
+      // Use the prompt from input if provided, otherwise use the default prompt
+      let enhancedPrompt = 'prompt' in input && input.prompt ? input.prompt : prompt;
       
-      // Add context if provided
-      if ('context' in input && input.context) {
-        enhancedPrompt += `\n\nContext: ${input.context}`;
-      }
-      
-      // Add user instructions if provided
-      if ('user_instructions' in input && input.user_instructions) {
-        enhancedPrompt += `\n\nUser Instructions: ${input.user_instructions}`;
-      }
-      
-      // Add analysis type if provided
-      if ('analysis_type' in input && input.analysis_type) {
-        enhancedPrompt += `\n\nAnalysis Type: ${input.analysis_type}`;
-      }
-      
-      // Add focus areas if provided
-      if ('focus_areas' in input && input.focus_areas && Array.isArray(input.focus_areas) && input.focus_areas.length > 0) {
-        enhancedPrompt += `\n\nFocus Areas: ${input.focus_areas.join(', ')}`;
-      }
+      // Add JSON schema instructions for proper response format
+      const outputSchema = JSON.stringify(definition.output_schema, null, 2);
+      enhancedPrompt += `\n\nReturn ONLY JSON with this exact schema:\n${outputSchema}\n\nRules:\n- No extra keys. No preamble. No markdown. Only JSON.\n- Follow the schema exactly.`;
       
       return [
         {
@@ -428,6 +443,7 @@ export class PromptExecutor {
     }
 
     // For text-only prompts
+    console.log(`🔨 [buildMessageContent] Returning text-only prompt (length: ${prompt.length})`);
     return prompt;
   }
 

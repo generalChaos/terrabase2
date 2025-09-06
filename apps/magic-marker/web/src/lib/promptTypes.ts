@@ -106,7 +106,6 @@ export interface PromptDefinition<T extends PromptType = PromptType> {
   
   // Prompt components
   prompt_text: string        // The actual prompt content
-  return_schema: JSONSchema  // What the AI should return (auto-appended)
   
   // Model configuration
   model: string

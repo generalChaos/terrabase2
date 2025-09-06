@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
     const analysisStartTime: number = Date.now();
     const analysisResult = await PromptExecutor.execute('image_analysis', {
       image: base64Image,
-      prompt: 'Analyze this image and describe what you see, focusing on artistic elements, composition, colors, and mood.'
+      prompt: '' // Empty prompt - will be replaced by database prompt text
     });
     const analysisTime: number = Date.now() - analysisStartTime;
     console.log(`✅ [${requestId}] Image analysis completed in ${analysisTime}ms`);
@@ -230,6 +230,24 @@ export async function POST(request: NextRequest) {
     });
 
     console.log(`🎉 [${requestId}] Upload completed successfully!`);
+    
+    // DEBUG MODE: Stop after questions generation to debug step 2
+    const DEBUG_MODE = process.env.DEBUG_AFTER_QUESTIONS === 'true' || true; // Set to true to enable debug mode
+    
+    if (DEBUG_MODE) {
+      console.log(`🐛 [${requestId}] DEBUG MODE: Stopping after questions generation for debugging`);
+      return NextResponse.json({
+        success: true,
+        imageAnalysisId: imageRecord.id,
+        flowId: analysisFlow.id,
+        originalImagePath: publicUrl,
+        analysis: analysisResult.response,
+        questions: questionsWithUniqueIds, // Return the generated questions
+        debugMode: true,
+        debugMessage: "Stopped after questions generation for debugging"
+      });
+    }
+    
     return NextResponse.json({
       success: true,
       imageAnalysisId: imageRecord.id, // Return the actual image ID

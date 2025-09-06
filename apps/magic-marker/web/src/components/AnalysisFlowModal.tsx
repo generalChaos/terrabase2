@@ -241,8 +241,8 @@ export default function AnalysisFlowModal({ analysisFlow, isOpen, onClose }: Ana
               <div className="space-y-6">
                 {processingSteps.filter((step, index) => {
                   // Filter out duplicate conversational steps - only show the first one
-                  if (step.step_type === 'conversational_question' || step.step_type === 'answer_analysis') {
-                    return index === processingSteps.findIndex(s => s.step_type === 'conversational_question' || s.step_type === 'answer_analysis')
+                  if (step.step_type === 'conversational_question') {
+                    return index === processingSteps.findIndex(s => s.step_type === 'conversational_question')
                   }
                   return true
                 }).map((step, index) => {
@@ -250,7 +250,6 @@ export default function AnalysisFlowModal({ analysisFlow, isOpen, onClose }: Ana
                     'analysis': 'blue',
                     'questions': 'purple', 
                     'conversational_question': 'orange',
-                    'answer_analysis': 'orange',
                     'image_generation': 'green'
                   }
                   const color = stepColors[step.step_type as keyof typeof stepColors] || 'gray'
@@ -365,7 +364,7 @@ export default function AnalysisFlowModal({ analysisFlow, isOpen, onClose }: Ana
                         )}
                         
                         {/* Conversational Questions & Answers - Show all Q&A for conversational steps (only once) */}
-                        {(step.step_type === 'conversational_question' || step.step_type === 'answer_analysis') && analysisFlow.answers && analysisFlow.answers.length > 0 && index === processingSteps.findIndex(s => s.step_type === 'conversational_question' || s.step_type === 'answer_analysis') && (
+                        {(step.step_type === 'conversational_question') && analysisFlow.answers && analysisFlow.answers.length > 0 && index === processingSteps.findIndex(s => s.step_type === 'conversational_question') && (
                           <div className="bg-orange-50 p-3 rounded-lg">
                             <p className="text-sm font-medium text-orange-900 mb-3">All Conversational Q&A:</p>
                             <div className="space-y-4">

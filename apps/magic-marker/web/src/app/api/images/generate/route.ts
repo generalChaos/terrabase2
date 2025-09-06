@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
       // Log answer analysis step
       await StepService.logStep({
         flow_id: analysisFlow.id,
-        step_type: 'answer_analysis',
+        step_type: 'conversational_question',
         step_order: 3,
         prompt_content: 'Analyze user answers and prepare for image generation',
         input_data: { questions, answers: answerStrings },
