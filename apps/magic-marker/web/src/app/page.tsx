@@ -102,7 +102,7 @@ export default function HomePage() {
     async () => {
       const response = await axios.get(`${API_BASE}/images`)
       // The API now returns the combined data structure directly
-      return response.data.map((item: any) => ({
+      return response.data.map((item: { id: string; originalImagePath: string; analysisResult: string; questions: Question[]; answers?: QuestionAnswer[]; finalImagePath?: string; createdAt: string; updatedAt: string; sessionId?: string; totalQuestions?: number; totalAnswers?: number; currentStep?: string; totalCostUsd?: number; totalTokens?: number; isActive?: boolean }) => ({
         id: item.id,
         originalImagePath: item.originalImagePath,
         analysisResult: item.analysisResult,
@@ -199,7 +199,7 @@ export default function HomePage() {
           errorMessage = errorObj.response.data.error
           // Check if there's debug info in the response
           if (errorObj.response.data && 'debug' in errorObj.response.data) {
-            debugInfo = (errorObj.response.data as any).debug
+            debugInfo = (errorObj.response.data as { debug?: unknown }).debug
           }
         } else if (errorObj?.message) {
           errorMessage = errorObj.message

@@ -134,7 +134,7 @@ export class OpenAIService {
     try {
       // Build conversation context for the AI in the format the prompt expects
       const conversationHistory = conversationContext.questions
-        .map((q: any, index: number) => `Q${index + 1}: ${q.text}\nA${index + 1}: ${q.answer || 'Not answered'}`)
+        .map((q: { text: string; answer?: string }, index: number) => `Q${index + 1}: ${q.text}\nA${index + 1}: ${q.answer || 'Not answered'}`)
         .join('\n\n');
       
       const prompt = `Image Analysis: ${analysis}

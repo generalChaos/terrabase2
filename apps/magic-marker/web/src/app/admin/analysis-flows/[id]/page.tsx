@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { AnalysisFlow, Question, QuestionAnswer } from '@/lib/analysisFlowService'
-import { Image } from '@/lib/imageService'
+import { Image, ImageType } from '@/lib/imageService'
+import { ProcessingStep } from '@/lib/newTypes'
 import { ArrowLeft, Calendar, MessageSquare, Image as ImageIcon, FileText, Clock, CheckCircle, XCircle, Hash, Activity, AlertTriangle, Database, Zap, BarChart3, Code } from 'lucide-react'
 
 export default function AnalysisFlowDetailsPage() {
@@ -12,7 +13,7 @@ export default function AnalysisFlowDetailsPage() {
   const [analysisFlow, setAnalysisFlow] = useState<AnalysisFlow | null>(null)
   const [originalImage, setOriginalImage] = useState<Image | null>(null)
   const [finalImage, setFinalImage] = useState<Image | null>(null)
-  const [processingSteps, setProcessingSteps] = useState<any[]>([])
+  const [processingSteps, setProcessingSteps] = useState<ProcessingStep[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -32,22 +33,22 @@ export default function AnalysisFlowDetailsPage() {
         setAnalysisFlow(data)
         
         // Set images using the paths from the enhanced API response
-        if (data.original_image_id && (data as any).original_image_path) {
+        if (data.original_image_id && (data as AnalysisFlow & { original_image_path?: string }).original_image_path) {
           setOriginalImage({
             id: data.original_image_id,
-            file_path: (data as any).original_image_path,
-            image_type: 'original' as any,
+            file_path: (data as AnalysisFlow & { original_image_path?: string }).original_image_path!,
+            image_type: 'original' as ImageType,
             analysis_result: '',
             created_at: '',
             updated_at: ''
           })
         }
         
-        if (data.final_image_id && (data as any).final_image_path) {
+        if (data.final_image_id && (data as AnalysisFlow & { final_image_path?: string }).final_image_path) {
           setFinalImage({
             id: data.final_image_id,
-            file_path: (data as any).final_image_path,
-            image_type: 'final' as any,
+            file_path: (data as AnalysisFlow & { final_image_path?: string }).final_image_path!,
+            image_type: 'final' as ImageType,
             analysis_result: '',
             created_at: '',
             updated_at: ''
@@ -331,7 +332,7 @@ export default function AnalysisFlowDetailsPage() {
                                 if (data.description) return data.description
                                 if (data.response) return data.response
                                 if (data.questions && Array.isArray(data.questions)) {
-                                  return data.questions.map((q: any, i: number) => 
+                                  return data.questions.map((q: { text?: string; question?: string } | string, i: number) => 
                                     `${i + 1}. ${q.text || q.question || q}`
                                   ).join('\n')
                                 }

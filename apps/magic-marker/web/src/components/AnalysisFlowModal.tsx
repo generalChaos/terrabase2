@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { AnalysisFlow, Question, QuestionAnswer } from '@/lib/analysisFlowService'
-import { Image } from '@/lib/imageService'
+import { Image, ImageType } from '@/lib/imageService'
+import { ProcessingStep } from '@/lib/newTypes'
 import { X, Calendar, MessageSquare, Image as ImageIcon, CheckCircle, XCircle, Clock, FileText, Activity, AlertTriangle, Database, Zap, BarChart3, Code, Hash } from 'lucide-react'
 
 interface AnalysisFlowModalProps {
@@ -14,7 +15,7 @@ interface AnalysisFlowModalProps {
 export default function AnalysisFlowModal({ analysisFlow, isOpen, onClose }: AnalysisFlowModalProps) {
   const [originalImage, setOriginalImage] = useState<Image | null>(null)
   const [finalImage, setFinalImage] = useState<Image | null>(null)
-  const [processingSteps, setProcessingSteps] = useState<any[]>([])
+  const [processingSteps, setProcessingSteps] = useState<ProcessingStep[]>([])
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -38,22 +39,22 @@ export default function AnalysisFlowModal({ analysisFlow, isOpen, onClose }: Ana
     setLoading(true)
     try {
       // Set images using the paths from the enhanced API response
-      if (analysisFlow.original_image_id && (analysisFlow as any).original_image_path) {
+      if (analysisFlow.original_image_id && (analysisFlow as AnalysisFlow & { original_image_path?: string }).original_image_path) {
         setOriginalImage({
           id: analysisFlow.original_image_id,
-          file_path: (analysisFlow as any).original_image_path,
-          image_type: 'original' as any,
+          file_path: (analysisFlow as AnalysisFlow & { original_image_path?: string }).original_image_path!,
+          image_type: 'original' as ImageType,
           analysis_result: '',
           created_at: '',
           updated_at: ''
         })
       }
 
-      if (analysisFlow.final_image_id && (analysisFlow as any).final_image_path) {
+      if (analysisFlow.final_image_id && (analysisFlow as AnalysisFlow & { final_image_path?: string }).final_image_path) {
         setFinalImage({
           id: analysisFlow.final_image_id,
-          file_path: (analysisFlow as any).final_image_path,
-          image_type: 'final' as any,
+          file_path: (analysisFlow as AnalysisFlow & { final_image_path?: string }).final_image_path!,
+          image_type: 'final' as ImageType,
           analysis_result: '',
           created_at: '',
           updated_at: ''
@@ -312,7 +313,7 @@ export default function AnalysisFlowModal({ analysisFlow, isOpen, onClose }: Ana
                                 if (data.description) return data.description
                                 if (data.response) return data.response
                                 if (data.questions && Array.isArray(data.questions)) {
-                                  return data.questions.map((q: any, i: number) => 
+                                  return data.questions.map((q: { text?: string; question?: string } | string, i: number) => 
                                     `${i + 1}. ${q.text || q.question || q}`
                                   ).join('\n')
                                 }

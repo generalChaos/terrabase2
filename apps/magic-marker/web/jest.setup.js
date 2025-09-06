@@ -102,3 +102,35 @@ global.console = {
   warn: jest.fn(),
   error: jest.fn(),
 }
+
+// Mock NextRequest for API tests
+jest.mock('next/server', () => ({
+  NextRequest: class MockNextRequest {
+    constructor(input, init = {}) {
+      this.url = typeof input === 'string' ? input : input.url;
+      this.method = init.method || 'GET';
+      this.headers = new Map(Object.entries(init.headers || {}));
+      this.body = init.body;
+    }
+
+    async json() {
+      return JSON.parse(this.body || '{}');
+    }
+
+    async text() {
+      return this.body || '';
+    }
+
+    async formData() {
+      return new FormData();
+    }
+  },
+  NextResponse: {
+    json: (data, init = {}) => ({
+      json: () => Promise.resolve(data),
+      status: init.status || 200,
+      statusText: init.statusText || 'OK',
+      headers: new Map(Object.entries(init.headers || {}))
+    })
+  }
+}));

@@ -29,12 +29,12 @@ export default function AnalysisFlowsPage() {
     
     for (const flow of flows) {
       // Use the image paths that are now included in the API response
-      if (flow.original_image_id && (flow as any).original_image_path) {
-        thumbnails[flow.original_image_id] = (flow as any).original_image_path
+      if (flow.original_image_id && (flow as AnalysisFlow & { original_image_path?: string }).original_image_path) {
+        thumbnails[flow.original_image_id] = (flow as AnalysisFlow & { original_image_path?: string }).original_image_path!
       }
       
-      if (flow.final_image_id && (flow as any).final_image_path) {
-        thumbnails[flow.final_image_id] = (flow as any).final_image_path
+      if (flow.final_image_id && (flow as AnalysisFlow & { final_image_path?: string }).final_image_path) {
+        thumbnails[flow.final_image_id] = (flow as AnalysisFlow & { final_image_path?: string }).final_image_path!
       }
     }
     

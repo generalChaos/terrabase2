@@ -178,7 +178,7 @@ export class AnalysisFlowService {
   ): Promise<AnalysisFlow> {
     console.log('🔄 [AnalysisFlowService] Updating analysis flow:', flowId.substring(0, 8) + '...');
 
-    const updateData: any = {
+    const updateData: Partial<AnalysisFlow> = {
       updated_at: new Date().toISOString()
     };
 
@@ -383,7 +383,7 @@ export class AnalysisFlowService {
 
     return this.updateAnalysisFlow(flowId, {
       additional_image_ids: updatedAdditionalImages
-    } as any)
+    } as Partial<AnalysisFlow>)
   }
 
   /**
