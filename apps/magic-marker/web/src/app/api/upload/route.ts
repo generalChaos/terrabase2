@@ -197,7 +197,7 @@ export async function POST(request: NextRequest) {
 
     // Add questions to the analysis flow
     console.log(`❓ [${requestId}] Adding questions to analysis flow...`);
-    const updatedFlow = await AnalysisFlowService.updateAnalysisFlow(analysisFlow.id, {
+    await AnalysisFlowService.updateAnalysisFlow(analysisFlow.id, {
       questions: questionsWithUniqueIds,
       totalQuestions: questionsWithUniqueIds.length,
       currentStep: 'questions'
