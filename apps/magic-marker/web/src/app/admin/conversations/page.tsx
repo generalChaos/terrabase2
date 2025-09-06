@@ -111,7 +111,7 @@ export default function AnalysisFlowsPage() {
   const handleAnalysisFlowSelect = (conversation: AnalysisFlow) => {
     setSelectedAnalysisFlow(conversation)
     setActiveTab('overview')
-    fetchProcessingSteps(conversation.image_id)
+    fetchProcessingSteps(conversation.original_image_id)
   }
 
   if (isLoading) {
@@ -170,7 +170,7 @@ export default function AnalysisFlowsPage() {
           </div>
           <div className="bg-white p-4 rounded-lg shadow">
             <div className="text-2xl font-bold text-blue-600">
-              {analysisFlows.reduce((sum, c) => sum + c.conversation_state.totalQuestions, 0)}
+              {analysisFlows.reduce((sum, c) => sum + c.total_questions, 0)}
             </div>
             <div className="text-sm text-gray-600">Total Questions</div>
           </div>
@@ -200,7 +200,7 @@ export default function AnalysisFlowsPage() {
                       <div className="flex-1">
                         <div className="flex items-center space-x-2 mb-2">
                           <span className="text-sm font-medium text-gray-900">
-                            Image: {conversation.image_id.substring(0, 8)}...
+                            Image: {conversation.original_image_id.substring(0, 8)}...
                           </span>
                           <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(conversation.is_active)}`}>
                             {conversation.is_active ? 'Active' : 'Completed'}
@@ -212,14 +212,14 @@ export default function AnalysisFlowsPage() {
                         </div>
                         
                         <div className="text-sm text-gray-500">
-                          Questions: {conversation.conversation_state.totalQuestions} • 
+                          Questions: {conversation.total_questions} • 
                           Created: {formatDate(conversation.created_at)}
                         </div>
                       </div>
                       
                       <div className="text-right">
                         <div className="text-sm text-gray-500">
-                          {conversation.conversation_state.questions.filter((q: any) => q.answer).length} answered
+                          {conversation.answers.length} answered
                         </div>
                       </div>
                     </div>
@@ -286,7 +286,7 @@ export default function AnalysisFlowsPage() {
                           </div>
                           <div>
                             <span className="text-sm font-medium text-gray-600">Image ID:</span>
-                            <p className="text-sm text-gray-900 font-mono">{selectedAnalysisFlow.image_id}</p>
+                            <p className="text-sm text-gray-900 font-mono">{selectedAnalysisFlow.original_image_id}</p>
                           </div>
                           <div>
                             <span className="text-sm font-medium text-gray-600">Session ID:</span>
@@ -316,7 +316,7 @@ export default function AnalysisFlowsPage() {
                     <CollapsibleSection title="Image Analysis" defaultOpen={true}>
                       <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                         <p className="text-gray-700 leading-relaxed">
-                          {selectedAnalysisFlow.conversation_state.contextData.imageAnalysis}
+                          {selectedAnalysisFlow.context_data.imageAnalysis ? String(selectedAnalysisFlow.context_data.imageAnalysis) : 'Not available'}
                         </p>
                       </div>
                     </CollapsibleSection>
@@ -324,12 +324,12 @@ export default function AnalysisFlowsPage() {
                     {/* Questions & Answers */}
                     <CollapsibleSection title="Questions & Answers" defaultOpen={true}>
                       <div className="space-y-4">
-                        {selectedAnalysisFlow.conversation_state.questions.length === 0 ? (
+                        {selectedAnalysisFlow.questions.length === 0 ? (
                           <div className="text-center py-8 text-gray-500">
                             No questions generated yet
                           </div>
                         ) : (
-                          selectedAnalysisFlow.conversation_state.questions.map((q: any, index: number) => (
+                          selectedAnalysisFlow.questions.map((q: { id: string; text: string; answer?: string }, index: number) => (
                             <div key={q.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
                               <div className="font-semibold text-gray-900 mb-2">
                                 Q{index + 1}: {q.text}
@@ -337,15 +337,6 @@ export default function AnalysisFlowsPage() {
                               <div className="text-sm text-gray-700 mb-2">
                                 <span className="font-medium">Answer:</span> {q.answer || 'Not answered'}
                               </div>
-                              {q.context && (
-                                <CollapsibleSection title="Question Context" defaultOpen={false}>
-                                  <div className="text-xs text-gray-600 space-y-1 bg-white p-3 rounded border">
-                                    <div><span className="font-medium">Reasoning:</span> {q.context.reasoning}</div>
-                                    <div><span className="font-medium">Builds on:</span> {q.context.builds_on}</div>
-                                    <div><span className="font-medium">Focus:</span> {q.context.artistic_focus}</div>
-                                  </div>
-                                </CollapsibleSection>
-                              )}
                             </div>
                           ))
                         )}
@@ -356,7 +347,7 @@ export default function AnalysisFlowsPage() {
                     <CollapsibleSection title="Artistic Direction">
                       <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                         <p className="text-gray-700">
-                          {selectedAnalysisFlow.conversation_state.contextData.artisticDirection || 'Not set'}
+                          {selectedAnalysisFlow.context_data.artisticDirection ? String(selectedAnalysisFlow.context_data.artisticDirection) : 'Not set'}
                         </p>
                       </div>
                     </CollapsibleSection>
@@ -364,13 +355,13 @@ export default function AnalysisFlowsPage() {
                     {/* Previous Answers Summary */}
                     <CollapsibleSection title="Previous Answers Summary">
                       <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                        {selectedAnalysisFlow.conversation_state.contextData.previousAnswers.length === 0 ? (
+                        {selectedAnalysisFlow.answers.length === 0 ? (
                           <p className="text-gray-500">No previous answers</p>
                         ) : (
                           <div className="space-y-2">
-                            {selectedAnalysisFlow.conversation_state.contextData.previousAnswers.map((answer: any, index: number) => (
+                            {selectedAnalysisFlow.answers.map((answer: { questionId: string; answer: string }, index: number) => (
                               <div key={index} className="text-sm text-gray-700">
-                                <span className="font-medium">Answer {index + 1}:</span> {answer}
+                                <span className="font-medium">Answer {index + 1}:</span> {answer.answer}
                               </div>
                             ))}
                           </div>

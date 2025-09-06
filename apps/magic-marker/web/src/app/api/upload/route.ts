@@ -5,6 +5,7 @@ import { PromptExecutor } from '@/lib/promptExecutor';
 import { StepService } from '@/lib/stepService';
 import { ImageService } from '@/lib/imageService';
 import { AnalysisFlowService } from '@/lib/analysisFlowService';
+import { Question } from '@/lib/types';
 
 export async function POST(request: NextRequest) {
   const requestId = Math.random().toString(36).substring(7)
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    const allowedTypes: string[] = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
     console.log(`🔍 [${requestId}] Validating file type:`, file.type);
     if (!file.type || !allowedTypes.includes(file.type.toLowerCase())) {
       console.log(`❌ [${requestId}] Invalid file type:`, file.type);
@@ -76,16 +77,16 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const imageId = uuidv4();
-    const fileExtension = file.name.split('.').pop() || 'jpg';
-    const fileName = `${imageId}.${fileExtension}`;
+    const imageId: string = uuidv4();
+    const fileExtension: string = file.name.split('.').pop() || 'jpg';
+    const fileName: string = `${imageId}.${fileExtension}`;
     
     console.log(`🆔 [${requestId}] Generated image ID:`, imageId);
     console.log(`📄 [${requestId}] Generated filename:`, fileName);
     
     // Convert file to buffer
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    const arrayBuffer: ArrayBuffer = await file.arrayBuffer();
+    const buffer: Buffer = Buffer.from(arrayBuffer);
     
     // Upload image to Supabase Storage using admin client
     console.log(`☁️ [${requestId}] Uploading to Supabase storage:`, fileName);
@@ -137,17 +138,17 @@ export async function POST(request: NextRequest) {
     console.log(`🔗 [${requestId}] Generated public URL:`, publicUrl);
 
     // Convert image to base64 for OpenAI API
-    const base64Image = buffer.toString('base64');
+    const base64Image: string = buffer.toString('base64');
     console.log(`🔄 [${requestId}] Converted to base64, length:`, base64Image.length);
 
     // Step 1: Analyze image using prompt system
     console.log(`🤖 [${requestId}] Starting image analysis with prompt system...`);
-    const analysisStartTime = Date.now();
+    const analysisStartTime: number = Date.now();
     const analysisResult = await PromptExecutor.execute('image_analysis', {
       image: base64Image,
       prompt: 'Analyze this image and describe what you see, focusing on artistic elements, composition, colors, and mood.'
     });
-    const analysisTime = Date.now() - analysisStartTime;
+    const analysisTime: number = Date.now() - analysisStartTime;
     console.log(`✅ [${requestId}] Image analysis completed in ${analysisTime}ms`);
     // Type guard to ensure we have the response property
     if (!('response' in analysisResult)) {
@@ -157,11 +158,11 @@ export async function POST(request: NextRequest) {
 
     // Step 2: Generate questions from analysis using prompt system
     console.log(`❓ [${requestId}] Starting questions generation with prompt system...`);
-    const questionsStartTime = Date.now();
+    const questionsStartTime: number = Date.now();
     const questionsResult = await PromptExecutor.execute('questions_generation', {
       response: analysisResult.response
     });
-    const questionsTime = Date.now() - questionsStartTime;
+    const questionsTime: number = Date.now() - questionsStartTime;
     console.log(`✅ [${requestId}] Questions generation completed in ${questionsTime}ms`);
     console.log(`🔍 [${requestId}] Questions result structure:`, JSON.stringify(questionsResult, null, 2));
     // Type guard to ensure we have the questions property
@@ -182,7 +183,7 @@ export async function POST(request: NextRequest) {
 
     // Generate session ID and create analysis flow
     console.log(`🔄 [${requestId}] Creating analysis flow...`);
-    const sessionId = AnalysisFlowService.generateSessionId();
+    const sessionId: string = AnalysisFlowService.generateSessionId();
     const analysisFlow = await AnalysisFlowService.createAnalysisFlow(
       imageRecord.id,
       sessionId,
@@ -190,7 +191,7 @@ export async function POST(request: NextRequest) {
     );
 
     // Ensure unique IDs for questions
-    const questionsWithUniqueIds = questionsResult.questions.map((q, index) => ({
+    const questionsWithUniqueIds: Question[] = questionsResult.questions.map((q: Question, index: number) => ({
       ...q,
       id: `q_${Date.now()}_${index}_${Math.random().toString(36).substr(2, 6)}`
     }));
@@ -238,12 +239,12 @@ export async function POST(request: NextRequest) {
       questions: questionsWithUniqueIds // Return generated questions with unique IDs
     });
 
-  } catch (error) {
+  } catch (error: unknown) {
     console.error(`💥 [${requestId}] Upload error:`, error);
     
-    let errorMessage = 'Upload failed';
-    let statusCode = 500;
-    let debugInfo = null;
+    let errorMessage: string = 'Upload failed';
+    let statusCode: number = 500;
+    let debugInfo: { type: string; details: string; suggestion: string } | null = null;
     
     if (error instanceof Error) {
       errorMessage = error.message;
