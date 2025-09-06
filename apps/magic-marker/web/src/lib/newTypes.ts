@@ -107,7 +107,7 @@ export interface PromptDefinition {
 export interface ProcessingStep {
   id?: string;
   flow_id: string; // Changed from image_id to flow_id
-  step_type: 'analysis' | 'questions' | 'conversational_question' | 'answer_analysis' | 'image_generation';
+  step_type: 'analysis' | 'questions' | 'conversational_question' | 'image_generation';
   step_order: number;
   prompt_id?: string;
   prompt_content?: string;

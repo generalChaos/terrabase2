@@ -139,15 +139,16 @@ function ResultContent() {
               Your Answers
             </h2>
             <div className="space-y-4">
-              {imageData.questions.map((question: { text: string }, index: number) => {
-                const answer = imageData.answers[index]
+              {imageData.questions.map((question: { id: string, text: string }, index: number) => {
+                // Find the answer that matches this question's ID
+                const answer = imageData.answers.find((ans: { questionId: string, answer: string }) => ans.questionId === question.id)
                 return (
-                  <div key={index} className="bg-white/5 rounded-lg p-4 border border-white/10">
+                  <div key={question.id || index} className="bg-white/5 rounded-lg p-4 border border-white/10">
                     <h3 className="text-white font-medium mb-2 drop-shadow-md">
                       {question.text}
                     </h3>
                     <p className="text-white/80 drop-shadow-sm">
-                      <span className="font-medium">Answer:</span> {typeof answer === 'object' ? answer.answer : answer}
+                      <span className="font-medium">Answer:</span> {answer ? answer.answer : 'No answer provided'}
                     </p>
                   </div>
                 )

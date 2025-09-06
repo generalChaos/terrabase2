@@ -125,7 +125,7 @@ export default function HomePage() {
 
   // Upload and analyze image mutation
   const uploadMutation = useMutation(
-    async (file: File) => {
+    async ({ file }: { file: File }) => {
       addLog(`Starting upload for file: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`)
       const formData = new FormData()
       formData.append('image', file)
@@ -139,6 +139,42 @@ export default function HomePage() {
     {
       onSuccess: (data) => {
         console.log('📤 [UPLOAD] Upload success - data:', data)
+        
+        // Check if we're in debug mode
+        if (data.debugMode) {
+          addLog(`🐛 DEBUG MODE: ${data.debugMessage}`)
+          addLog(`Image analysis completed: ${data.analysis}`)
+          addLog(`Questions generated: ${data.questions.length} questions`)
+          
+          // Show debug toast
+          warning(
+            'Debug Mode Active',
+            'Flow stopped after questions generation for debugging. Check console for details.'
+          )
+          
+          setCurrentImageAnalysis({
+            id: data.imageAnalysisId,
+            originalImagePath: data.originalImagePath,
+            analysisResult: data.analysis || '',
+            questions: data.questions || [], // Show the generated questions
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            flowId: data.flowId,
+            totalQuestions: data.questions?.length || 0,
+            totalAnswers: 0,
+            currentStep: 'debug',
+            totalCostUsd: 0,
+            totalTokens: 0,
+            isActive: true
+          })
+          
+          // Stay on upload step to show debug info
+          setCurrentStep('upload')
+          setCurrentStepIndex(0)
+          queryClient.invalidateQueries('images')
+          return
+        }
+        
         addLog(`Image analysis completed. Generated ${data.questions.length} questions`)
         
         // Show success toast
@@ -316,7 +352,7 @@ export default function HomePage() {
       'Uploading Image...',
       'Please wait while we analyze your image.'
     )
-    uploadMutation.mutate(file)
+    uploadMutation.mutate({ file })
   }
 
   const handleQuestionsSubmit = (answers: QuestionAnswer[]) => {
@@ -378,7 +414,68 @@ export default function HomePage() {
 
       {currentStep === 'upload' && (
         <div className="min-h-screen flex items-center justify-center p-4">
-          <ImageUpload onUpload={handleImageUpload} isLoading={uploadMutation.isLoading} />
+          <div className="w-full max-w-4xl">
+            <ImageUpload onUpload={handleImageUpload} isLoading={uploadMutation.isLoading} />
+            
+            {/* Debug Mode Display */}
+            {currentImageAnalysis && currentImageAnalysis.currentStep === 'debug' && (
+              <div className="mt-8 bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-yellow-800 mb-4">
+                  🐛 Debug Mode - Steps 1 & 2 Complete
+                </h3>
+                
+                {/* Image Analysis Result */}
+                <div className="mb-6">
+                  <h4 className="text-md font-semibold text-yellow-700 mb-2">Step 1: Image Analysis</h4>
+                  <div className="bg-white border border-yellow-200 rounded p-4">
+                    <p className="text-gray-700 whitespace-pre-wrap">
+                      {currentImageAnalysis.analysisResult}
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Generated Questions */}
+                <div className="mb-6">
+                  <h4 className="text-md font-semibold text-yellow-700 mb-2">
+                    Step 2: Generated Questions ({currentImageAnalysis.questions.length})
+                  </h4>
+                  <div className="bg-white border border-yellow-200 rounded p-4">
+                    {currentImageAnalysis.questions.length > 0 ? (
+                      <div className="space-y-3">
+                        {currentImageAnalysis.questions.map((question, index) => (
+                          <div key={question.id || index} className="border-l-4 border-yellow-300 pl-3">
+                            <p className="font-medium text-gray-800">{question.text}</p>
+                            <p className="text-sm text-gray-600">
+                              Type: {question.type} | Required: {question.required ? 'Yes' : 'No'}
+                            </p>
+                            {question.options && question.options.length > 0 && (
+                              <p className="text-sm text-gray-500">
+                                Options: {question.options.join(', ')}
+                              </p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-gray-500 italic">No questions generated</p>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="mt-4 text-sm text-yellow-700">
+                  <p><strong>Image ID:</strong> {currentImageAnalysis.id}</p>
+                  <p><strong>Flow ID:</strong> {currentImageAnalysis.flowId}</p>
+                  <p><strong>Status:</strong> Stopped after questions generation for debugging</p>
+                </div>
+                <button
+                  onClick={handleReset}
+                  className="mt-4 px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 transition-colors"
+                >
+                  Reset and Try Again
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       )}
 

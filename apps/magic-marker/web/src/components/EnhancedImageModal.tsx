@@ -4,7 +4,7 @@ import { ImageAnalysis } from '@/lib/types'
 interface ProcessingStep {
   id: string
   image_id: string
-  step_type: 'analysis' | 'questions' | 'conversational_question' | 'answer_analysis' | 'image_generation'
+  step_type: 'analysis' | 'questions' | 'conversational_question' | 'image_generation'
   step_order: number
   prompt_id?: string
   prompt_content?: string
@@ -64,7 +64,6 @@ const EnhancedImageModal: React.FC<EnhancedImageModalProps> = ({ image, isOpen, 
       'analysis': '🔍',
       'questions': '❓',
       'conversational_question': '💬',
-      'answer_analysis': '📝',
       'image_generation': '🎨'
     }
     return icons[stepType as keyof typeof icons] || '⚙️'
@@ -75,7 +74,6 @@ const EnhancedImageModal: React.FC<EnhancedImageModalProps> = ({ image, isOpen, 
       'analysis': 'Image Analysis',
       'questions': 'Questions Generation',
       'conversational_question': 'Conversational Question',
-      'answer_analysis': 'Answer Analysis',
       'image_generation': 'Image Generation'
     }
     return titles[stepType as keyof typeof titles] || stepType

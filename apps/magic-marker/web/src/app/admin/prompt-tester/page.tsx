@@ -168,10 +168,10 @@ export default function PromptTesterPage() {
     const samples: Record<string, Record<string, unknown>> = {
       'image_analysis': {
         image: imagePlaceholder,
-        prompt: 'Describe what you see in this image, focusing on colors, composition, and artistic style.'
+        prompt: 'Analyze this image and describe what you see'
       },
       'questions_generation': {
-        prompt: 'This is a test image showing a beautiful landscape with mountains and a lake at sunset. The composition is well-balanced with warm colors and dramatic lighting.'
+        response: 'This is a test image showing a beautiful landscape with mountains and a lake at sunset. The composition is well-balanced with warm colors and dramatic lighting. The image has a serene, peaceful mood with warm golden hour lighting.'
       },
       'image_generation': {
         prompt: 'A beautiful landscape with mountains and a lake at sunset, in a happy and bright style'
@@ -180,7 +180,8 @@ export default function PromptTesterPage() {
         prompt: 'This is a test text to process. Please analyze it and provide insights.'
       },
       'conversational_question': {
-        prompt: 'I want to create an image. Help me discover my artistic preferences through a fun conversation.'
+        response: 'I want to create an image. Help me discover my artistic preferences through a fun conversation.',
+        previousAnswers: ['I like bright colors', 'I prefer realistic style', 'I want something peaceful']
       }
     };
 
@@ -196,7 +197,7 @@ export default function PromptTesterPage() {
 
       const startTime = Date.now();
       
-      const response = await fetch('/api/test-prompt', {
+      const response = await fetch('/api/debug/test-prompt', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -253,7 +254,7 @@ export default function PromptTesterPage() {
         artisticDirection: conversationState.summary || 'Discovering artistic preferences'
       };
 
-      const response = await fetch('/api/test-prompt', {
+      const response = await fetch('/api/debug/test-prompt', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -481,6 +482,19 @@ export default function PromptTesterPage() {
                                   rows={2}
                                 />
                               </div>
+                            ) : fieldDef.type === 'string' && Array.isArray(fieldDef.enum) ? (
+                              <select
+                                value={String(fieldValue)}
+                                onChange={(e) => handleInputFieldChange(fieldName, e.target.value)}
+                                className="w-full p-3 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white"
+                              >
+                                <option value="">Select {fieldName}...</option>
+                                {fieldDef.enum.map((option: string) => (
+                                  <option key={option} value={option}>
+                                    {option}
+                                  </option>
+                                ))}
+                              </select>
                             ) : fieldDef.type === 'string' ? (
                               <textarea
                                 value={String(fieldValue)}
