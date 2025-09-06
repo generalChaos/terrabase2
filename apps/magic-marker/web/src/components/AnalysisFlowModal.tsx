@@ -110,7 +110,7 @@ export default function AnalysisFlowModal({ analysisFlow, isOpen, onClose }: Ana
 
   return (
     <div className="fixed inset-0 bg-gray-50 z-50 overflow-y-auto h-screen">
-      {/* Header */}
+          {/* Header */}
       <div className="bg-white shadow-sm border-b sticky top-0 z-10">
         <div className="px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
@@ -177,57 +177,57 @@ export default function AnalysisFlowModal({ analysisFlow, isOpen, onClose }: Ana
                     {new Date(analysisFlow.updated_at).toISOString()}
                   </p>
                 </div>
-              </div>
             </div>
+          </div>
 
-            {/* Images */}
+              {/* Images */}
             <div className="bg-white rounded-lg shadow-sm border p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                 <ImageIcon className="w-5 h-5 mr-2" />
-                Images
+                  Images
               </h2>
               <div className="space-y-4">
-                {/* Original Image */}
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Original Image</label>
+                  {/* Original Image */}
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Original Image</label>
                   {originalImage ? (
-                    <div className="mt-2 flex items-center space-x-3">
-                      <img
+                      <div className="mt-2 flex items-center space-x-3">
+                        <img
                         src={originalImage.file_path}
-                        alt="Original"
+                          alt="Original"
                         className="w-16 h-16 object-cover rounded-lg border"
-                      />
-                      <div>
+                        />
+                        <div>
                         <p className="text-sm text-gray-900 font-mono">{originalImage.id}</p>
                         <p className="text-xs text-gray-500">Type: {originalImage.image_type}</p>
                       </div>
-                    </div>
-                  ) : (
-                    <p className="mt-1 text-sm text-gray-500">No original image</p>
-                  )}
-                </div>
+                      </div>
+                    ) : (
+                      <p className="mt-1 text-sm text-gray-500">No original image</p>
+                    )}
+                  </div>
 
-                {/* Final Image */}
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Final Image</label>
+                  {/* Final Image */}
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Final Image</label>
                   {finalImage ? (
-                    <div className="mt-2 flex items-center space-x-3">
-                      <img
+                      <div className="mt-2 flex items-center space-x-3">
+                        <img
                         src={finalImage.file_path}
-                        alt="Final"
+                          alt="Final"
                         className="w-16 h-16 object-cover rounded-lg border"
-                      />
-                      <div>
+                        />
+                        <div>
                         <p className="text-sm text-gray-900 font-mono">{finalImage.id}</p>
                         <p className="text-xs text-gray-500">Type: {finalImage.image_type}</p>
                       </div>
-                    </div>
-                  ) : (
-                    <p className="mt-1 text-sm text-gray-500">No final image generated</p>
-                  )}
+                      </div>
+                    ) : (
+                      <p className="mt-1 text-sm text-gray-500">No final image generated</p>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
 
 
 
@@ -431,7 +431,7 @@ export default function AnalysisFlowModal({ analysisFlow, isOpen, onClose }: Ana
                           <div className="px-3 pb-3 space-y-3">
                             {/* Input Data */}
                             {step.input_data && (
-                              <div>
+              <div>
                                 <h4 className="text-xs font-medium text-gray-600 mb-1">Input Data:</h4>
                                 <pre className="text-xs text-gray-800 bg-white p-2 rounded border font-mono overflow-auto max-h-32">
                                   {JSON.stringify(step.input_data, null, 2)}
@@ -441,7 +441,7 @@ export default function AnalysisFlowModal({ analysisFlow, isOpen, onClose }: Ana
                             
                             {/* Full Output Data */}
                             {step.output_data && (
-                              <div>
+                    <div>
                                 <h4 className="text-xs font-medium text-gray-600 mb-1">Full AI Response (JSON):</h4>
                                 <pre className="text-xs text-gray-800 bg-white p-2 rounded border font-mono overflow-auto max-h-32">
                                   {JSON.stringify(step.output_data, null, 2)}
@@ -513,7 +513,7 @@ export default function AnalysisFlowModal({ analysisFlow, isOpen, onClose }: Ana
               </div>
             )}
 
-          </div>
+            </div>
 
           {/* Sidebar */}
           <div className="xl:col-span-1 space-y-6">
@@ -555,7 +555,7 @@ export default function AnalysisFlowModal({ analysisFlow, isOpen, onClose }: Ana
                   ) : (
                     <Clock className="w-4 h-4 text-yellow-500" />
                   )}
-                </div>
+                    </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Image Generation</span>
                   {analysisFlow.final_image_id ? (
@@ -563,7 +563,7 @@ export default function AnalysisFlowModal({ analysisFlow, isOpen, onClose }: Ana
                   ) : (
                     <Clock className="w-4 h-4 text-yellow-500" />
                   )}
-                </div>
+                    </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Flow Complete</span>
                   {analysisFlow.current_step === 'completed' ? (
@@ -573,20 +573,20 @@ export default function AnalysisFlowModal({ analysisFlow, isOpen, onClose }: Ana
                   )}
                 </div>
               </div>
-            </div>
+          </div>
 
             {/* Quick Actions */}
             <div className="bg-white rounded-lg shadow-sm border p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
               <div className="space-y-2">
-                <button
-                  onClick={() => {
-                    window.open(`/result?id=${analysisFlow.original_image_id}`, '_blank')
-                  }}
+            <button
+              onClick={() => {
+                window.open(`/result?id=${analysisFlow.original_image_id}`, '_blank')
+              }}
                   className="w-full px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                  View Result Page
-                </button>
+            >
+              View Result Page
+            </button>
                 <button
                   onClick={onClose}
                   className="w-full px-4 py-2 text-sm bg-gray-600 text-white rounded-lg hover:bg-gray-700"
