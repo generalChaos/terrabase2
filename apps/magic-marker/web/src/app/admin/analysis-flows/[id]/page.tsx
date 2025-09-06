@@ -7,6 +7,14 @@ import { Image, ImageType } from '@/lib/imageService'
 import { ProcessingStep } from '@/lib/newTypes'
 import { ArrowLeft, Calendar, MessageSquare, Image as ImageIcon, FileText, Clock, CheckCircle, XCircle, Hash, Activity, AlertTriangle, Database, Zap, BarChart3, Code } from 'lucide-react'
 
+// Simple type assertion - we control the data so we can safely assert the type
+function assertProcessingStep(step: unknown): ProcessingStep {
+  if (!step || typeof step !== 'object') {
+    throw new Error('Invalid processing step data')
+  }
+  return step as ProcessingStep
+}
+
 export default function AnalysisFlowDetailsPage() {
   const params = useParams()
   const router = useRouter()
@@ -59,13 +67,16 @@ export default function AnalysisFlowDetailsPage() {
         try {
           const stepsResponse = await fetch(`/api/admin/steps?flowId=${flowId}`)
           if (stepsResponse.ok) {
-            const stepsData = await stepsResponse.json()
+            const stepsData = await stepsResponse.json() as { steps: ProcessingStep[] }
             console.log('🔍 [AnalysisFlowDetail] Fetched processing steps:', {
               flowId,
               stepsCount: stepsData.steps?.length || 0,
               steps: stepsData.steps
             });
-            setProcessingSteps(stepsData.steps || [])
+            // Ensure we have properly typed steps - we control the data so we can safely assert
+            const steps: ProcessingStep[] = (stepsData.steps || [])
+              .map(step => assertProcessingStep(step))
+            setProcessingSteps(steps)
           }
         } catch (err) {
           console.warn('Failed to fetch processing steps:', err)
@@ -305,18 +316,16 @@ export default function AnalysisFlowDetailsPage() {
                       </div>
                       
                       <div className="ml-9 space-y-3">
-                        {/* Prompt Content */}
-                        {step.prompt_content && (
+                        {(step.prompt_content && typeof step.prompt_content === 'string') ? (
                           <div className={`bg-${color}-50 p-3 rounded-lg`}>
                             <p className={`text-sm font-medium text-${color}-900 mb-1`}>Initial Prompt:</p>
                             <div className={`text-sm text-${color}-800 bg-white p-2 rounded border`}>
-                              {step.prompt_content}
+                              {step.prompt_content as string}
                             </div>
                           </div>
-                        )}
+                        ) : null}
                         
-                        {/* AI Response - Human Readable */}
-                        {step.output_data && (
+                        {step.output_data ? (
                           <div className="bg-green-50 p-3 rounded-lg">
                             <p className="text-sm font-medium text-green-900 mb-1">AI Response:</p>
                             <div className="text-sm text-green-800">
@@ -327,24 +336,27 @@ export default function AnalysisFlowDetailsPage() {
                                 }
                                 
                                 // For structured responses, try to find the most relevant text
-                                const data = step.output_data
-                                if (data.analysis) return data.analysis
-                                if (data.description) return data.description
-                                if (data.response) return data.response
+                                const data = step.output_data as Record<string, unknown>
+                                if (data.analysis) return String(data.analysis)
+                                if (data.description) return String(data.description)
+                                if (data.response) return String(data.response)
                                 if (data.questions && Array.isArray(data.questions)) {
-                                  return data.questions.map((q: { text?: string; question?: string } | string, i: number) => 
-                                    `${i + 1}. ${q.text || q.question || q}`
-                                  ).join('\n')
+                                  return data.questions.map((q: unknown, i: number) => {
+                                    if (typeof q === 'string') return `${i + 1}. ${q}`
+                                    if (typeof q === 'object' && q && 'text' in q) return `${i + 1}. ${(q as { text: string }).text}`
+                                    if (typeof q === 'object' && q && 'question' in q) return `${i + 1}. ${(q as { question: string }).question}`
+                                    return `${i + 1}. ${String(q)}`
+                                  }).join('\n')
                                 }
-                                if (data.answer) return data.answer
-                                if (data.prompt) return data.prompt
+                                if (data.answer) return String(data.answer)
+                                if (data.prompt) return String(data.prompt)
                                 
                                 // Fallback to JSON for complex structures
                                 return JSON.stringify(step.output_data, null, 2)
                               })()}
                             </div>
                           </div>
-                        )}
+                        ) : null}
                         
                         {/* Questions Generated (for questions_generation step) */}
                         {step.step_type === 'questions' && analysisFlow.questions && analysisFlow.questions.length > 0 && (
@@ -448,25 +460,24 @@ export default function AnalysisFlowDetailsPage() {
                             Technical Details (Click to expand)
                           </summary>
                           <div className="px-3 pb-3 space-y-3">
-                            {/* Input Data */}
-                            {step.input_data && (
+                            {step.input_data ? (
                               <div>
                                 <h4 className="text-xs font-medium text-gray-600 mb-1">Input Data:</h4>
                                 <pre className="text-xs text-gray-800 bg-white p-2 rounded border font-mono overflow-auto max-h-32">
                                   {JSON.stringify(step.input_data, null, 2)}
                                 </pre>
                               </div>
-                            )}
+                            ) : null}
                             
                             {/* Full Output Data */}
-                            {step.output_data && (
+                            {step.output_data ? (
                               <div>
                                 <h4 className="text-xs font-medium text-gray-600 mb-1">Full AI Response (JSON):</h4>
                                 <pre className="text-xs text-gray-800 bg-white p-2 rounded border font-mono overflow-auto max-h-32">
                                   {JSON.stringify(step.output_data, null, 2)}
                                 </pre>
                               </div>
-                            )}
+                            ) : null}
                             
                             {/* Model Info */}
                             <div className="text-xs text-gray-600">

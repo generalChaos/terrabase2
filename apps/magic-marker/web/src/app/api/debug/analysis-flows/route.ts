@@ -9,11 +9,11 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const testType = searchParams.get('type') || 'all';
     
-    const results: any = {
+    const results: Record<string, unknown> = {
       timestamp: new Date().toISOString(),
       testType,
       success: true,
-      results: {}
+      results: {} as Record<string, unknown>
     };
 
     switch (testType) {
@@ -22,22 +22,13 @@ export async function GET(request: NextRequest) {
         const testImageId = `test-image-${Date.now()}`;
         const testSessionId = AnalysisFlowService.generateSessionId();
         
-        const newFlow = await AnalysisFlowService.createAnalysisFlow({
-          imageId: testImageId,
-          sessionId: testSessionId,
-          analysisFlowState: {
-            currentQuestionIndex: 0,
-            totalQuestions: 0,
-            questions: [],
-            contextData: {
-              imageAnalysis: 'Test image analysis',
-              previousAnswers: [],
-              artisticDirection: 'Test artistic direction'
-            }
-          }
-        });
+        const newFlow = await AnalysisFlowService.createAnalysisFlow(
+          testImageId,
+          testSessionId,
+          'Test image analysis'
+        );
         
-        results.results.createFlow = {
+        (results.results as Record<string, unknown>).createFlow = {
           success: true,
           flowId: newFlow.id,
           imageId: testImageId,
@@ -48,12 +39,12 @@ export async function GET(request: NextRequest) {
       case 'list':
         // Test listing analysis flows
         const flows = await AnalysisFlowService.getAnalysisFlowsForImage('test-image-123');
-        results.results.listFlows = {
+        (results.results as Record<string, unknown>).listFlows = {
           success: true,
           count: flows.length,
           flows: flows.map(f => ({
             id: f.id,
-            imageId: f.image_id,
+            imageId: f.original_image_id,
             sessionId: f.session_id,
             isActive: f.is_active,
             createdAt: f.created_at
@@ -64,7 +55,7 @@ export async function GET(request: NextRequest) {
       case 'active':
         // Test getting active analysis flow
         const activeFlow = await AnalysisFlowService.getActiveAnalysisFlow('test-image-123');
-        results.results.activeFlow = {
+        (results.results as Record<string, unknown>).activeFlow = {
           success: true,
           hasActiveFlow: !!activeFlow,
           flowId: activeFlow?.id || null
@@ -78,20 +69,11 @@ export async function GET(request: NextRequest) {
         const testSessionIdAll = AnalysisFlowService.generateSessionId();
         
         // Test 1: Create flow
-        const flow = await AnalysisFlowService.createAnalysisFlow({
-          imageId: testImageIdAll,
-          sessionId: testSessionIdAll,
-          analysisFlowState: {
-            currentQuestionIndex: 0,
-            totalQuestions: 0,
-            questions: [],
-            contextData: {
-              imageAnalysis: 'Test image analysis',
-              previousAnswers: [],
-              artisticDirection: 'Test artistic direction'
-            }
-          }
-        });
+        const flow = await AnalysisFlowService.createAnalysisFlow(
+          testImageIdAll,
+          testSessionIdAll,
+          'Test image analysis'
+        );
         
         // Test 2: Get flow
         const retrievedFlow = await AnalysisFlowService.getAnalysisFlow(flow.id);
@@ -100,7 +82,9 @@ export async function GET(request: NextRequest) {
         await AnalysisFlowService.addQuestion(flow.id, {
           id: 'test-question-1',
           text: 'What style would you like?',
-          options: ['Realistic', 'Cartoon', 'Abstract', 'None']
+          type: 'multiple_choice',
+          options: ['Realistic', 'Cartoon', 'Abstract', 'None'],
+          required: true
         });
         
         // Test 4: Add answer
@@ -119,8 +103,8 @@ export async function GET(request: NextRequest) {
           addAnswer: { success: true },
           getUpdatedFlow: { 
             success: true, 
-            questionsCount: updatedFlow?.conversation_state.questions.length || 0,
-            answeredQuestions: updatedFlow?.conversation_state.questions.filter(q => q.answer).length || 0
+            questionsCount: updatedFlow?.questions.length || 0,
+            answeredQuestions: updatedFlow?.answers.length || 0
           },
           deactivateFlow: { success: true }
         };

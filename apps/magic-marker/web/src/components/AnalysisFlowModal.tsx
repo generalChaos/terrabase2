@@ -73,7 +73,7 @@ export default function AnalysisFlowModal({ analysisFlow, isOpen, onClose }: Ana
     try {
       const stepsResponse = await fetch(`/api/admin/steps?flowId=${analysisFlow.id}`)
       if (stepsResponse.ok) {
-        const stepsData = await stepsResponse.json()
+        const stepsData = await stepsResponse.json() as { steps: ProcessingStep[] }
         console.log('🔍 [AnalysisFlowModal] Fetched processing steps:', {
           flowId: analysisFlow.id,
           stepsCount: stepsData.steps?.length || 0,
@@ -274,9 +274,9 @@ export default function AnalysisFlowModal({ analysisFlow, isOpen, onClose }: Ana
                           </h3>
                         </div>
                         <div className="flex items-center space-x-2">
-                          {step.response_time_ms && (
+                          {step.response_time_ms ? (
                             <span className="text-xs text-gray-500">{step.response_time_ms}ms</span>
-                          )}
+                          ) : null}
                           {step.success ? (
                             <CheckCircle className="w-4 h-4 text-green-500" />
                           ) : (
@@ -286,18 +286,17 @@ export default function AnalysisFlowModal({ analysisFlow, isOpen, onClose }: Ana
                       </div>
                       
                       <div className="ml-9 space-y-3">
-                        {/* Prompt Content */}
-                        {step.prompt_content && (
+
+                        {step.prompt_content && typeof step.prompt_content === 'string' ? (
                           <div className={`bg-${color}-50 p-3 rounded-lg`}>
                             <p className={`text-sm font-medium text-${color}-900 mb-1`}>Initial Prompt:</p>
                             <div className={`text-sm text-${color}-800 bg-white p-2 rounded border`}>
                               {step.prompt_content}
                             </div>
                           </div>
-                        )}
+                        ) : null}
                         
-                        {/* AI Response - Human Readable */}
-                        {step.output_data && (
+                        {step?.output_data ? (
                           <div className="bg-green-50 p-3 rounded-lg">
                             <p className="text-sm font-medium text-green-900 mb-1">AI Response:</p>
                             <div className="text-sm text-green-800">
@@ -308,24 +307,24 @@ export default function AnalysisFlowModal({ analysisFlow, isOpen, onClose }: Ana
                                 }
                                 
                                 // For structured responses, try to find the most relevant text
-                                const data = step.output_data
-                                if (data.analysis) return data.analysis
-                                if (data.description) return data.description
-                                if (data.response) return data.response
+                                const data = step.output_data as Record<string, unknown>
+                                if (data.analysis) return String(data.analysis)
+                                if (data.description) return String(data.description)
+                                if (data.response) return String(data.response)
                                 if (data.questions && Array.isArray(data.questions)) {
-                                  return data.questions.map((q: { text?: string; question?: string } | string, i: number) => 
-                                    `${i + 1}. ${q.text || q.question || q}`
+                                  return data.questions.map((q: unknown, i: number) => 
+                                    `${i + 1}. ${typeof q === 'string' ? q : (typeof q === 'object' && q !== null ? ((q as Record<string, unknown>).text || (q as Record<string, unknown>).question || String(q)) : String(q))}`
                                   ).join('\n')
                                 }
-                                if (data.answer) return data.answer
-                                if (data.prompt) return data.prompt
+                                if (data.answer) return String(data.answer)
+                                if (data.prompt) return String(data.prompt)
                                 
                                 // Fallback to JSON for complex structures
                                 return JSON.stringify(step.output_data, null, 2)
                               })()}
                             </div>
                           </div>
-                        )}
+                        ) : null }
                         
                         {/* Questions Generated (for questions_generation step) */}
                         {step.step_type === 'questions' && analysisFlow.questions && analysisFlow.questions.length > 0 && (
@@ -406,22 +405,22 @@ export default function AnalysisFlowModal({ analysisFlow, isOpen, onClose }: Ana
                         )}
                         
                         {/* Image Generation Prompt (for image_generation step) */}
-                        {step.step_type === 'image_generation' && step.prompt_content && (
+                        {step.step_type === 'image_generation' && step.prompt_content && typeof step.prompt_content === 'string' ? (
                           <div className="bg-green-50 p-3 rounded-lg">
                             <p className="text-sm font-medium text-green-900 mb-3">Image Generation Prompt:</p>
                             <div className="bg-white p-3 rounded border border-green-200">
                               <p className="text-sm text-green-800 font-mono">{step.prompt_content}</p>
                             </div>
                           </div>
-                        )}
+                        ) : null}
                         
                         {/* Error Message */}
-                        {step.error_message && (
+                        {step.error_message ? (
                           <div className="bg-red-50 p-3 rounded-lg border border-red-200">
                             <p className="text-sm font-medium text-red-800 mb-1">Error:</p>
                             <p className="text-sm text-red-700">{step.error_message}</p>
                           </div>
-                        )}
+                        ) : null}
                         
                         {/* Collapsible Technical Details */}
                         <details className="bg-gray-50 rounded-lg">
@@ -430,24 +429,24 @@ export default function AnalysisFlowModal({ analysisFlow, isOpen, onClose }: Ana
                           </summary>
                           <div className="px-3 pb-3 space-y-3">
                             {/* Input Data */}
-                            {step.input_data && (
-              <div>
+                            {step.input_data ? (
+                              <div>
                                 <h4 className="text-xs font-medium text-gray-600 mb-1">Input Data:</h4>
                                 <pre className="text-xs text-gray-800 bg-white p-2 rounded border font-mono overflow-auto max-h-32">
                                   {JSON.stringify(step.input_data, null, 2)}
                                 </pre>
                               </div>
-                            )}
+                            ) : null}
                             
                             {/* Full Output Data */}
-                            {step.output_data && (
-                    <div>
+                            {step.output_data ? (
+                              <div>
                                 <h4 className="text-xs font-medium text-gray-600 mb-1">Full AI Response (JSON):</h4>
                                 <pre className="text-xs text-gray-800 bg-white p-2 rounded border font-mono overflow-auto max-h-32">
                                   {JSON.stringify(step.output_data, null, 2)}
                                 </pre>
                               </div>
-                            )}
+                            ) : null}
                             
                             {/* Model Info */}
                             <div className="text-xs text-gray-600">

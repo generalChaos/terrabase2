@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
 import axios from 'axios'
-import { ImageAnalysis, QuestionAnswer } from '@/lib/types'
+import { ImageAnalysis, QuestionAnswer, Question } from '@/lib/types'
 import { AnalysisFlowService } from '@/lib/analysisFlowService'
 import ImageUpload from '@/components/ImageUpload'
 import QuestionFlow from '@/components/QuestionFlow'

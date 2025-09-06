@@ -66,7 +66,7 @@ describe('PromptExecutor', () => {
           }))
         }))
       };
-      mockSupabase.from.mockReturnValue(mockQuery as any);
+      mockSupabase.from.mockReturnValue(mockQuery as jest.MockedFunction<typeof mockSupabase.from>);
 
       await expect(
         PromptExecutor.execute('nonexistent_prompt', { prompt: 'test' })
@@ -98,7 +98,7 @@ describe('PromptExecutor', () => {
           }))
         }))
       };
-      mockSupabase.from.mockReturnValue(mockQuery as any);
+      mockSupabase.from.mockReturnValue(mockQuery as jest.MockedFunction<typeof mockSupabase.from>);
 
       await expect(
         PromptExecutor.execute('test_prompt', { prompt: 'test' })

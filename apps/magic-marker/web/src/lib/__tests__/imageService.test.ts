@@ -50,7 +50,7 @@ describe('ImageService', () => {
         }))
       };
 
-      mockSupabase.from.mockReturnValue(mockQuery as any);
+      mockSupabase.from.mockReturnValue(mockQuery as jest.MockedFunction<typeof mockSupabase.from>);
 
       const result = await ImageService.createImage(
         'Test analysis',
@@ -76,7 +76,7 @@ describe('ImageService', () => {
         }))
       };
 
-      mockSupabase.from.mockReturnValue(mockQuery as any);
+      mockSupabase.from.mockReturnValue(mockQuery as jest.MockedFunction<typeof mockSupabase.from>);
 
       await expect(
         ImageService.createImage('Test analysis', 'original', 'test-path')
@@ -105,7 +105,7 @@ describe('ImageService', () => {
         }))
       };
 
-      mockSupabase.from.mockReturnValue(mockQuery as any);
+      mockSupabase.from.mockReturnValue(mockQuery as jest.MockedFunction<typeof mockSupabase.from>);
 
       const result = await ImageService.getImage('test-image-id');
 
@@ -125,7 +125,7 @@ describe('ImageService', () => {
         }))
       };
 
-      mockSupabase.from.mockReturnValue(mockQuery as any);
+      mockSupabase.from.mockReturnValue(mockQuery as jest.MockedFunction<typeof mockSupabase.from>);
 
       const result = await ImageService.getImage('nonexistent-id');
 
@@ -161,7 +161,7 @@ describe('ImageService', () => {
         }))
       };
 
-      mockSupabase.from.mockReturnValue(mockQuery as any);
+      mockSupabase.from.mockReturnValue(mockQuery as jest.MockedFunction<typeof mockSupabase.from>);
 
       const result = await ImageService.getAllImages();
 
@@ -179,7 +179,7 @@ describe('ImageService', () => {
         }))
       };
 
-      mockSupabase.from.mockReturnValue(mockQuery as any);
+      mockSupabase.from.mockReturnValue(mockQuery as jest.MockedFunction<typeof mockSupabase.from>);
 
       const result = await ImageService.getAllImages();
 
