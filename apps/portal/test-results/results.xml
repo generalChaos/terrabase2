@@ -1,6 +1,0 @@
-<testsuites id="" name="" tests="1" failures="0" skipped="0" errors="0" time="9.326875">
-<testsuite name="homepage.spec.ts" timestamp="2025-09-02T21:52:30.788Z" hostname="chromium" tests="1" failures="0" skipped="0" time="1.574" errors="0">
-<testcase name="Portal Homepage › should load homepage with correct title and content" classname="homepage.spec.ts" time="1.574">
-</testcase>
-</testsuite>
-</testsuites>
