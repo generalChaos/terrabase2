@@ -1,3 +1,7 @@
+// Re-export new types for backward compatibility
+export * from './newTypes';
+
+// Legacy types - these will be gradually replaced
 export interface ImageAnalysis {
   id: string;
   originalImagePath: string;
@@ -7,6 +11,16 @@ export interface ImageAnalysis {
   finalImagePath?: string;
   createdAt: Date;
   updatedAt: Date;
+  
+  // New fields from analysis_flows
+  sessionId?: string;
+  flowId?: string; // Analysis flow ID
+  totalQuestions?: number;
+  totalAnswers?: number;
+  currentStep?: string;
+  totalCostUsd?: number;
+  totalTokens?: number;
+  isActive?: boolean;
 }
 
 export interface Question {
@@ -17,14 +31,14 @@ export interface Question {
   required: boolean;
 }
 
-export interface ImageGenerationRequest {
-  imageAnalysisId: string;
-  answers: QuestionAnswer[];
-}
-
 export interface QuestionAnswer {
   questionId: string;
   answer: string;
+}
+
+export interface ImageGenerationRequest {
+  imageAnalysisId: string;
+  answers: QuestionAnswer[];
 }
 
 export interface ImageGenerationResponse {

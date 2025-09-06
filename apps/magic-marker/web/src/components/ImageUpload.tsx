@@ -8,16 +8,19 @@ interface ImageUploadProps {
 const ImageUpload: React.FC<ImageUploadProps> = ({ onUpload, isLoading }) => {
   const [isDragOver, setIsDragOver] = useState(false)
   const [preview, setPreview] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleFileSelect = (file: File) => {
+    setError(null) // Clear any previous errors
+    
     if (!file.type.startsWith('image/')) {
-      alert('Please select an image file')
+      setError('Please select a valid image file (JPG, PNG, GIF, or WebP)')
       return
     }
 
     if (file.size > 10 * 1024 * 1024) {
-      alert('File size must be less than 10MB')
+      setError('File size must be less than 10MB')
       return
     }
 
@@ -116,6 +119,17 @@ const ImageUpload: React.FC<ImageUploadProps> = ({ onUpload, isLoading }) => {
           </div>
         )}
       </div>
+
+      {error && (
+        <div className="mt-4 text-center">
+          <div className="inline-flex items-center space-x-2 text-red-400 bg-red-900/20 border border-red-500/30 rounded-lg px-4 py-2">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 19.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+            <span>{error}</span>
+          </div>
+        </div>
+      )}
 
       {isLoading && (
         <div className="mt-4 text-center">

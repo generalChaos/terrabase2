@@ -12,7 +12,7 @@ export default function AnimatedHomepage({ onStartUpload }: AnimatedHomepageProp
   const [isScrolling, setIsScrolling] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
+  // const containerRef = useRef<HTMLDivElement>(null) // Unused for now
 
   const steps = [
     {
@@ -28,7 +28,7 @@ export default function AnimatedHomepage({ onStartUpload }: AnimatedHomepageProp
       id: 2,
       image: '/step-2-questions.png',
       title: 'Answer Questions',
-      description: 'AI analyzes your image and asks relevant questions',
+      description: 'AI analyzes your image and asks smart, conversational questions',
       hint: 'Keep scrolling',
       bgGradient: 'from-slate-900 via-blue-900 to-indigo-900',
       bgColor: 'bg-blue-600'
@@ -86,14 +86,14 @@ export default function AnimatedHomepage({ onStartUpload }: AnimatedHomepageProp
 
     window.addEventListener('scroll', handleScroll, { passive: true })
     return () => window.removeEventListener('scroll', handleScroll)
-  }, [currentStep, isMobile, isScrolling])
+  }, [currentStep, isMobile, isScrolling, steps.length])
 
   const handleStepClick = (stepIndex: number) => {
     if (stepIndex === steps.length - 1) {
       // Last step - trigger camera/upload
       onStartUpload()
     } else if (isMobile) {
-      // Scroll to next step
+      // Scroll to next step (mobile only)
       const nextStep = stepIndex + 1
       const targetY = nextStep * window.innerHeight
       window.scrollTo({ top: targetY, behavior: 'smooth' })
@@ -160,8 +160,12 @@ export default function AnimatedHomepage({ onStartUpload }: AnimatedHomepageProp
                     </div>
                   ) : (
                     <div className="flex justify-center">
-                      {/* Down arrow hint */}
-                      <div className="w-6 h-6 border-r-2 border-b-2 border-white/80 rotate-45 animate-pulse"></div>
+                      {/* Down arrow hint - clickable */}
+                      <button
+                        onClick={() => handleStepClick(index)}
+                        className="w-8 h-8 border-r-2 border-b-2 border-white/80 rotate-45 animate-pulse hover:border-white hover:scale-110 transition-all duration-200 cursor-pointer"
+                        aria-label="Scroll to next section"
+                      ></button>
                     </div>
                   )}
                 </div>

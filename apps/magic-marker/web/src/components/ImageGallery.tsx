@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { ImageAnalysis } from '@/lib/types'
-import ImageModal from './ImageModal'
+import EnhancedImageModal from './EnhancedImageModal'
 
 interface ImageGalleryProps {
   images: ImageAnalysis[]
@@ -97,9 +97,9 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ images }) => {
         </div>
       </div>
 
-      {/* Modal */}
+      {/* Enhanced Modal */}
       {selectedImage && (
-        <ImageModal
+        <EnhancedImageModal
           image={selectedImage}
           isOpen={isModalOpen}
           onClose={handleCloseModal}

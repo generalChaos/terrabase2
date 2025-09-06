@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
-import { supabase } from '@/lib/supabase';
-import { OpenAIService } from '@/lib/openai';
+import { supabase, supabaseAdmin } from '@/lib/supabase';
+import { PromptExecutor } from '@/lib/promptExecutor';
+import { StepService } from '@/lib/stepService';
+import { ImageService } from '@/lib/imageService';
+import { AnalysisFlowService } from '@/lib/analysisFlowService';
+import { Question } from '@/lib/types';
 
 export async function POST(request: NextRequest) {
   const requestId = Math.random().toString(36).substring(7)
@@ -43,7 +47,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    const allowedTypes: string[] = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
     console.log(`🔍 [${requestId}] Validating file type:`, file.type);
     if (!file.type || !allowedTypes.includes(file.type.toLowerCase())) {
       console.log(`❌ [${requestId}] Invalid file type:`, file.type);
@@ -73,21 +77,21 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const imageId = uuidv4();
-    const fileExtension = file.name.split('.').pop() || 'jpg';
-    const fileName = `${imageId}.${fileExtension}`;
+    const imageId: string = uuidv4();
+    const fileExtension: string = file.name.split('.').pop() || 'jpg';
+    const fileName: string = `${imageId}.${fileExtension}`;
     
     console.log(`🆔 [${requestId}] Generated image ID:`, imageId);
     console.log(`📄 [${requestId}] Generated filename:`, fileName);
     
     // Convert file to buffer
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    const arrayBuffer: ArrayBuffer = await file.arrayBuffer();
+    const buffer: Buffer = Buffer.from(arrayBuffer);
     
-    // Upload image to Supabase Storage
+    // Upload image to Supabase Storage using admin client
     console.log(`☁️ [${requestId}] Uploading to Supabase storage:`, fileName);
     console.log(`📊 [${requestId}] Buffer size:`, buffer.length, 'bytes');
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    const { data: _uploadData, error: uploadError } = await supabaseAdmin.storage
       .from('images')
       .upload(fileName, buffer, {
         contentType: file.type,
@@ -127,79 +131,132 @@ export async function POST(request: NextRequest) {
     }
 
     // Get public URL for the uploaded image
-    const { data: { publicUrl } } = supabase.storage
+    const { data: { publicUrl } } = supabaseAdmin.storage
       .from('images')
       .getPublicUrl(fileName);
       
     console.log(`🔗 [${requestId}] Generated public URL:`, publicUrl);
 
     // Convert image to base64 for OpenAI API
-    const base64Image = buffer.toString('base64');
+    const base64Image: string = buffer.toString('base64');
     console.log(`🔄 [${requestId}] Converted to base64, length:`, base64Image.length);
 
-    // Analyze image with OpenAI
-    console.log(`🤖 [${requestId}] Starting OpenAI analysis...`);
-    const startTime = Date.now();
-    const { analysis, questions } = await OpenAIService.analyzeImage(base64Image);
-    const analysisTime = Date.now() - startTime;
-    console.log(`✅ [${requestId}] OpenAI analysis completed in ${analysisTime}ms`);
-    console.log(`📝 [${requestId}] Analysis length:`, analysis?.length || 0);
-    console.log(`❓ [${requestId}] Questions count:`, questions?.length || 0);
-
-    // Store in database
-    console.log(`💾 [${requestId}] Storing in database...`);
-    const { error: insertError } = await supabase
-      .from('images')
-      .insert({
-        id: imageId,
-        original_image_path: publicUrl,
-        analysis_result: analysis,
-        questions: JSON.stringify(questions)
-      });
-
-    if (insertError) {
-      console.error(`❌ [${requestId}] Supabase database error:`, insertError);
-      
-      // Handle specific database errors
-      if (insertError.message.includes('duplicate key')) {
-        return NextResponse.json({ 
-          success: false, 
-          error: 'Image with this ID already exists. Please try again.' 
-        }, { status: 409 });
-      } else if (insertError.message.includes('foreign key')) {
-        return NextResponse.json({ 
-          success: false, 
-          error: 'Database constraint violation. Please try again.' 
-        }, { status: 400 });
-      } else if (insertError.message.includes('permission')) {
-        return NextResponse.json({ 
-          success: false, 
-          error: 'Database permission denied. Please contact support.' 
-        }, { status: 403 });
-      } else {
-        return NextResponse.json({ 
-          success: false, 
-          error: 'Failed to save image data to database. Please try again.' 
-        }, { status: 500 });
-      }
+    // Step 1: Analyze image using prompt system
+    console.log(`🤖 [${requestId}] Starting image analysis with prompt system...`);
+    const analysisStartTime: number = Date.now();
+    const analysisResult = await PromptExecutor.execute('image_analysis', {
+      image: base64Image,
+      prompt: 'Analyze this image and describe what you see, focusing on artistic elements, composition, colors, and mood.'
+    });
+    const analysisTime: number = Date.now() - analysisStartTime;
+    console.log(`✅ [${requestId}] Image analysis completed in ${analysisTime}ms`);
+    // Type guard to ensure we have the response property
+    if (!('response' in analysisResult)) {
+      throw new Error('Analysis failed: No response returned');
     }
+    console.log(`📝 [${requestId}] Analysis length:`, analysisResult.response?.length || 0);
+
+    // Step 2: Generate questions from analysis using prompt system
+    console.log(`❓ [${requestId}] Starting questions generation with prompt system...`);
+    const questionsStartTime: number = Date.now();
+    const questionsResult = await PromptExecutor.execute('questions_generation', {
+      response: analysisResult.response
+    });
+    const questionsTime: number = Date.now() - questionsStartTime;
+    console.log(`✅ [${requestId}] Questions generation completed in ${questionsTime}ms`);
+    console.log(`🔍 [${requestId}] Questions result structure:`, JSON.stringify(questionsResult, null, 2));
+    // Type guard to ensure we have the questions property
+    if (!('questions' in questionsResult)) {
+      throw new Error('Questions generation failed: No questions returned');
+    }
+    console.log(`❓ [${requestId}] Questions count:`, questionsResult.questions?.length || 0);
+
+    // Create image record using ImageService
+    console.log(`💾 [${requestId}] Creating image record...`);
+    const imageRecord = await ImageService.createImage(
+      analysisResult.response,
+      'original',
+      publicUrl,
+      file.size,
+      file.type
+    );
+
+    // Generate session ID and create analysis flow
+    console.log(`🔄 [${requestId}] Creating analysis flow...`);
+    const sessionId: string = AnalysisFlowService.generateSessionId();
+    const analysisFlow = await AnalysisFlowService.createAnalysisFlow(
+      imageRecord.id,
+      sessionId,
+      analysisResult.response
+    );
+
+    // Ensure unique IDs for questions
+    const questionsWithUniqueIds: Question[] = questionsResult.questions.map((q: Question, index: number) => ({
+      ...q,
+      id: `q_${Date.now()}_${index}_${Math.random().toString(36).substr(2, 6)}`
+    }));
+
+    // Add questions to the analysis flow
+    console.log(`❓ [${requestId}] Adding questions to analysis flow...`);
+    await AnalysisFlowService.updateAnalysisFlow(analysisFlow.id, {
+      questions: questionsWithUniqueIds,
+      totalQuestions: questionsWithUniqueIds.length,
+      currentStep: 'questions'
+    });
+
+    // Log both steps using the analysis flow ID
+    console.log(`📊 [${requestId}] Logging analysis step...`);
+    await StepService.logStep({
+      flow_id: analysisFlow.id,
+      step_type: 'analysis',
+      step_order: 1,
+      input_data: { image_base64_length: base64Image.length },
+      output_data: { response: analysisResult.response },
+      response_time_ms: analysisTime,
+      model_used: 'gpt-4o',
+      success: true
+    });
+
+    console.log(`📊 [${requestId}] Logging questions generation step...`);
+    await StepService.logStep({
+      flow_id: analysisFlow.id,
+      step_type: 'questions',
+      step_order: 2,
+      input_data: { response: analysisResult.response.trim() },
+      output_data: { questions: questionsResult.questions },
+      response_time_ms: questionsTime,
+      model_used: 'gpt-4o',
+      success: true
+    });
 
     console.log(`🎉 [${requestId}] Upload completed successfully!`);
     return NextResponse.json({
       success: true,
-      imageAnalysisId: imageId,
+      imageAnalysisId: imageRecord.id, // Return the actual image ID
+      flowId: analysisFlow.id, // Return the analysis flow ID
       originalImagePath: publicUrl,
-      questions
+      analysis: analysisResult.response,
+      questions: questionsWithUniqueIds // Return generated questions with unique IDs
     });
 
-  } catch (error) {
+  } catch (error: unknown) {
     console.error(`💥 [${requestId}] Upload error:`, error);
     
-    let errorMessage = 'Upload failed';
-    let statusCode = 500;
+    let errorMessage: string = 'Upload failed';
+    let statusCode: number = 500;
+    let debugInfo: { type: string; details: string; suggestion: string } | null = null;
     
     if (error instanceof Error) {
       errorMessage = error.message;
+      
+      // Add debug info for validation errors
+      if (error.message.includes('validation failed')) {
+        debugInfo = {
+          type: 'validation_error',
+          details: error.message,
+          suggestion: 'Check the AI response format against expected schema'
+        };
+      }
       
       // Handle specific OpenAI errors
       if (error.message.includes('OpenAI API key not configured')) {
@@ -229,6 +286,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ 
       success: false, 
       error: errorMessage,
+      debug: debugInfo,
       timestamp: new Date().toISOString(),
       requestId: `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
     }, { status: statusCode });

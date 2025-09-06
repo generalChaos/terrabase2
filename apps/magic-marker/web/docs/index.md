@@ -10,6 +10,8 @@ Welcome to the Magic Marker documentation! This index will help you navigate thr
 
 ### **Technical Reference**
 - **[API Reference](api-reference.md)** - Complete API endpoint documentation
+- **[Prompt Creation Guide](prompt-creation-guide.md)** - Guide for creating and managing AI prompts
+- **[Conversational Q&A Testing](conversational-qa-testing.md)** - Guide for testing conversational AI flows
 - **[Development Log](devlog.md)** - Development history, decisions, and lessons learned
 
 ## 🚀 **Quick Start**
@@ -23,11 +25,13 @@ Welcome to the Magic Marker documentation! This index will help you navigate thr
 
 ```
 docs/
-├── index.md              # This file - documentation index
-├── README.md             # Main documentation
-├── setup-guide.md        # Setup and deployment guide
-├── api-reference.md      # API endpoint documentation
-└── devlog.md            # Development history and decisions
+├── index.md                        # This file - documentation index
+├── README.md                       # Main documentation
+├── setup-guide.md                  # Setup and deployment guide
+├── api-reference.md                # API endpoint documentation
+├── prompt-creation-guide.md        # Guide for creating and managing AI prompts
+├── conversational-qa-testing.md    # Guide for testing conversational AI flows
+└── devlog.md                      # Development history and decisions
 ```
 
 ## 🎯 **What is Magic Marker?**

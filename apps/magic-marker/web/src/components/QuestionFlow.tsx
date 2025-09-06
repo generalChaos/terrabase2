@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { Question, QuestionAnswer } from '@/lib/types'
 
 interface QuestionFlowProps {
@@ -189,7 +189,7 @@ const QuestionFlow: React.FC<QuestionFlowProps> = ({
             disabled={!canProceed || isLoading}
             className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isLastQuestion ? (isLoading ? 'Generating...' : 'Generate Image') : 'Next →'}
+            {isLastQuestion ? (isLoading ? 'Processing...' : 'Next Step →') : 'Next →'}
           </button>
         </div>
       </div>
