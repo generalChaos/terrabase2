@@ -10,7 +10,6 @@ interface PromptDefinition {
   prompt_text: string
   input_schema: Record<string, unknown>
   output_schema: Record<string, unknown>
-  return_schema: Record<string, unknown>
   model: string
   response_format: string
   max_tokens?: number
@@ -215,7 +214,6 @@ const getStepNumber = (prompt: PromptDefinition): number => {
 //   const descriptions = {
 //     'image_analysis': 'Analyze uploaded image',
 //     'questions_generation': 'Generate questions from analysis',
-//     'conversational_question': 'Generate follow-up questions',
 //     'text_processing': 'Process text (utility)',
 // Removed deprecated prompt types
 //   }
@@ -519,10 +517,10 @@ export default function PromptDefinitionsPage() {
                   {getActiveTab(prompt.id) === 'output-constraints' && (
                     <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
                       <div className="text-xs text-blue-800 font-mono">
-                        <div className="font-semibold mb-1">Return Schema:</div>
-                        <pre className="text-xs">{JSON.stringify(prompt.return_schema, null, 2)}</pre>
+                        <div className="font-semibold mb-1">Output Schema (Sent to AI):</div>
+                        <pre className="text-xs">{JSON.stringify(prompt.output_schema, null, 2)}</pre>
                         
-                        {prompt.type === 'conversational_question' && (
+                        {prompt.type === 'questions_generation' && (
                           <>
                             <div className="mt-3 font-semibold">Schema Alignment Rules:</div>
                             <div className="text-xs space-y-1">
@@ -585,10 +583,6 @@ export default function PromptDefinitionsPage() {
                             schema={prompt.output_schema} 
                             title="Output Schema" 
                           />
-                          <SchemaDisplay 
-                            schema={prompt.return_schema} 
-                            title="Return Schema" 
-                          />
                         </div>
                       </div>
                     </div>
@@ -634,8 +628,7 @@ export default function PromptDefinitionsPage() {
                 <pre className="text-sm text-gray-700 whitespace-pre-wrap font-mono">
                   {JSON.stringify(
                     viewingSchema.schema === 'input' ? viewingSchema.prompt.input_schema :
-                    viewingSchema.schema === 'output' ? viewingSchema.prompt.output_schema :
-                    viewingSchema.prompt.return_schema,
+                    viewingSchema.prompt.output_schema,
                     null,
                     2
                   )}

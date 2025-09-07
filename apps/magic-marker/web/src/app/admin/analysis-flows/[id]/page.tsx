@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import NextImage from 'next/image'
 import { AnalysisFlow, Question, QuestionAnswer } from '@/lib/analysisFlowService'
 import { Image, ImageType } from '@/lib/imageService'
 import { ProcessingStep } from '@/lib/newTypes'
@@ -222,9 +223,11 @@ export default function AnalysisFlowDetailsPage() {
                   <label className="text-sm font-medium text-gray-500">Original Image</label>
                   {originalImage ? (
                     <div className="mt-2 flex items-center space-x-3">
-                      <img
+                      <NextImage
                         src={originalImage.file_path}
                         alt="Original"
+                        width={64}
+                        height={64}
                         className="w-16 h-16 object-cover rounded-lg border"
                       />
                       <div>
@@ -242,9 +245,11 @@ export default function AnalysisFlowDetailsPage() {
                   <label className="text-sm font-medium text-gray-500">Final Image</label>
                   {finalImage ? (
                     <div className="mt-2 flex items-center space-x-3">
-                      <img
+                      <NextImage
                         src={finalImage.file_path}
                         alt="Final"
+                        width={64}
+                        height={64}
                         className="w-16 h-16 object-cover rounded-lg border"
                       />
                       <div>
@@ -269,24 +274,16 @@ export default function AnalysisFlowDetailsPage() {
               </h2>
 
               <div className="space-y-6">
-                {processingSteps.filter((step, index) => {
-                  // Filter out duplicate conversational steps - only show the first one
-                  if (step.step_type === 'conversational_question') {
-                    return index === processingSteps.findIndex(s => s.step_type === 'conversational_question')
-                  }
-                  return true
-                }).map((step, index) => {
+                {processingSteps.map((step, index) => {
                   const stepColors = {
                     'analysis': 'blue',
                     'questions': 'purple', 
-                    'conversational_question': 'orange',
                     'image_generation': 'green'
                   }
                   const color = stepColors[step.step_type as keyof typeof stepColors] || 'gray'
                   const colorClasses: Record<string, string> = {
                     blue: 'border-blue-500 bg-blue-500',
                     purple: 'border-purple-500 bg-purple-500',
-                    orange: 'border-orange-500 bg-orange-500',
                     green: 'border-green-500 bg-green-500',
                     gray: 'border-gray-500 bg-gray-500'
                   }
@@ -395,45 +392,6 @@ export default function AnalysisFlowDetailsPage() {
                           </div>
                         )}
                         
-                        {/* Conversational Questions & Answers - Show all Q&A for conversational steps (only once) */}
-                        {(step.step_type === 'conversational_question') && analysisFlow.answers && analysisFlow.answers.length > 0 && index === processingSteps.findIndex(s => s.step_type === 'conversational_question') && (
-                          <div className="bg-orange-50 p-3 rounded-lg">
-                            <p className="text-sm font-medium text-orange-900 mb-3">All Conversational Q&A:</p>
-                            <div className="space-y-4">
-                              {analysisFlow.answers.map((answer: QuestionAnswer, aIndex: number) => {
-                                const question = analysisFlow.questions?.find((q: Question) => q.id === answer.questionId)
-                                if (!question) return null
-                                
-                                return (
-                                  <div key={answer.questionId} className="bg-white p-3 rounded border border-orange-200">
-                                    <p className="text-sm font-medium text-gray-900 mb-2">
-                                      Q{aIndex + 1}: {question.text}
-                                    </p>
-                                    {question.options && question.options.length > 0 && (
-                                      <div className="flex flex-wrap gap-2">
-                                        {question.options.map((option: string, optIndex: number) => {
-                                          const isSelected = option === answer.answer
-                                          return (
-                                            <span
-                                              key={optIndex}
-                                              className={`px-3 py-1 text-xs rounded-full border ${
-                                                isSelected
-                                                  ? 'bg-green-100 text-green-800 border-green-300 font-medium'
-                                                  : 'bg-gray-100 text-gray-700 border-gray-300'
-                                              }`}
-                                            >
-                                              {option}
-                                            </span>
-                                          )
-                                        })}
-                                      </div>
-                                    )}
-                                  </div>
-                                )
-                              })}
-                            </div>
-                          </div>
-                        )}
                         
                         {/* Image Generation Prompt (for image_generation step) */}
                         {step.step_type === 'image_generation' && step.prompt_content && (
@@ -524,9 +482,11 @@ export default function AnalysisFlowDetailsPage() {
                 
                 <div className="flex justify-center">
                   <div className="max-w-2xl w-full">
-                    <img
+                    <NextImage
                       src={finalImage.file_path}
                       alt="Final generated image"
+                      width={800}
+                      height={600}
                       className="w-full h-auto rounded-lg shadow-lg border border-gray-200"
                     />
                     <div className="mt-4 text-center">
@@ -599,7 +559,7 @@ export default function AnalysisFlowDetailsPage() {
                   <CheckCircle className="w-4 h-4 text-green-500" />
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Conversational Flow</span>
+                  <span className="text-sm text-gray-600">Questions Flow</span>
                   {analysisFlow.total_answers > 0 ? (
                     <CheckCircle className="w-4 h-4 text-green-500" />
                   ) : (

@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import Image from 'next/image'
 import { ImageAnalysis } from '@/lib/types'
 import EnhancedImageModal from './EnhancedImageModal'
 
@@ -49,9 +50,11 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ images }) => {
               {/* Show the final generated image prominently, or original if no final image */}
               <div className="aspect-square bg-gray-200 rounded-lg overflow-hidden">
                 {image.finalImagePath ? (
-                  <img
+                  <Image
                     src={image.finalImagePath}
                     alt="Generated image - click to view details"
+                    width={300}
+                    height={300}
                     className="w-full h-full object-cover cursor-pointer"
                     onClick={() => handleImageClick(image)}
                     onError={(e) => {
@@ -60,9 +63,11 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ images }) => {
                     }}
                   />
                 ) : (
-                  <img
+                  <Image
                     src={image.originalImagePath}
                     alt="Original image - click to view details"
+                    width={300}
+                    height={300}
                     className="w-full h-full object-cover opacity-60 cursor-pointer"
                     onClick={() => handleImageClick(image)}
                     onError={(e) => {

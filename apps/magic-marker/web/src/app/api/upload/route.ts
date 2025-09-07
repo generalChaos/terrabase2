@@ -5,6 +5,7 @@ import { PromptExecutor } from '@/lib/promptExecutor';
 import { StepService } from '@/lib/stepService';
 import { ImageService } from '@/lib/imageService';
 import { AnalysisFlowService } from '@/lib/analysisFlowService';
+import { ContextManager, StepContext } from '@/lib/contextManager';
 import { Question } from '@/lib/types';
 
 export async function POST(request: NextRequest) {
@@ -141,10 +142,10 @@ export async function POST(request: NextRequest) {
     const base64Image: string = buffer.toString('base64');
     console.log(`🔄 [${requestId}] Converted to base64, length:`, base64Image.length);
 
-    // Step 1: Analyze image using prompt system
-    console.log(`🤖 [${requestId}] Starting image analysis with prompt system...`);
+    // Step 1: Analyze image using schema enforcement
+    console.log(`🤖 [${requestId}] Starting image analysis with schema enforcement...`);
     const analysisStartTime: number = Date.now();
-    const analysisResult = await PromptExecutor.execute('image_analysis', {
+    const analysisResult = await PromptExecutor.executeWithSchemaEnforcement('image_analysis', {
       image: base64Image,
       prompt: '' // Empty prompt - will be replaced by database prompt text
     });
@@ -156,12 +157,46 @@ export async function POST(request: NextRequest) {
     }
     console.log(`📝 [${requestId}] Analysis length:`, analysisResult.response?.length || 0);
 
-    // Step 2: Generate questions from analysis using prompt system
-    console.log(`❓ [${requestId}] Starting questions generation with prompt system...`);
+    // Step 2: Generate questions from analysis using prompt system with context
+    console.log(`❓ [${requestId}] Starting questions generation with context...`);
     const questionsStartTime: number = Date.now();
-    const questionsResult = await PromptExecutor.execute('questions_generation', {
-      response: analysisResult.response
+    
+    // Create context for questions generation
+    const contextFlowId = `flow_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+    const contextSessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+    
+    const context: StepContext = ContextManager.buildContextForStep(
+      contextFlowId,
+      contextSessionId,
+      'questions_generation',
+      2,
+      {
+        imageAnalysis: analysisResult.response,
+        previousAnswers: [],
+        artisticDirection: null,
+        stepResults: {},
+        conversationHistory: [],
+        userPreferences: null,
+        metadata: {
+          totalTokens: 0,
+          totalCost: 0,
+          lastUpdated: new Date().toISOString(),
+          flowId: contextFlowId,
+          sessionId: contextSessionId
+        }
+      }
+    );
+    
+    console.log(`🔗 [${requestId}] Context created for questions generation:`, {
+      flowId: context.flowId,
+      sessionId: context.sessionId,
+      currentStep: context.currentStep,
+      contextKeys: Object.keys(context.contextData)
     });
+    
+    const questionsResult = await PromptExecutor.executeWithSchemaEnforcement('questions_generation', {
+      response: analysisResult.response
+    }, context);
     const questionsTime: number = Date.now() - questionsStartTime;
     console.log(`✅ [${requestId}] Questions generation completed in ${questionsTime}ms`);
     console.log(`🔍 [${requestId}] Questions result structure:`, JSON.stringify(questionsResult, null, 2));

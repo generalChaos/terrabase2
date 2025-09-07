@@ -41,7 +41,7 @@ describe('PromptExecutor', () => {
           prompt: { type: 'string' }
         }
       },
-      return_schema: {
+      output_schema: {
         type: 'object',
         required: ['response'],
         properties: {

@@ -27,7 +27,6 @@ interface PromptDefinition {
   prompt_text: string;
   input_schema: Record<string, unknown>;
   output_schema: Record<string, unknown>;
-  return_schema: Record<string, unknown>;
   model: string;
   response_format: string;
   max_tokens?: number;
@@ -55,7 +54,7 @@ export default function PromptTesterPage() {
   // Individual input fields
   const [inputFields, setInputFields] = useState<Record<string, unknown>>({});
   
-  // Conversational Q&A state
+  // Q&A state
   const [conversationState, setConversationState] = useState<ConversationState>({
     questions: [],
     answers: {},
@@ -179,10 +178,6 @@ export default function PromptTesterPage() {
       'text_processing': {
         prompt: 'This is a test text to process. Please analyze it and provide insights.'
       },
-      'conversational_question': {
-        response: 'I want to create an image. Help me discover my artistic preferences through a fun conversation.',
-        previousAnswers: ['I like bright colors', 'I prefer realistic style', 'I want something peaceful']
-      }
     };
 
     return samples[promptType] || {};
@@ -219,8 +214,8 @@ export default function PromptTesterPage() {
         tokensUsed: result.tokensUsed
       });
 
-      // If this is a conversational question and we got questions back, update conversation state
-      if (selectedPrompt.type === 'conversational_question' && result.success && result.response) {
+      // If this is a questions generation and we got questions back, update conversation state
+      if (selectedPrompt.type === 'questions_generation' && result.success && result.response) {
         const { questions, done, summary } = result.response;
         if (questions && Array.isArray(questions)) {
           setConversationState(prev => ({
@@ -242,7 +237,7 @@ export default function PromptTesterPage() {
   };
 
   const generateNextQuestion = async () => {
-    if (!selectedPrompt || selectedPrompt.type !== 'conversational_question') return;
+    if (!selectedPrompt || selectedPrompt.type !== 'questions_generation') return;
 
     try {
       setIsGeneratingQuestion(true);
@@ -598,9 +593,9 @@ export default function PromptTesterPage() {
                     </pre>
                   </div>
                   <div>
-                    <h3 className="font-medium text-gray-700 mb-2">Return Schema (Sent to AI)</h3>
+                    <h3 className="font-medium text-gray-700 mb-2">Output Schema (Sent to AI)</h3>
                     <pre className="bg-gray-100 p-3 rounded text-xs overflow-auto max-h-32 text-gray-800">
-                      {JSON.stringify(selectedPrompt.return_schema, null, 2)}
+                      {JSON.stringify(selectedPrompt.output_schema, null, 2)}
                     </pre>
                   </div>
                 </div>
@@ -640,7 +635,7 @@ export default function PromptTesterPage() {
                         {testResult.tokensUsed} tokens
                       </span>
                     )}
-                    {selectedPrompt?.type === 'conversational_question' && (
+                    {selectedPrompt?.type === 'questions_generation' && (
                       (() => {
                         const currentStep = getCurrentStep(conversationState);
                         return (
@@ -694,12 +689,12 @@ export default function PromptTesterPage() {
               )}
             </div>
 
-            {/* Conversational Q&A UI */}
-            {selectedPrompt?.type === 'conversational_question' && (
+            {/* Questions Generation UI */}
+            {selectedPrompt?.type === 'questions_generation' && (
               <div className="bg-white rounded-lg shadow p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <h2 className="text-lg font-semibold text-gray-900">Conversational Q&A Flow</h2>
+                    <h2 className="text-lg font-semibold text-gray-900">Questions Generation Flow</h2>
                     {(() => {
                       const currentStep = getCurrentStep(conversationState);
                       return (
@@ -732,7 +727,7 @@ export default function PromptTesterPage() {
                 {/* Step-by-step Instructions */}
                 {conversationState.questions.length === 0 && (
                   <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                    <h3 className="font-medium text-blue-800 mb-3">How to Test the Conversational Flow:</h3>
+                    <h3 className="font-medium text-blue-800 mb-3">How to Test the Questions Generation Flow:</h3>
                     <ol className="list-decimal list-inside space-y-2 text-sm text-blue-700">
                       <li><strong>Click &quot;Run Test&quot;</strong> to start the conversation with the AI</li>
                       <li><strong>Answer each question</strong> by clicking on one of the provided options</li>
