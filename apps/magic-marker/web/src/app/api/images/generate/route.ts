@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
       // Log answer analysis step
       await StepService.logStep({
         flow_id: analysisFlow.id,
-        step_type: 'conversational_question',
+        step_type: 'questions',
         step_order: 3,
         prompt_content: 'Analyze user answers and prepare for image generation',
         input_data: { questions, answers: answerStrings },
@@ -59,10 +59,10 @@ export async function POST(request: NextRequest) {
         success: true
       });
       
-      // Use image generation prompt system
-      console.log('🎨 Starting image generation with prompt system...');
+      // Use image generation with schema enforcement
+      console.log('🎨 Starting image generation with schema enforcement...');
       const imageGenerationStartTime = Date.now();
-      const imageGenerationResult = await PromptExecutor.execute('image_generation', {
+      const imageGenerationResult = await PromptExecutor.executeWithSchemaEnforcement('image_generation', {
         prompt: `Create an image based on these artistic preferences:
 Questions: ${questions.map((q: { text: string }) => q.text).join(', ')}
 Answers: ${answerStrings.join(', ')}

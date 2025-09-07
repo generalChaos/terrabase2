@@ -16,7 +16,7 @@ export async function GET() {
   // 1. Test image_analysis
   try {
     console.log('Testing image_analysis...');
-    results.image_analysis = await PromptExecutor.execute('image_analysis', {
+    results.image_analysis = await PromptExecutor.executeWithSchemaEnforcement('image_analysis', {
       image: testImageBase64,
       prompt: 'Analyze this image and describe what you see, focusing on composition, colors, and artistic style.'
     });
@@ -29,7 +29,7 @@ export async function GET() {
   // 2. Test questions_generation
   try {
     console.log('Testing questions_generation...');
-    results.questions_generation = await PromptExecutor.execute('questions_generation', {
+    results.questions_generation = await PromptExecutor.executeWithSchemaEnforcement('questions_generation', {
       response: testAnalysis
     });
     console.log('✅ questions_generation passed');
@@ -38,22 +38,10 @@ export async function GET() {
     console.log('❌ questions_generation failed:', error);
   }
 
-  // 3. Test conversational_question
-  try {
-    console.log('Testing conversational_question...');
-    results.conversational_question = await PromptExecutor.execute('conversational_question', {
-      prompt: 'I want to create an image. Help me discover my artistic preferences through a fun conversation.'
-    });
-    console.log('✅ conversational_question passed');
-  } catch (error) {
-    errors.conversational_question = error instanceof Error ? error.message : 'Unknown error';
-    console.log('❌ conversational_question failed:', error);
-  }
-
-  // 4. Test image_generation
+  // 3. Test image_generation
   try {
     console.log('Testing image_generation...');
-    results.image_generation = await PromptExecutor.execute('image_generation', {
+    results.image_generation = await PromptExecutor.executeWithSchemaEnforcement('image_generation', {
       prompt: 'A beautiful landscape with mountains and a lake at sunset, in a happy and bright style'
     });
     console.log('✅ image_generation passed');
@@ -65,7 +53,7 @@ export async function GET() {
   // 5. Test text_processing
   try {
     console.log('Testing text_processing...');
-    results.text_processing = await PromptExecutor.execute('text_processing', {
+    results.text_processing = await PromptExecutor.executeWithSchemaEnforcement('text_processing', {
       prompt: 'This is a test text to process. Please analyze it and provide insights.'
     });
     console.log('✅ text_processing passed');
@@ -77,7 +65,7 @@ export async function GET() {
   // 6. Test questions_generation
   try {
     console.log('Testing questions_generation...');
-    results.questions_generation = await PromptExecutor.execute('questions_generation', {
+    results.questions_generation_2 = await PromptExecutor.executeWithSchemaEnforcement('questions_generation', {
       response: 'This is a test image showing a beautiful landscape with mountains and a lake at sunset. The composition is well-balanced with warm colors and dramatic lighting.'
     });
     console.log('✅ questions_generation passed');
@@ -87,7 +75,7 @@ export async function GET() {
   }
 
   const successCount = Object.keys(results).length;
-  const totalCount = 6; // Number of tests we're running
+  const totalCount = 5; // Number of tests we're running
   const errorCount = Object.keys(errors).length;
 
   return NextResponse.json({

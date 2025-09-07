@@ -1,4 +1,5 @@
 import React, { useState, useRef, DragEvent } from 'react'
+import Image from 'next/image'
 
 interface ImageUploadProps {
   onUpload: (file: File) => void
@@ -87,9 +88,11 @@ const ImageUpload: React.FC<ImageUploadProps> = ({ onUpload, isLoading }) => {
 
         {preview ? (
           <div className="space-y-4">
-            <img
+            <Image
               src={preview}
               alt="Preview"
+              width={400}
+              height={256}
               className="max-w-full h-64 object-contain mx-auto rounded-lg"
             />
             <p className="text-white/90 drop-shadow-md">

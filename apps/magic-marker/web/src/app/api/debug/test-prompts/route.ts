@@ -49,7 +49,6 @@ export async function GET(_request: NextRequest) {
         prompt_text_length: p.prompt_text.length,
         has_input_schema: !!p.input_schema,
         has_output_schema: !!p.output_schema,
-        has_return_schema: !!p.return_schema,
         created_at: p.created_at
       })) || [],
       specific_prompts: {

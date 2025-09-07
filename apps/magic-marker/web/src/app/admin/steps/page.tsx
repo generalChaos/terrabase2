@@ -7,7 +7,7 @@ import AdminLayout from '@/components/AdminLayout';
 interface ProcessingStep {
   id: string;
   image_id: string;
-  step_type: 'analysis' | 'questions' | 'conversational_question' | 'image_generation';
+  step_type: 'analysis' | 'questions' | 'image_generation';
   step_order: number;
   prompt_id?: string;
   prompt_content?: string;
@@ -70,7 +70,6 @@ export default function StepsPage() {
     switch (stepType) {
       case 'analysis': return 'bg-blue-100 text-blue-800';
       case 'questions': return 'bg-green-100 text-green-800';
-      case 'conversational_question': return 'bg-cyan-100 text-cyan-800';
       case 'image_generation': return 'bg-purple-100 text-purple-800';
       default: return 'bg-gray-100 text-gray-800';
     }
@@ -166,12 +165,6 @@ export default function StepsPage() {
           </div>
           <div className="bg-white p-6 rounded-lg shadow">
             <div className="text-2xl font-bold text-cyan-600">
-              {steps.filter(s => s.step_type === 'conversational_question').length}
-            </div>
-            <div className="text-sm text-gray-600">Conversational Questions</div>
-          </div>
-          <div className="bg-white p-6 rounded-lg shadow">
-            <div className="text-2xl font-bold text-purple-600">
               {steps.filter(s => s.step_type === 'image_generation').length}
             </div>
             <div className="text-sm text-gray-600">Image Generation</div>

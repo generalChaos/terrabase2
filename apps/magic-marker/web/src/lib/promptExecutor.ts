@@ -6,6 +6,9 @@ import {
   PromptOutput, 
   PromptDefinition
 } from './promptTypes';
+import { ContextManager, StepContext } from './contextManager';
+import { ContextLogger } from './contextLogger';
+import { SchemaEnforcer } from './schemaEnforcer';
 
 // Lazy initialization of OpenAI client
 let openai: OpenAI | null = null;
@@ -62,11 +65,12 @@ export class PromptExecutor {
   }
 
   /**
-   * Execute a prompt with type-safe input/output
+   * Execute a prompt with type-safe input/output and optional context
    */
   static async execute<T extends PromptType>(
     promptName: string,
-    input: PromptInput<T>
+    input: PromptInput<T>,
+    context?: StepContext
   ): Promise<PromptOutput<T>> {
     const requestId = Math.random().toString(36).substring(7);
     console.log(`🚀 [${requestId}] Executing prompt: ${promptName}`);
@@ -89,8 +93,10 @@ export class PromptExecutor {
 
       console.log(`✅ [${requestId}] Input validation passed`);
 
-      // 3. Build full prompt with auto-appended return schema
-      const fullPrompt = this.buildFullPrompt(definition, input);
+      // 3. Build context-aware prompt
+      const fullPrompt = context 
+        ? this.buildContextAwarePrompt(definition, input, context, requestId)
+        : this.buildFullPrompt(definition, input);
       console.log(`📝 [${requestId}] Full prompt length: ${fullPrompt.length}`);
 
       // 4. Execute with OpenAI
@@ -130,6 +136,70 @@ export class PromptExecutor {
       
       throw new Error('An unexpected error occurred. Please try again later.');
     }
+  }
+
+  /**
+   * Execute a prompt with guaranteed schema compliance
+   */
+  static async executeWithSchemaEnforcement<T extends PromptType>(
+    promptName: string,
+    input: PromptInput<T>,
+    context?: StepContext
+  ): Promise<PromptOutput<T>> {
+    const requestId = Math.random().toString(36).substring(7);
+    console.log(`🔒 [${requestId}] Executing with schema enforcement: ${promptName}`);
+
+    try {
+      // 1. Fetch prompt definition
+      const definition = await this.getPromptDefinition(promptName);
+      if (!definition) {
+        throw new Error(`Prompt definition not found: ${promptName}`);
+      }
+
+      // 2. Validate input
+      const inputValidation = this.validateSchema(input, definition.input_schema);
+      if (!inputValidation.valid) {
+        throw new Error(`Input validation failed: ${inputValidation.errors.join(', ')}`);
+      }
+
+      // 3. Build prompt (without schema in text)
+      const promptText = context 
+        ? this.buildContextAwarePrompt(definition, input, context, requestId)
+        : this.buildFullPrompt(definition, input);
+
+      // Remove schema from prompt text since we're using schema enforcement
+      const cleanPromptText = this.removeSchemaFromPrompt(promptText);
+
+      // 4. Execute with schema enforcement
+      const result = await SchemaEnforcer.executeWithSchemaEnforcement(
+        definition,
+        cleanPromptText,
+        context
+      );
+
+      if (!result.success) {
+        throw new Error(`Schema enforcement failed: ${result.error}`);
+      }
+
+      console.log(`✅ [${requestId}] Schema-enforced execution completed successfully`);
+      if (!result.data) {
+        throw new Error('Schema enforcement succeeded but no data returned');
+      }
+      return result.data as unknown as PromptOutput<T>;
+
+    } catch (error: unknown) {
+      console.error(`❌ [${requestId}] Schema-enforced execution failed:`, error);
+      throw error instanceof Error ? error : new Error('Unknown error occurred');
+    }
+  }
+
+  /**
+   * Remove schema instructions from prompt text
+   */
+  private static removeSchemaFromPrompt(promptText: string): string {
+    // Remove the schema section that we normally add
+    const schemaRegex = /\n\nReturn ONLY JSON with this exact schema:[\s\S]*?Follow the schema exactly\./;
+    return promptText.replace(schemaRegex, '\n\nReturn your response as valid JSON.');
   }
 
   /**
@@ -217,6 +287,199 @@ export class PromptExecutor {
   }
 
   /**
+   * Build context-aware prompt with enhanced context information
+   */
+  private static buildContextAwarePrompt<T extends PromptType>(
+    definition: PromptDefinition<T>,
+    input: PromptInput<T>,
+    context: StepContext,
+    requestId: string
+  ): string {
+    ContextLogger.log('debug', 'prompt', context.currentStep, context.flowId, context.sessionId, requestId,
+      `Building context-aware prompt for step: ${context.currentStep}`);
+    
+    // Get relevant context for this step
+    const relevantContext = ContextManager.getRelevantContextForStep(
+      context.contextData as unknown as Record<string, unknown>,
+      context.currentStep,
+      context.flowId,
+      context.sessionId
+    );
+    
+    ContextLogger.logPromptConstruction(
+      context.flowId,
+      context.sessionId,
+      requestId,
+      context.currentStep,
+      definition.prompt_text,
+      input as Record<string, unknown>,
+      relevantContext
+    );
+    
+    // Start with base prompt
+    let promptText = definition.prompt_text;
+    
+    // Replace {prompt} placeholder if it exists
+    if ('prompt' in input) {
+      if (input.prompt) {
+        promptText = promptText.replace('{prompt}', input.prompt);
+      } else {
+        promptText = promptText.replace('{prompt}', '');
+      }
+    }
+
+    // Add context information based on step type
+    promptText = this.addContextToPrompt(promptText, context.currentStep, relevantContext, requestId);
+
+    // Add existing input context if available
+    if ('context' in input && input.context) {
+      promptText += `\n\nAdditional Context: ${input.context}`;
+    }
+
+    if ('analysis_type' in input && input.analysis_type) {
+      promptText += `\n\nAnalysis Type: ${input.analysis_type}`;
+    }
+
+    if ('focus_areas' in input && input.focus_areas && Array.isArray(input.focus_areas)) {
+      promptText += `\n\nFocus Areas: ${input.focus_areas.join(', ')}`;
+    }
+
+    if ('user_instructions' in input && input.user_instructions) {
+      promptText += `\n\nUser Instructions: ${input.user_instructions}`;
+    }
+
+    // Auto-append output schema
+    const outputSchema = JSON.stringify(definition.output_schema, null, 2);
+    promptText += `\n\nReturn ONLY JSON with this exact schema:\n${outputSchema}\n\nRules:\n- No extra keys. No preamble. No markdown. Only JSON.\n- Follow the schema exactly.`;
+
+    return promptText;
+  }
+
+  /**
+   * Add context information to prompt based on step type
+   * NOTE: This adds DATA context only, not schema or rules
+   */
+  private static addContextToPrompt(
+    promptText: string,
+    stepName: string,
+    relevantContext: Record<string, unknown>,
+    requestId: string
+  ): string {
+    let contextInfo = '';
+
+    // Add image analysis context for all steps that need it
+    if (relevantContext.imageAnalysis) {
+      contextInfo += `\n\nImage Analysis:\n${relevantContext.imageAnalysis}`;
+    }
+
+    // Add step-specific context
+    switch (stepName) {
+      case 'questions_generation':
+        if (relevantContext.artisticDirection) {
+          contextInfo += `\n\nArtistic Direction: ${relevantContext.artisticDirection}`;
+        }
+        if (relevantContext.userPreferences) {
+          const prefs = relevantContext.userPreferences as Record<string, unknown>;
+          if (Array.isArray(prefs.stylePreferences) && prefs.stylePreferences.length > 0) {
+            contextInfo += `\n\nUser Style Preferences: ${(prefs.stylePreferences as string[]).join(', ')}`;
+          }
+          if (Array.isArray(prefs.colorPreferences) && prefs.colorPreferences.length > 0) {
+            contextInfo += `\n\nUser Color Preferences: ${(prefs.colorPreferences as string[]).join(', ')}`;
+          }
+        }
+        break;
+
+      case 'conversational_question':
+        // Add previous questions and answers context
+        const stepResults = relevantContext.stepResults as Record<string, unknown>;
+        if (stepResults?.questions_generation) {
+          const qGen = stepResults.questions_generation as Record<string, unknown>;
+          const output = qGen.output as Record<string, unknown>;
+          if (output?.questions) {
+            const questions = output.questions as Array<Record<string, unknown>>;
+            contextInfo += `\n\nPreviously Generated Questions:\n`;
+            questions.forEach((q: Record<string, unknown>, index: number) => {
+              contextInfo += `${index + 1}. ${q.text}\n`;
+            });
+          }
+        }
+        
+        // Add conversation history
+        const conversationHistory = relevantContext.conversationHistory as Array<Record<string, unknown>> | undefined;
+        if (conversationHistory && conversationHistory.length > 0) {
+          contextInfo += `\n\nConversation History:\n`;
+          conversationHistory.forEach((entry: Record<string, unknown>, index: number) => {
+            const question = entry.question as Record<string, unknown>;
+            contextInfo += `Q${index + 1}: ${question.text}\n`;
+            if (entry.answer) {
+              contextInfo += `A${index + 1}: ${entry.answer}\n`;
+            }
+            contextInfo += `\n`;
+          });
+        }
+        
+        if (relevantContext.artisticDirection) {
+          contextInfo += `\n\nCurrent Artistic Direction: ${relevantContext.artisticDirection}`;
+        }
+        break;
+
+      case 'image_generation':
+        // Add all previous step results for comprehensive context
+        // NOTE: Only include actual data, not schemas or rules
+        const imageStepResults = relevantContext.stepResults as Record<string, unknown> | undefined;
+        if (imageStepResults) {
+          contextInfo += `\n\nPrevious Step Results:\n`;
+          
+          if (imageStepResults.questions_generation) {
+            const qGen = imageStepResults.questions_generation as Record<string, unknown>;
+            contextInfo += `Questions Generation:\n`;
+            // Only include the actual questions data, not full input/output
+            const output = qGen.output as Record<string, unknown>;
+            if (output?.questions) {
+              contextInfo += `- Generated Questions: ${JSON.stringify(output.questions)}\n\n`;
+            }
+          }
+          
+          if (imageStepResults.conversational_question) {
+            const conv = imageStepResults.conversational_question as Record<string, unknown>;
+            contextInfo += `Conversational Questions:\n`;
+            // Only include the actual conversation data
+            const output = conv.output as Record<string, unknown>;
+            if (output?.questions) {
+              contextInfo += `- Conversation Questions: ${JSON.stringify(output.questions)}\n\n`;
+            }
+          }
+        }
+        
+        // Add user preferences
+        if (relevantContext.userPreferences) {
+          const prefs = relevantContext.userPreferences as Record<string, unknown>;
+          contextInfo += `\n\nUser Preferences:\n`;
+          if (Array.isArray(prefs.stylePreferences) && prefs.stylePreferences.length > 0) {
+            contextInfo += `- Style: ${(prefs.stylePreferences as string[]).join(', ')}\n`;
+          }
+          if (Array.isArray(prefs.colorPreferences) && prefs.colorPreferences.length > 0) {
+            contextInfo += `- Colors: ${(prefs.colorPreferences as string[]).join(', ')}\n`;
+          }
+          if (Array.isArray(prefs.moodPreferences) && prefs.moodPreferences.length > 0) {
+            contextInfo += `- Mood: ${(prefs.moodPreferences as string[]).join(', ')}\n`;
+          }
+          if (Array.isArray(prefs.compositionPreferences) && prefs.compositionPreferences.length > 0) {
+            contextInfo += `- Composition: ${(prefs.compositionPreferences as string[]).join(', ')}\n`;
+          }
+        }
+        
+        if (relevantContext.artisticDirection) {
+          contextInfo += `\n\nFinal Artistic Direction: ${relevantContext.artisticDirection}`;
+        }
+        break;
+    }
+
+    console.log(`📝 [${requestId}] Added context info length: ${contextInfo.length}`);
+    return promptText + contextInfo;
+  }
+
+  /**
    * Call OpenAI API with proper model and format
    * Routes to DALL-E for image generation, chat completions for everything else
    */
@@ -271,7 +534,7 @@ export class PromptExecutor {
       
       // Log the complete message structure being sent to OpenAI
       const fullMessage = {
-        role: "user",
+        role: "user" as const,
         content: messageContent
       };
       console.log(`📤 [${requestId}] COMPLETE MESSAGE TO OPENAI:`, JSON.stringify(fullMessage, null, 2));
@@ -287,17 +550,19 @@ export class PromptExecutor {
       };
       console.log(`🔧 [${requestId}] API PARAMETERS:`, JSON.stringify(apiParams, null, 2));
       
-      const response = await openai.chat.completions.create(apiParams);
+      const response = await openai.chat.completions.create(apiParams as Parameters<typeof openai.chat.completions.create>[0]);
 
-      const tokensUsed = response.usage?.total_tokens;
-      const rawResponse = response.choices[0]?.message?.content;
-      const finishReason = response.choices[0]?.finish_reason;
-      
-      console.log(`📄 [${requestId}] RESPONSE:`, rawResponse);
-      console.log(`🔢 [${requestId}] Tokens used:`, tokensUsed);
-      console.log(`🏁 [${requestId}] Finish reason:`, finishReason);
+      // Handle both streaming and non-streaming responses
+      if ('usage' in response) {
+        const tokensUsed = response.usage?.total_tokens;
+        const rawResponse = response.choices[0]?.message?.content;
+        const finishReason = response.choices[0]?.finish_reason;
+        
+        console.log(`📄 [${requestId}] RESPONSE:`, rawResponse);
+        console.log(`🔢 [${requestId}] Tokens used:`, tokensUsed);
+        console.log(`🏁 [${requestId}] Finish reason:`, finishReason);
 
-      if (!rawResponse) {
+        if (!rawResponse) {
         const errorDetails = {
           finishReason,
           choicesLength: response.choices?.length,
@@ -338,7 +603,11 @@ export class PromptExecutor {
         }
       }
 
-      return rawResponse;
+        return rawResponse;
+      } else {
+        // Handle streaming response (should not happen in our case)
+        throw new Error('Unexpected streaming response received');
+      }
     } catch (error: unknown) {
       console.error(`❌ [${requestId}] OpenAI API error:`, error);
       console.error(`❌ [${requestId}] Error type:`, typeof error);

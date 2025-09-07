@@ -6,7 +6,7 @@ export async function GET() {
   try {
     console.log('🧪 Testing questions generation directly...');
     
-    const result = await PromptExecutor.execute('questions_generation', {
+    const result = await PromptExecutor.executeWithSchemaEnforcement('questions_generation', {
       response: 'This is a test image analysis for testing purposes.'
     });
     

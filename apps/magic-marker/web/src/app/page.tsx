@@ -3,11 +3,11 @@
 import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
 import axios from 'axios'
+import Image from 'next/image'
 import { ImageAnalysis, QuestionAnswer, Question } from '@/lib/types'
 import { AnalysisFlowService } from '@/lib/analysisFlowService'
 import ImageUpload from '@/components/ImageUpload'
 import QuestionFlow from '@/components/QuestionFlow'
-import ConversationalQuestionFlow from '@/components/ConversationalQuestionFlow'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import DebugPanel from '@/components/DebugPanel'
 import AnimatedHomepage from '@/components/AnimatedHomepage'
@@ -16,7 +16,7 @@ import { ToastContainer, useToast } from '@/components/Toast'
 const API_BASE = '/api'
 
 export default function HomePage() {
-  const [currentStep, setCurrentStep] = useState<'homepage' | 'upload' | 'questions' | 'conversational' | 'generating' | 'dynamic'>('homepage')
+  const [currentStep, setCurrentStep] = useState<'homepage' | 'upload' | 'questions' | 'generating' | 'dynamic'>('homepage')
   const [currentImageAnalysis, setCurrentImageAnalysis] = useState<ImageAnalysis | null>(null)
   const [errors, setErrors] = useState<string[]>([])
   const [logs, setLogs] = useState<string[]>([])
@@ -371,21 +371,6 @@ export default function HomePage() {
     moveToNextStep()
   }
 
-  const handleConversationalComplete = (conversationData: unknown) => {
-    console.log('💬 [CONVERSATION] handleConversationalComplete called with data:', conversationData)
-    console.log('💬 [CONVERSATION] Current step index:', currentStepIndex)
-    // Store conversation data and move to next step
-    setCurrentImageAnalysis(prev => prev ? { ...prev, conversationData } : null)
-    console.log('💬 [CONVERSATION] Moving to next step after storing conversation data')
-    moveToNextStep()
-  }
-
-  const handleConversationalSkip = () => {
-    console.log('⏭️ [CONVERSATION] Skipping conversational step due to error')
-    console.log('⏭️ [CONVERSATION] Current step index:', currentStepIndex)
-    // Move to next step without conversation data
-    moveToNextStep()
-  }
 
   const handleReset = () => {
     setCurrentStep('homepage')
@@ -529,9 +514,11 @@ export default function HomePage() {
                       Your Generated Image
                     </h2>
                     <div className="flex justify-center mb-6">
-                      <img
+                      <Image
                         src={currentImageAnalysis.finalImagePath}
                         alt="Generated image"
+                        width={800}
+                        height={600}
                         className="max-w-full h-auto max-h-96 border border-gray-300 rounded-lg shadow-lg"
                       />
                     </div>
@@ -632,19 +619,6 @@ export default function HomePage() {
                   )
                 }
               
-              case 'conversational_question':
-                // Show the conversational question flow
-                return (
-                  <ConversationalQuestionFlow
-                    imageId={currentImageAnalysis.id}
-                    imageAnalysis={currentImageAnalysis.analysisResult}
-                    originalImagePath={currentImageAnalysis.originalImagePath}
-                    onSubmit={handleQuestionsSubmit}
-                    onReset={handleReset}
-                    onSkip={handleConversationalSkip}
-                    isLoading={generateMutation.isLoading}
-                  />
-                )
               
               case 'text_processing':
                 return (

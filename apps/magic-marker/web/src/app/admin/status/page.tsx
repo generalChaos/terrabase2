@@ -26,6 +26,13 @@ interface SystemStatus {
     uploads_available: boolean
     error?: string
   }
+  schema_enforcement?: {
+    enabled: boolean
+    function_calling_success_rate: number
+    retry_fallback_rate: number
+    total_attempts: number
+    last_test?: string
+  }
 }
 
 export default function SystemStatusPage() {
@@ -215,7 +222,7 @@ export default function SystemStatusPage() {
       </div>
 
       {/* Prompts Status */}
-      <div className="bg-white overflow-hidden shadow rounded-lg">
+      <div className="bg-white overflow-hidden shadow rounded-lg mb-8">
         <div className="px-6 py-4 border-b border-gray-200">
           <h3 className="text-lg font-medium text-gray-900 flex items-center">
             <span className="mr-2">✏️</span>
@@ -242,10 +249,55 @@ export default function SystemStatusPage() {
         </div>
       </div>
 
+      {/* Schema Enforcement Status */}
+      {status.schema_enforcement && (
+        <div className="bg-white overflow-hidden shadow rounded-lg mb-8">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h3 className="text-lg font-medium text-gray-900 flex items-center">
+              <span className="mr-2">🔒</span>
+              Schema Enforcement
+            </h3>
+          </div>
+          <div className="px-6 py-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div>
+                <dt className="text-sm font-medium text-gray-500">Status</dt>
+                <dd className={`mt-1 text-sm font-medium ${getStatusColor(status.schema_enforcement.enabled)}`}>
+                  {getStatusIcon(status.schema_enforcement.enabled)} {status.schema_enforcement.enabled ? 'Enabled' : 'Disabled'}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-gray-500">Function Calling Success</dt>
+                <dd className="mt-1 text-sm text-gray-900">
+                  {status.schema_enforcement.function_calling_success_rate.toFixed(1)}%
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-gray-500">Retry Fallback Rate</dt>
+                <dd className="mt-1 text-sm text-gray-900">
+                  {status.schema_enforcement.retry_fallback_rate.toFixed(1)}%
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-gray-500">Total Attempts</dt>
+                <dd className="mt-1 text-sm text-gray-900">{status.schema_enforcement.total_attempts}</dd>
+              </div>
+            </div>
+            {status.schema_enforcement.last_test && (
+              <div className="mt-4 p-3 bg-blue-50 rounded-md">
+                <p className="text-sm text-blue-800">
+                  <strong>Last Test:</strong> {status.schema_enforcement.last_test}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Quick Actions */}
       <div className="mt-8">
         <h2 className="text-xl font-semibold text-gray-900 mb-6">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="bg-white p-6 rounded-lg shadow">
             <h3 className="text-lg font-medium text-gray-900 mb-2">Test Database Connection</h3>
             <p className="text-sm text-gray-600 mb-4">
@@ -262,6 +314,36 @@ export default function SystemStatusPage() {
           </div>
 
           <div className="bg-white p-6 rounded-lg shadow">
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Schema Enforcement Test</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Test all prompts with schema enforcement
+            </p>
+            <a
+              href="/api/debug/test-all-prompts"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+            >
+              Test Schema Enforcement
+            </a>
+          </div>
+
+          <div className="bg-white p-6 rounded-lg shadow">
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Questions Generation Test</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Test questions generation with schema enforcement
+            </p>
+            <a
+              href="/api/debug/test-questions"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
+            >
+              Test Questions
+            </a>
+          </div>
+
+          <div className="bg-white p-6 rounded-lg shadow">
             <h3 className="text-lg font-medium text-gray-900 mb-2">System Diagnostics</h3>
             <p className="text-sm text-gray-600 mb-4">
               Run comprehensive system health check
@@ -273,6 +355,34 @@ export default function SystemStatusPage() {
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
             >
               Run Diagnostics
+            </a>
+          </div>
+
+          <div className="bg-white p-6 rounded-lg shadow">
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Image Analysis Test</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Test image analysis with schema enforcement
+            </p>
+            <a
+              href="/api/debug/test-simple"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              Test Image Analysis
+            </a>
+          </div>
+
+          <div className="bg-white p-6 rounded-lg shadow">
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Prompt Tester</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Interactive prompt testing interface
+            </p>
+            <a
+              href="/admin/prompt-tester"
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+            >
+              Open Tester
             </a>
           </div>
         </div>

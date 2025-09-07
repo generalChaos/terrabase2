@@ -29,7 +29,6 @@ export async function GET() {
         name: data.name,
         type: data.type,
         prompt_text: data.prompt_text,
-        return_schema: data.return_schema,
         input_schema: data.input_schema,
         output_schema: data.output_schema,
         model: data.model,

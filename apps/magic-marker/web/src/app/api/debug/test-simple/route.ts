@@ -7,7 +7,7 @@ export async function GET() {
     console.log('🧪 Testing simple text processing...');
     
     // Test with a simple text processing prompt
-    const result = await PromptExecutor.execute('text_processing', {
+    const result = await PromptExecutor.executeWithSchemaEnforcement('text_processing', {
       prompt: 'Hello, this is a test message. Please respond with a greeting.'
     });
     

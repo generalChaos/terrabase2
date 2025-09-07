@@ -4,7 +4,6 @@ export type PromptType =
   | 'questions_generation' // Analysis → questions
   | 'image_generation'    // Prompt → image_base64
   | 'text_processing'     // Prompt → response
-  | 'conversational_question' // Analysis + previous answers → question/options/done
 
 // SIMPLIFIED Input/Output type mappings
 export interface PromptTypeMap {
@@ -45,18 +44,6 @@ export interface PromptTypeMap {
     }
   }
   
-  'conversational_question': {
-    input: {
-      response: string // Image analysis response
-      previousAnswers: string[] // Previous user answers
-    }
-    output: {
-      questions: Question[] // Single question when not done, empty when done
-      done: boolean // AI decides when conversation is complete
-      summary?: string // Final summary when done=true
-      response: string // AI response text
-    }
-  }
 }
 
 // Helper types
@@ -185,28 +172,5 @@ export const OUTPUT_SCHEMAS: Record<PromptType, JSONSchema> = {
     required: ['response']
   },
 
-  'conversational_question': {
-    type: 'object',
-    properties: {
-      questions: {
-        type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-            text: { type: 'string' },
-            type: { type: 'string', enum: ['multiple_choice'] },
-            options: { type: 'array', items: { type: 'string' } },
-            required: { type: 'boolean' }
-          },
-          required: ['id', 'text', 'type', 'options', 'required']
-        }
-      },
-      done: { type: 'boolean' },
-      summary: { type: 'string' },
-      response: { type: 'string', minLength: 10 }
-    },
-    required: ['questions', 'done']
-  }
 
 }

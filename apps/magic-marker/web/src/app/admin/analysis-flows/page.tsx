@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
 import { useRouter } from 'next/navigation'
 import axios from 'axios'
+import NextImage from 'next/image'
 import { AnalysisFlow } from '@/lib/newTypes'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import AdminLayout from '@/components/AdminLayout'
@@ -216,9 +217,11 @@ export default function AnalysisFlowsPage() {
                           {/* Original Image Thumbnail */}
                           <div className="flex flex-col items-center space-y-1">
                             {imageThumbnails[flow.original_image_id] ? (
-                              <img
+                              <NextImage
                                 src={imageThumbnails[flow.original_image_id]}
                                 alt="Original"
+                                width={48}
+                                height={48}
                                 className="w-12 h-12 object-cover rounded-lg border border-gray-200"
                               />
                             ) : (
@@ -233,9 +236,11 @@ export default function AnalysisFlowsPage() {
                           {flow.final_image_id && (
                             <div className="flex flex-col items-center space-y-1">
                               {imageThumbnails[flow.final_image_id] ? (
-                                <img
+                                <NextImage
                                   src={imageThumbnails[flow.final_image_id]}
                                   alt="Final"
+                                  width={48}
+                                  height={48}
                                   className="w-12 h-12 object-cover rounded-lg border border-green-200"
                                 />
                               ) : (
