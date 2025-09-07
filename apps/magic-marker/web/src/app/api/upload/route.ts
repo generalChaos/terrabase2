@@ -266,23 +266,8 @@ export async function POST(request: NextRequest) {
 
     console.log(`🎉 [${requestId}] Upload completed successfully!`);
     
-    // DEBUG MODE: Stop after questions generation to debug step 2
-    const DEBUG_MODE = process.env.DEBUG_AFTER_QUESTIONS === 'true' || true; // Set to true to enable debug mode
-    
-    if (DEBUG_MODE) {
-      console.log(`🐛 [${requestId}] DEBUG MODE: Stopping after questions generation for debugging`);
-      return NextResponse.json({
-        success: true,
-        imageAnalysisId: imageRecord.id,
-        flowId: analysisFlow.id,
-        originalImagePath: publicUrl,
-        analysis: analysisResult.response,
-        questions: questionsWithUniqueIds, // Return the generated questions
-        debugMode: true,
-        debugMessage: "Stopped after questions generation for debugging",
-        contextData: context // Include the full context data
-      });
-    }
+    // Include context data for debugging (without stopping the flow)
+    console.log(`🐛 [${requestId}] Including context data for debugging`);
     
     return NextResponse.json({
       success: true,
@@ -290,7 +275,8 @@ export async function POST(request: NextRequest) {
       flowId: analysisFlow.id, // Return the analysis flow ID
       originalImagePath: publicUrl,
       analysis: analysisResult.response,
-      questions: questionsWithUniqueIds // Return generated questions with unique IDs
+      questions: questionsWithUniqueIds, // Return generated questions with unique IDs
+      contextData: context // Include the full context data for debugging
     });
 
   } catch (error: unknown) {

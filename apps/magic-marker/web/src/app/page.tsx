@@ -22,6 +22,7 @@ export default function HomePage() {
   const [errors, setErrors] = useState<string[]>([])
   const [logs, setLogs] = useState<string[]>([])
   const [currentStepIndex, setCurrentStepIndex] = useState(0)
+  const [showDebug, setShowDebug] = useState(false)
   const hasTriggeredGeneration = useRef(false)
   const { toasts, removeToast, success, error, warning, info } = useToast()
   
@@ -141,40 +142,9 @@ export default function HomePage() {
       onSuccess: (data) => {
         console.log('📤 [UPLOAD] Upload success - data:', data)
         
-        // Check if we're in debug mode
-        if (data.debugMode) {
-          addLog(`🐛 DEBUG MODE: ${data.debugMessage}`)
-          addLog(`Image analysis completed: ${data.analysis}`)
-          addLog(`Questions generated: ${data.questions.length} questions`)
-          
-          // Show debug toast
-          warning(
-            'Debug Mode Active',
-            'Flow stopped after questions generation for debugging. Check debug panel for context details.'
-          )
-          
-          setCurrentImageAnalysis({
-            id: data.imageAnalysisId,
-            originalImagePath: data.originalImagePath,
-            analysisResult: data.analysis || '',
-            questions: data.questions || [], // Show the generated questions
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            flowId: data.flowId,
-            totalQuestions: data.questions?.length || 0,
-            totalAnswers: 0,
-            currentStep: 'debug',
-            totalCostUsd: 0,
-            totalTokens: 0,
-            isActive: true,
-            contextData: data.contextData // Store the context data for debugging
-          })
-          
-          // Stay on upload step to show debug info
-          setCurrentStep('upload')
-          setCurrentStepIndex(0)
-          queryClient.invalidateQueries('images')
-          return
+        // Store context data for debugging (without stopping the flow)
+        if (data.contextData) {
+          addLog(`🐛 Context data available for debugging`)
         }
         
         addLog(`Image analysis completed. Generated ${data.questions.length} questions`)
@@ -200,7 +170,8 @@ export default function HomePage() {
           currentStep: 'questions',
           totalCostUsd: 0,
           totalTokens: 0,
-          isActive: true
+          isActive: true,
+          contextData: data.contextData // Store the context data for debugging
         })
         console.log('🔄 [UPLOAD] Setting currentStep to dynamic and currentStepIndex to 1 (questions_generation step)')
         setCurrentStep('dynamic')
@@ -384,6 +355,18 @@ export default function HomePage() {
       {/* Toast Container */}
       <ToastContainer toasts={toasts} onRemove={removeToast} />
       
+      {/* Global Debug Toggle */}
+      {currentStep !== 'homepage' && (
+        <div className="fixed top-4 right-4 z-50">
+          <button
+            onClick={() => setShowDebug(!showDebug)}
+            className="px-3 py-1 text-xs bg-gray-800 text-white rounded hover:bg-gray-700 transition-colors"
+          >
+            {showDebug ? 'Hide' : 'Show'} Debug
+          </button>
+        </div>
+      )}
+      
       {currentStep === 'homepage' && (
         <div className="">
           <main className="max-w-4xl mx-auto">
@@ -398,18 +381,12 @@ export default function HomePage() {
           <div className="w-full max-w-4xl">
             <ImageUpload onUpload={handleImageUpload} isLoading={uploadMutation.isLoading} />
             
-            {/* Debug Context Viewer */}
-            {currentImageAnalysis && currentImageAnalysis.currentStep === 'debug' && currentImageAnalysis.contextData && (
+            {/* Debug Context Viewer for Upload Step */}
+            {showDebug && currentImageAnalysis && currentImageAnalysis.contextData && (
               <DebugContextViewer
                 contextData={currentImageAnalysis.contextData}
-                stepName="Questions Generation"
-                onContinue={() => {
-                  // Move to questions step
-                  setCurrentStep('questions')
-                  setCurrentStepIndex(1)
-                  setCurrentImageAnalysis(prev => prev ? { ...prev, currentStep: 'questions' } : null)
-                }}
-                canContinue={true}
+                stepName="Upload & Analysis"
+                canContinue={false}
               />
             )}
           </div>
@@ -517,7 +494,7 @@ export default function HomePage() {
                         isLoading={generateMutation.isLoading}
                       />
                       {/* Debug Context Viewer for Questions Step */}
-                      {currentImageAnalysis.contextData && (
+                      {showDebug && currentImageAnalysis.contextData && (
                         <DebugContextViewer
                           contextData={currentImageAnalysis.contextData}
                           stepName="Questions Flow"
@@ -615,7 +592,7 @@ export default function HomePage() {
                         </p>
                       </div>
                       {/* Debug Context Viewer for Image Generation Step */}
-                      {currentImageAnalysis.contextData && (
+                      {showDebug && currentImageAnalysis.contextData && (
                         <DebugContextViewer
                           contextData={currentImageAnalysis.contextData}
                           stepName="Image Generation"

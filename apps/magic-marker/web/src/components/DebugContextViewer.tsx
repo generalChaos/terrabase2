@@ -53,69 +53,59 @@ export default function DebugContextViewer({
   const contextString = JSON.stringify(contextDisplay, null, 2)
 
   return (
-    <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
-      <div className="flex items-center justify-between mb-4">
+    <div className="mt-4 bg-gray-50 border border-gray-200 rounded-lg p-4">
+      <div className="flex items-center justify-between mb-3">
         <div className="flex items-center space-x-2">
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className="flex items-center space-x-2 text-blue-800 hover:text-blue-900"
+            className="flex items-center space-x-2 text-gray-700 hover:text-gray-900"
           >
             {isExpanded ? (
               <ChevronDown className="w-4 h-4" />
             ) : (
               <ChevronRight className="w-4 h-4" />
             )}
-            <h3 className="text-lg font-semibold">
-              🐛 Debug Mode - {stepName}
+            <h3 className="text-sm font-medium">
+              Debug: {stepName}
             </h3>
           </button>
         </div>
         
         <div className="flex items-center space-x-2">
-          <button
-            onClick={() => setShowFullContext(!showFullContext)}
-            className="flex items-center space-x-1 px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
-          >
-            {showFullContext ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            <span>{showFullContext ? 'Summary' : 'Full Context'}</span>
-          </button>
-          
-          <button
-            onClick={() => copyToClipboard(contextString)}
-            className="flex items-center space-x-1 px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
-          >
-            <Copy className="w-4 h-4" />
-            <span>{copied ? 'Copied!' : 'Copy'}</span>
-          </button>
-          
           {canContinue && onContinue && (
             <button
               onClick={onContinue}
-              className="flex items-center space-x-1 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+              className="flex items-center space-x-1 px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700"
             >
               <Play className="w-4 h-4" />
-              <span>Continue Flow</span>
+              <span>Continue</span>
             </button>
           )}
+          
+          <button
+            onClick={() => copyToClipboard(contextString)}
+            className="flex items-center space-x-1 px-2 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+          >
+            <Copy className="w-3 h-3" />
+            <span>{copied ? 'Copied!' : 'Copy'}</span>
+          </button>
         </div>
       </div>
 
       {isExpanded && (
-        <div className="space-y-4">
-          <div className="bg-white border border-blue-200 rounded p-4">
-            <div className="text-sm text-blue-600 font-medium mb-2">
-              Context Data Being Sent to AI:
+        <div className="space-y-3">
+          <div className="bg-white border border-gray-200 rounded p-3">
+            <div className="text-xs text-gray-600 font-medium mb-2">
+              Context Data:
             </div>
-            <pre className="text-xs text-gray-800 overflow-x-auto max-h-96">
+            <pre className="text-xs text-gray-800 overflow-x-auto max-h-64">
               {contextString}
             </pre>
           </div>
           
-          <div className="text-sm text-blue-700">
-            <p><strong>Step:</strong> {stepName}</p>
-            <p><strong>Context Size:</strong> {contextString.length} characters</p>
-            <p><strong>Flow ID:</strong> {String(contextData?.flowId || 'N/A')}</p>
-            <p><strong>Session ID:</strong> {String(contextData?.sessionId || 'N/A')}</p>
+          <div className="text-xs text-gray-600">
+            <p><strong>Size:</strong> {contextString.length} chars</p>
+            <p><strong>Flow:</strong> {String(contextData?.flowId || 'N/A').substring(0, 8)}...</p>
           </div>
         </div>
       )}
