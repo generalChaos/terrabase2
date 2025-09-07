@@ -5,13 +5,11 @@ import { useState } from 'react'
 
 interface ErrorExplanationProps {
   error: string
-  promptType?: string
   className?: string
 }
 
 export default function ErrorExplanation({
   error,
-  promptType,
   className = ''
 }: ErrorExplanationProps) {
   const [showDetails, setShowDetails] = useState(false)
