@@ -12,7 +12,7 @@ const nextConfig: NextConfig = {
     },
   },
   images: {
-    domains: ['localhost', '*.supabase.co', '*.supabase.in'],
+    domains: ['localhost', '127.0.0.1', '*.supabase.co', '*.supabase.in'],
   },
 }
 

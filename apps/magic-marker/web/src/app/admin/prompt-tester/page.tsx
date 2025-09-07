@@ -392,12 +392,8 @@ export default function PromptTesterPage() {
       title="Prompt Tester" 
       description="Test and debug AI prompts with real inputs and outputs"
     >
-      {/* Header with Debug Toggle */}
-      <div className="mb-6 flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Prompt Tester</h1>
-          <p className="text-gray-600">Test and debug AI prompts with real inputs and outputs</p>
-        </div>
+      {/* Debug Toggle */}
+      <div className="mb-6 flex justify-end">
         <DebugModeToggle debugMode={debugMode} onToggle={setDebugMode} />
       </div>
 
