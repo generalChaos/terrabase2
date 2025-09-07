@@ -233,14 +233,10 @@ export default function PromptDefinitionsPage() {
   return (
     <AdminLayout 
       title="Prompt Definitions" 
-      description="Manage AI prompt definitions"
+      description="Edit prompt text and manage AI pipeline settings"
     >
-      {/* Header with Debug Toggle */}
-      <div className="mb-6 flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Prompt Definitions</h1>
-          <p className="text-gray-600">Edit prompt text and manage AI pipeline settings</p>
-        </div>
+      {/* Debug Toggle */}
+      <div className="mb-6 flex justify-end">
         <DebugModeToggle debugMode={debugMode} onToggle={setDebugMode} />
       </div>
 
