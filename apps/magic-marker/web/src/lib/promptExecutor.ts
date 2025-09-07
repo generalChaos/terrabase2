@@ -545,8 +545,7 @@ export class PromptExecutor {
         response_format: definition.response_format === 'json_object' 
           ? { type: "json_object" } 
           : undefined,
-        max_tokens: definition.max_tokens,
-        temperature: definition.temperature,
+        max_completion_tokens: definition.max_tokens
       };
       console.log(`🔧 [${requestId}] API PARAMETERS:`, JSON.stringify(apiParams, null, 2));
       

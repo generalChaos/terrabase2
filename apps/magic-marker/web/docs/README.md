@@ -7,6 +7,8 @@ AI-powered image analysis and generation tool with advanced computer vision capa
 - [Overview](#overview)
 - [Features](#features)
 - [Architecture](#architecture)
+- [Disambiguation Strategy](#disambiguation-strategy)
+- [Database Schema](#database-schema)
 - [Setup Guide](#setup-guide)
 - [API Reference](#api-reference)
 - [Development](#development)
@@ -18,25 +20,27 @@ AI-powered image analysis and generation tool with advanced computer vision capa
 
 ## 🎯 **Overview**
 
-Magic Marker is a full-stack Next.js application that combines AI image analysis with creative image generation. Users can upload images, receive AI-generated questions about the content, answer those questions, and then generate new images based on their responses.
+Magic Marker is a full-stack Next.js application that helps children bring their character drawings to life as professional illustrations. The system uses AI to understand, disambiguate, and enhance children's creative visions through an engaging question-and-answer flow.
 
 ### **Key Capabilities**
-- **Image Analysis**: GPT-4o analyzes uploaded images and generates 10 multiple-choice questions
-- **Interactive Q&A**: Users answer questions about the image content
-- **AI Image Generation**: DALL-E 3 creates new images based on user answers
-- **Secure Storage**: All images and data stored in Supabase
-- **Real-time Processing**: Fast AI processing with comprehensive error handling
+- **Character Analysis**: GPT-4o analyzes children's character drawings with conversational, enthusiastic analysis
+- **Disambiguation Questions**: AI generates simple, fun questions to clarify ambiguous elements
+- **Interactive Q&A**: Children answer questions about their character design and personality
+- **Professional Image Generation**: DALL-E 3 creates polished illustrations based on clarified character details
+- **Schema Enforcement**: Robust JSON schema validation ensures consistent AI responses
+- **Secure Storage**: All images and data stored in Supabase with comprehensive flow tracking
 
 ## ✨ **Features**
 
 ### **Core Features**
-- ✅ **Drag & Drop Upload**: Intuitive image upload interface
-- ✅ **AI Image Analysis**: GPT-4o vision model analyzes image content
-- ✅ **Dynamic Question Generation**: Flexible number of contextually relevant questions per image
-- ✅ **Interactive Question Flow**: Multiple-choice questions with validation
-- ✅ **AI Image Generation**: DALL-E 3 creates images based on answers
-- ✅ **Result Display**: Beautiful page showing original and generated images
-- ✅ **Responsive Design**: Works seamlessly on desktop and mobile
+- ✅ **Character Drawing Upload**: Intuitive drag & drop interface for character drawings
+- ✅ **Conversational Analysis**: GPT-4o provides enthusiastic, understanding analysis of children's drawings
+- ✅ **Smart Disambiguation**: AI identifies ambiguities and generates fun, simple questions
+- ✅ **Interactive Character Q&A**: Children answer questions about their character's design and personality
+- ✅ **Professional Illustration**: DALL-E 3 creates polished character illustrations
+- ✅ **Schema-Enforced AI**: Robust JSON schema validation ensures consistent AI responses
+- ✅ **Flow Tracking**: Complete analysis flow tracking with context management
+- ✅ **Result Display**: Beautiful comparison of original drawing and final illustration
 
 ### **Admin Features**
 - ✅ **Admin Dashboard**: Centralized management interface
@@ -108,39 +112,70 @@ src/
 
 ### **Database Schema (Supabase)**
 ```sql
--- Images table for storing uploaded and generated images
-CREATE TABLE images (
+-- Prompt definitions table for AI prompt management
+CREATE TABLE prompt_definitions (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  original_image_path TEXT NOT NULL,
-  analysis_result TEXT,
-  questions JSONB,
-  answers JSONB,
-  final_image_path TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Prompts table for dynamic prompt management
-CREATE TABLE prompts (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  name TEXT UNIQUE NOT NULL,
-  content TEXT NOT NULL,
+  name VARCHAR UNIQUE NOT NULL,
+  type VARCHAR NOT NULL,
+  input_schema JSONB NOT NULL,
+  output_schema JSONB NOT NULL,
+  prompt_text TEXT NOT NULL,
+  model VARCHAR DEFAULT 'gpt-4o' NOT NULL,
+  response_format VARCHAR DEFAULT 'json_object' NOT NULL,
+  max_tokens INTEGER,
+  temperature NUMERIC(2,1),
   active BOOLEAN DEFAULT true,
   sort_order INTEGER DEFAULT 0,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- AI conversations table for analytics tracking
-CREATE TABLE ai_conversations (
+-- Images table for storing character drawings and generated illustrations
+CREATE TABLE images (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  prompt_id UUID REFERENCES prompts(id),
-  input_data JSONB,
-  output_data JSONB,
-  response_time_ms INTEGER,
+  analysis_result TEXT NOT NULL,
+  image_type VARCHAR NOT NULL, -- 'original', 'additional', 'final'
+  file_path TEXT NOT NULL,
+  file_size INTEGER,
+  mime_type VARCHAR,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Analysis flows table for tracking complete character analysis sessions
+CREATE TABLE analysis_flows (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  session_id TEXT NOT NULL,
+  original_image_id UUID NOT NULL,
+  additional_image_ids UUID[] DEFAULT '{}',
+  final_image_id UUID,
+  total_questions INTEGER DEFAULT 0,
+  total_answers INTEGER DEFAULT 0,
+  current_step VARCHAR,
+  questions JSONB DEFAULT '[]',
+  answers JSONB DEFAULT '[]',
+  context_data JSONB DEFAULT '{}',
+  total_cost_usd NUMERIC(10,6) DEFAULT 0,
+  total_tokens INTEGER DEFAULT 0,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Image processing steps table for detailed step tracking
+CREATE TABLE image_processing_steps (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  flow_id UUID NOT NULL,
+  step_type VARCHAR NOT NULL,
+  step_order INTEGER NOT NULL,
+  prompt_id VARCHAR,
+  prompt_content TEXT,
+  input_data JSONB DEFAULT '{}',
+  output_data JSONB DEFAULT '{}',
+  response_time_ms INTEGER DEFAULT 0,
   tokens_used INTEGER,
-  model_used TEXT,
-  success BOOLEAN,
+  model_used VARCHAR NOT NULL,
+  success BOOLEAN DEFAULT true,
   error_message TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -148,7 +183,76 @@ CREATE TABLE ai_conversations (
 
 ### **External Services**
 - **Supabase**: Database, file storage, and authentication
-- **OpenAI**: GPT-4o for image analysis, DALL-E 3 for image generation
+- **OpenAI**: GPT-4o for image analysis, GPT-5 for conversational tasks, DALL-E 3 for image generation
+
+## 🎨 **Disambiguation Strategy**
+
+Magic Marker uses a sophisticated disambiguation strategy to help children bring their character drawings to life. The approach focuses on making children feel like creative directors of their own characters.
+
+### **Core Philosophy**
+- **Child as Creative Director**: Children make important decisions about their character
+- **Preserve Original Vision**: Final image feels like "their character, but better"
+- **Transform Ambiguities into Strengths**: Unclear elements become creative opportunities
+
+### **Three-Phase Flow**
+1. **Analysis Phase**: Decode the child's creative vision with enthusiastic understanding
+2. **Disambiguation Phase**: Generate simple, fun questions to clarify ambiguous elements
+3. **Image Synthesis Phase**: Create professional illustration preserving the child's vision
+
+### **Key Principles**
+- **Visual disambiguation first** (shapes, colors, features)
+- **Character concepts second** (personality, mood, abilities)
+- **Simple, fun questions** that feel like a creative game
+- **Show enthusiasm** and understanding of their vision
+
+For detailed strategy documentation, see [Disambiguation Strategy Guide](DISAMBIGUATION_STRATEGY.md).
+
+## 🗄️ **Database Schema**
+
+Magic Marker uses a comprehensive database schema designed for character drawing analysis and flow tracking.
+
+### **Core Tables**
+
+#### **`prompt_definitions`**
+Stores AI prompt configurations with input/output schemas:
+- **`image_analysis`**: Analyzes character drawings with conversational tone
+- **`questions_generation`**: Generates disambiguation questions
+- **`image_generation`**: Creates professional illustrations
+
+#### **`analysis_flows`**
+Tracks complete character analysis sessions:
+- Session management and progress tracking
+- Question and answer storage
+- Context data and flow state
+- Cost and token usage tracking
+
+#### **`images`**
+Stores all image data:
+- Original character drawings
+- Generated illustrations
+- File metadata and storage paths
+
+#### **`image_processing_steps`**
+Detailed step-by-step processing logs:
+- Input/output data for each AI interaction
+- Response times and token usage
+- Error tracking and debugging information
+
+### **Schema Enforcement**
+All AI interactions use strict JSON schema validation:
+- **Input schemas**: Define required parameters for each prompt type
+- **Output schemas**: Validate AI responses before processing
+- **Type safety**: Full TypeScript integration with database schemas
+
+### **Context Management**
+Simplified context structure for better AI performance:
+- `imageAnalysis`: Results from analysis step
+- `previousAnswers`: User responses to questions
+- `stepResults`: Output from each processing step
+- `conversationHistory`: Context across interactions
+- `flow_summary`: Complete flow summary for image generation
+
+For detailed database documentation, see [Database Schema Guide](DATABASE_SCHEMA.md).
 
 ## 🚀 **Setup Guide**
 
