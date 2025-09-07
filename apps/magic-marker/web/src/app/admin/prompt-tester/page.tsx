@@ -3,7 +3,11 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import AdminLayout from '@/components/AdminLayout';
-// import { PromptType, PromptTypeMap } from '@/lib/promptTypes' // Unused for now;
+import CollapsibleDebugSection from '@/components/admin/CollapsibleDebugSection'
+import StatusCard from '@/components/admin/StatusCard'
+import SchemaPreview from '@/components/admin/SchemaPreview'
+import ErrorExplanation from '@/components/admin/ErrorExplanation'
+import DebugModeToggle from '@/components/admin/DebugModeToggle'
 
 interface Question {
   id: string;
@@ -50,6 +54,7 @@ export default function PromptTesterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingPrompts, setIsLoadingPrompts] = useState(true);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [debugMode, setDebugMode] = useState(false);
   
   // Individual input fields
   const [inputFields, setInputFields] = useState<Record<string, unknown>>({});
@@ -387,8 +392,16 @@ export default function PromptTesterPage() {
       title="Prompt Tester" 
       description="Test and debug AI prompts with real inputs and outputs"
     >
-      <div className="space-y-6">
+      {/* Header with Debug Toggle */}
+      <div className="mb-6 flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Prompt Tester</h1>
+          <p className="text-gray-600">Test and debug AI prompts with real inputs and outputs</p>
+        </div>
+        <DebugModeToggle debugMode={debugMode} onToggle={setDebugMode} />
+      </div>
 
+      <div className="space-y-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left Panel - Prompt Selection and Input */}
           <div className="space-y-6">
@@ -575,31 +588,50 @@ export default function PromptTesterPage() {
 
           {/* Right Panel - Schema and Results */}
           <div className="space-y-6">
-            {/* Schema Information */}
+            {/* Schema Information - Collapsible */}
             {selectedPrompt && (
-              <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-lg font-semibold mb-4 text-gray-900">Schema Information</h2>
+              <CollapsibleDebugSection 
+                title="Schema Information" 
+                defaultOpen={debugMode}
+              >
                 <div className="space-y-4">
-                  <div>
-                    <h3 className="font-medium text-gray-700 mb-2">Input Schema</h3>
-                    <pre className="bg-gray-100 p-3 rounded text-xs overflow-auto max-h-32 text-gray-800">
-                      {JSON.stringify(selectedPrompt.input_schema, null, 2)}
-                    </pre>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <SchemaPreview
+                      schema={selectedPrompt.input_schema}
+                      type="input"
+                      explanation="Defines what data the AI expects to receive"
+                      howItWorks="Used to validate and structure input data before sending to the AI model"
+                    />
+                    <SchemaPreview
+                      schema={selectedPrompt.output_schema}
+                      type="output"
+                      explanation="Defines the exact format the AI must return"
+                      howItWorks="Enforced via OpenAI Function Calling to guarantee 100% schema compliance"
+                    />
                   </div>
-                  <div>
-                    <h3 className="font-medium text-gray-700 mb-2">Output Schema</h3>
-                    <pre className="bg-gray-100 p-3 rounded text-xs overflow-auto max-h-32 text-gray-800">
-                      {JSON.stringify(selectedPrompt.output_schema, null, 2)}
-                    </pre>
-                  </div>
-                  <div>
-                    <h3 className="font-medium text-gray-700 mb-2">Output Schema (Sent to AI)</h3>
-                    <pre className="bg-gray-100 p-3 rounded text-xs overflow-auto max-h-32 text-gray-800">
-                      {JSON.stringify(selectedPrompt.output_schema, null, 2)}
-                    </pre>
-                  </div>
+
+                  {/* Advanced Schema Details */}
+                  <CollapsibleDebugSection 
+                    title="Full Schema Details" 
+                    defaultOpen={false}
+                  >
+                    <div className="space-y-4">
+                      <div>
+                        <h5 className="text-sm font-medium text-gray-700 mb-2">Input Schema (Raw)</h5>
+                        <pre className="text-xs bg-gray-100 p-3 rounded overflow-x-auto">
+                          {JSON.stringify(selectedPrompt.input_schema, null, 2)}
+                        </pre>
+                      </div>
+                      <div>
+                        <h5 className="text-sm font-medium text-gray-700 mb-2">Output Schema (Raw)</h5>
+                        <pre className="text-xs bg-gray-100 p-3 rounded overflow-x-auto">
+                          {JSON.stringify(selectedPrompt.output_schema, null, 2)}
+                        </pre>
+                      </div>
+                    </div>
+                  </CollapsibleDebugSection>
                 </div>
-              </div>
+              </CollapsibleDebugSection>
             )}
 
             {/* Test Results */}
@@ -648,35 +680,66 @@ export default function PromptTesterPage() {
                   </div>
 
                   {testResult.error && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                      <h3 className="font-medium text-red-800 mb-2">Error</h3>
-                      <pre className="text-sm text-red-700 whitespace-pre-wrap">
-                        {testResult.error}
-                      </pre>
+                    <div className="mb-4">
+                      <ErrorExplanation error={testResult.error} />
                     </div>
                   )}
 
                   {testResult.response && (
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                      <h3 className="font-medium text-green-800 mb-2">Response</h3>
-                      
-                      {/* Check if response contains base64 image */}
-                      {testResult.response.image_base64 ? (
-                        <div className="mb-4">
-                          <h4 className="font-medium text-green-700 mb-2">Generated Image:</h4>
-                          <Image 
-                            src={`data:image/png;base64,${testResult.response.image_base64}`}
-                            alt="Generated image"
-                            width={400}
-                            height={256}
-                            className="max-w-full h-auto max-h-64 border border-gray-300 rounded"
-                          />
+                    <div className="space-y-4">
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <h3 className="font-medium text-green-800 mb-2">Response</h3>
+                        
+                        {/* Check if response contains base64 image */}
+                        {testResult.response.image_base64 ? (
+                          <div className="mb-4">
+                            <h4 className="font-medium text-green-700 mb-2">Generated Image:</h4>
+                            <Image 
+                              src={`data:image/png;base64,${testResult.response.image_base64}`}
+                              alt="Generated image"
+                              width={400}
+                              height={256}
+                              className="max-w-full h-auto max-h-64 border border-gray-300 rounded"
+                            />
+                          </div>
+                        ) : null}
+                        
+                        <pre className="text-sm text-green-700 whitespace-pre-wrap overflow-auto max-h-64">
+                          {JSON.stringify(testResult.response, null, 2)}
+                        </pre>
+                      </div>
+
+                      {/* Debug Information - Collapsible */}
+                      <CollapsibleDebugSection 
+                        title="Test Execution Details" 
+                        defaultOpen={debugMode}
+                      >
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <StatusCard
+                              title="Execution Time"
+                              status="success"
+                              value={`${testResult.executionTime}ms`}
+                              subtitle="Total processing time"
+                            />
+                            {testResult.tokensUsed && (
+                              <StatusCard
+                                title="Tokens Used"
+                                status="success"
+                                value={testResult.tokensUsed}
+                                subtitle="OpenAI token consumption"
+                              />
+                            )}
+                          </div>
+
+                          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                            <h5 className="font-medium text-gray-900 mb-2">Raw Response Data</h5>
+                            <pre className="text-xs bg-white p-3 rounded overflow-x-auto">
+                              {JSON.stringify(testResult.response, null, 2)}
+                            </pre>
+                          </div>
                         </div>
-                      ) : null}
-                      
-                      <pre className="text-sm text-green-700 whitespace-pre-wrap overflow-auto max-h-64">
-                        {JSON.stringify(testResult.response, null, 2)}
-                      </pre>
+                      </CollapsibleDebugSection>
                     </div>
                   )}
                 </div>

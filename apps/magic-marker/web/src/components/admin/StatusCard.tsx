@@ -4,7 +4,7 @@ import { CheckCircle, XCircle, AlertTriangle, Clock } from 'lucide-react'
 
 interface StatusCardProps {
   title: string
-  status: 'success' | 'error' | 'warning' | 'info' | 'loading'
+  status: 'success' | 'error' | 'warning' | 'info' | 'loading' | 'active'
   value: string | number
   subtitle?: string
   critical?: boolean
@@ -54,6 +54,14 @@ export default function StatusCard({
           valueColor: 'text-blue-600',
           bgColor: 'bg-blue-50',
           borderColor: 'border-blue-200'
+        }
+      case 'active':
+        return {
+          icon: CheckCircle,
+          iconColor: 'text-green-600',
+          valueColor: 'text-green-600',
+          bgColor: 'bg-green-50',
+          borderColor: 'border-green-200'
         }
       default:
         return {
