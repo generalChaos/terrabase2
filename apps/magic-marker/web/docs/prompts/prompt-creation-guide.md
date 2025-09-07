@@ -20,7 +20,7 @@ Magic Marker prompts are designed around a specific disambiguation strategy for 
 - **Simple, Fun Questions**: Frame as creative game, not test
 - **Show Understanding**: Demonstrate you "get" their creative vision
 
-For detailed strategy documentation, see [Disambiguation Strategy Guide](DISAMBIGUATION_STRATEGY.md).
+For detailed strategy documentation, see [Disambiguation Strategy Guide](../architecture/DISAMBIGUATION_STRATEGY.md).
 
 ## Key Concepts
 
