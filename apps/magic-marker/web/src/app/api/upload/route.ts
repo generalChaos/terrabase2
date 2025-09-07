@@ -266,22 +266,6 @@ export async function POST(request: NextRequest) {
 
     console.log(`🎉 [${requestId}] Upload completed successfully!`);
     
-    // DEBUG MODE: Stop after questions generation to debug step 2
-    const DEBUG_MODE = process.env.DEBUG_AFTER_QUESTIONS === 'true' || true; // Set to true to enable debug mode
-    
-    if (DEBUG_MODE) {
-      console.log(`🐛 [${requestId}] DEBUG MODE: Stopping after questions generation for debugging`);
-      return NextResponse.json({
-        success: true,
-        imageAnalysisId: imageRecord.id,
-        flowId: analysisFlow.id,
-        originalImagePath: publicUrl,
-        analysis: analysisResult.response,
-        questions: questionsWithUniqueIds, // Return the generated questions
-        debugMode: true,
-        debugMessage: "Stopped after questions generation for debugging"
-      });
-    }
     
     return NextResponse.json({
       success: true,
@@ -297,19 +281,8 @@ export async function POST(request: NextRequest) {
     
     let errorMessage: string = 'Upload failed';
     let statusCode: number = 500;
-    let debugInfo: { type: string; details: string; suggestion: string } | null = null;
-    
     if (error instanceof Error) {
       errorMessage = error.message;
-      
-      // Add debug info for validation errors
-      if (error.message.includes('validation failed')) {
-        debugInfo = {
-          type: 'validation_error',
-          details: error.message,
-          suggestion: 'Check the AI response format against expected schema'
-        };
-      }
       
       // Handle specific OpenAI errors
       if (error.message.includes('OpenAI API key not configured')) {
@@ -339,7 +312,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ 
       success: false, 
       error: errorMessage,
-      debug: debugInfo,
       timestamp: new Date().toISOString(),
       requestId: `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
     }, { status: statusCode });
