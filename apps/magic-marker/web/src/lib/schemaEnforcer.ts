@@ -46,8 +46,7 @@ export class SchemaEnforcer {
           parameters: definition.output_schema as unknown as Record<string, unknown>
         }],
         function_call: { name: "generate_response" },
-        max_tokens: definition.max_tokens,
-        temperature: definition.temperature || 0.7
+        max_completion_tokens: definition.max_tokens
       });
 
       const functionCall = response.choices[0].message.function_call;
@@ -112,8 +111,7 @@ export class SchemaEnforcer {
             }
           ],
           response_format: { type: "json_object" },
-          max_tokens: definition.max_tokens,
-          temperature: definition.temperature || 0.7
+          max_completion_tokens: definition.max_tokens
         });
 
         const rawResponse = response.choices[0].message.content;
