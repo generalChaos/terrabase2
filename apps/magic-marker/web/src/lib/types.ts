@@ -21,6 +21,7 @@ export interface ImageAnalysis {
   totalCostUsd?: number;
   totalTokens?: number;
   isActive?: boolean;
+  contextData?: Record<string, unknown>; // For debug mode context viewing
 }
 
 export interface Question {

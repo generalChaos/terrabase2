@@ -11,6 +11,7 @@ import QuestionFlow from '@/components/QuestionFlow'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import DebugPanel from '@/components/DebugPanel'
 import AnimatedHomepage from '@/components/AnimatedHomepage'
+import DebugContextViewer from '@/components/DebugContextViewer'
 import { ToastContainer, useToast } from '@/components/Toast'
 
 const API_BASE = '/api'
@@ -140,6 +141,41 @@ export default function HomePage() {
       onSuccess: (data) => {
         console.log('📤 [UPLOAD] Upload success - data:', data)
         
+        // Check if we're in debug mode
+        if (data.debugMode) {
+          addLog(`🐛 DEBUG MODE: ${data.debugMessage}`)
+          addLog(`Image analysis completed: ${data.analysis}`)
+          addLog(`Questions generated: ${data.questions.length} questions`)
+          
+          // Show debug toast
+          warning(
+            'Debug Mode Active',
+            'Flow stopped after questions generation for debugging. Check debug panel for context details.'
+          )
+          
+          setCurrentImageAnalysis({
+            id: data.imageAnalysisId,
+            originalImagePath: data.originalImagePath,
+            analysisResult: data.analysis || '',
+            questions: data.questions || [], // Show the generated questions
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            flowId: data.flowId,
+            totalQuestions: data.questions?.length || 0,
+            totalAnswers: 0,
+            currentStep: 'debug',
+            totalCostUsd: 0,
+            totalTokens: 0,
+            isActive: true,
+            contextData: data.contextData // Store the context data for debugging
+          })
+          
+          // Stay on upload step to show debug info
+          setCurrentStep('upload')
+          setCurrentStepIndex(0)
+          queryClient.invalidateQueries('images')
+          return
+        }
         
         addLog(`Image analysis completed. Generated ${data.questions.length} questions`)
         
@@ -227,8 +263,13 @@ export default function HomePage() {
       return response.data
     },
     {
-      onSuccess: async (_data) => {
+      onSuccess: async (data) => {
         addLog('Image generated successfully!')
+        
+        // Update context data if provided
+        if (data.contextData) {
+          setCurrentImageAnalysis(prev => prev ? { ...prev, contextData: data.contextData } : null)
+        }
         
         // Deactivate the analysis flow now that image generation is complete
         if (currentImageAnalysis?.flowId) {
@@ -357,6 +398,20 @@ export default function HomePage() {
           <div className="w-full max-w-4xl">
             <ImageUpload onUpload={handleImageUpload} isLoading={uploadMutation.isLoading} />
             
+            {/* Debug Context Viewer */}
+            {currentImageAnalysis && currentImageAnalysis.currentStep === 'debug' && currentImageAnalysis.contextData && (
+              <DebugContextViewer
+                contextData={currentImageAnalysis.contextData}
+                stepName="Questions Generation"
+                onContinue={() => {
+                  // Move to questions step
+                  setCurrentStep('questions')
+                  setCurrentStepIndex(1)
+                  setCurrentImageAnalysis(prev => prev ? { ...prev, currentStep: 'questions' } : null)
+                }}
+                canContinue={true}
+              />
+            )}
           </div>
         </div>
       )}
@@ -453,13 +508,23 @@ export default function HomePage() {
                 // Show questions if they exist, otherwise show generate button
                 if (currentImageAnalysis.questions && currentImageAnalysis.questions.length > 0) {
                   return (
-                    <QuestionFlow
-                      questions={currentImageAnalysis.questions}
-                      originalImagePath={currentImageAnalysis.originalImagePath}
-                      onSubmit={handleQuestionsSubmit}
-                      onReset={handleReset}
-                      isLoading={generateMutation.isLoading}
-                    />
+                    <>
+                      <QuestionFlow
+                        questions={currentImageAnalysis.questions}
+                        originalImagePath={currentImageAnalysis.originalImagePath}
+                        onSubmit={handleQuestionsSubmit}
+                        onReset={handleReset}
+                        isLoading={generateMutation.isLoading}
+                      />
+                      {/* Debug Context Viewer for Questions Step */}
+                      {currentImageAnalysis.contextData && (
+                        <DebugContextViewer
+                          contextData={currentImageAnalysis.contextData}
+                          stepName="Questions Flow"
+                          canContinue={false}
+                        />
+                      )}
+                    </>
                   )
                 } else {
                   return (
@@ -539,15 +604,25 @@ export default function HomePage() {
                 // Check if we're in generating state for this step
                 if (currentStep === 'dynamic' && currentStepInfo.type === 'image_generation') {
                   return (
-                    <div className="text-center py-12">
-                      <LoadingSpinner />
-                      <h2 className="text-2xl font-semibold text-white mt-4 drop-shadow-lg">
-                        Generating your image...
-                      </h2>
-                      <p className="text-white/90 mt-2 drop-shadow-md">
-                        This may take a few moments. Please wait.
-                      </p>
-                    </div>
+                    <>
+                      <div className="text-center py-12">
+                        <LoadingSpinner />
+                        <h2 className="text-2xl font-semibold text-white mt-4 drop-shadow-lg">
+                          Generating your image...
+                        </h2>
+                        <p className="text-white/90 mt-2 drop-shadow-md">
+                          This may take a few moments. Please wait.
+                        </p>
+                      </div>
+                      {/* Debug Context Viewer for Image Generation Step */}
+                      {currentImageAnalysis.contextData && (
+                        <DebugContextViewer
+                          contextData={currentImageAnalysis.contextData}
+                          stepName="Image Generation"
+                          canContinue={false}
+                        />
+                      )}
+                    </>
                   )
                 }
                 

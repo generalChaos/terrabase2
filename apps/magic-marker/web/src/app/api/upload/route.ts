@@ -266,6 +266,23 @@ export async function POST(request: NextRequest) {
 
     console.log(`🎉 [${requestId}] Upload completed successfully!`);
     
+    // DEBUG MODE: Stop after questions generation to debug step 2
+    const DEBUG_MODE = process.env.DEBUG_AFTER_QUESTIONS === 'true' || true; // Set to true to enable debug mode
+    
+    if (DEBUG_MODE) {
+      console.log(`🐛 [${requestId}] DEBUG MODE: Stopping after questions generation for debugging`);
+      return NextResponse.json({
+        success: true,
+        imageAnalysisId: imageRecord.id,
+        flowId: analysisFlow.id,
+        originalImagePath: publicUrl,
+        analysis: analysisResult.response,
+        questions: questionsWithUniqueIds, // Return the generated questions
+        debugMode: true,
+        debugMessage: "Stopped after questions generation for debugging",
+        contextData: context // Include the full context data
+      });
+    }
     
     return NextResponse.json({
       success: true,

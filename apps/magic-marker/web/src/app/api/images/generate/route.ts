@@ -6,6 +6,7 @@ import { StepService } from '@/lib/stepService';
 import { ImageService } from '@/lib/imageService';
 import { AnalysisFlowService } from '@/lib/analysisFlowService';
 import { PromptExecutor } from '@/lib/promptExecutor';
+import { ContextManager, StepContext } from '@/lib/contextManager';
 
 // POST /api/images/generate - Generate new image based on answers
 export async function POST(request: NextRequest) {
@@ -59,6 +60,35 @@ export async function POST(request: NextRequest) {
         success: true
       });
       
+      // Build context for image generation step
+      const contextFlowId = analysisFlow.id;
+      const contextSessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+      
+      const context: StepContext = ContextManager.buildContextForStep(
+        contextFlowId,
+        contextSessionId,
+        'image_generation',
+        3,
+        {
+          imageAnalysis: imageData.analysis_result,
+          previousAnswers: answerStrings,
+          artisticDirection: `Create an image based on these artistic preferences:
+Questions: ${questions.map((q: { text: string }) => q.text).join(', ')}
+Answers: ${answerStrings.join(', ')}
+Style: Artistic and creative interpretation of the user's preferences`,
+          stepResults: {},
+          conversationHistory: [],
+          userPreferences: null,
+          metadata: {
+            totalTokens: 0,
+            totalCost: 0,
+            lastUpdated: new Date().toISOString(),
+            flowId: contextFlowId,
+            sessionId: contextSessionId
+          }
+        }
+      );
+
       // Use image generation with schema enforcement
       console.log('🎨 Starting image generation with schema enforcement...');
       const imageGenerationStartTime = Date.now();
@@ -67,7 +97,7 @@ export async function POST(request: NextRequest) {
 Questions: ${questions.map((q: { text: string }) => q.text).join(', ')}
 Answers: ${answerStrings.join(', ')}
 Style: Artistic and creative interpretation of the user's preferences`
-      });
+      }, context);
       const imageGenerationTime = Date.now() - imageGenerationStartTime;
       
       // Type guard to ensure we have the image_base64 property
@@ -134,7 +164,8 @@ Style: Artistic and creative interpretation of the user's preferences`
 
       return NextResponse.json({
         success: true,
-        finalImagePath: publicUrl
+        finalImagePath: publicUrl,
+        contextData: context // Include context data for debugging
       });
 
     } catch (error) {
