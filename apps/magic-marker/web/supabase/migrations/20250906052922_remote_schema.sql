@@ -115,7 +115,7 @@ CREATE TABLE IF NOT EXISTS "public"."prompt_definitions" (
     "output_schema" "jsonb" NOT NULL,
     "prompt_text" "text" NOT NULL,
     "return_schema" "jsonb" NOT NULL,
-    "model" character varying DEFAULT 'gpt-5'::character varying NOT NULL,
+    "model" character varying DEFAULT 'gpt-4o'::character varying NOT NULL,
     "response_format" character varying DEFAULT 'json_object'::character varying NOT NULL,
     "max_tokens" integer,
     "temperature" numeric(2,1),

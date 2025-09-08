@@ -30,7 +30,8 @@ export async function GET() {
   try {
     console.log('Testing questions_generation...');
     results.questions_generation = await PromptExecutor.executeWithSchemaEnforcement('questions_generation', {
-      response: testAnalysis
+      analysis: testAnalysis,
+      prompt: ''
     });
     console.log('✅ questions_generation passed');
   } catch (error) {
@@ -42,7 +43,8 @@ export async function GET() {
   try {
     console.log('Testing image_generation...');
     results.image_generation = await PromptExecutor.executeWithSchemaEnforcement('image_generation', {
-      prompt: 'A beautiful landscape with mountains and a lake at sunset, in a happy and bright style'
+      prompt: 'A beautiful landscape with mountains and a lake at sunset, in a happy and bright style',
+      flow_summary: {}
     });
     console.log('✅ image_generation passed');
   } catch (error) {
@@ -66,7 +68,8 @@ export async function GET() {
   try {
     console.log('Testing questions_generation...');
     results.questions_generation_2 = await PromptExecutor.executeWithSchemaEnforcement('questions_generation', {
-      response: 'This is a test image showing a beautiful landscape with mountains and a lake at sunset. The composition is well-balanced with warm colors and dramatic lighting.'
+      analysis: 'This is a test image showing a beautiful landscape with mountains and a lake at sunset. The composition is well-balanced with warm colors and dramatic lighting.',
+      prompt: ''
     });
     console.log('✅ questions_generation passed');
   } catch (error) {

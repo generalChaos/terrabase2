@@ -78,7 +78,8 @@ export class OpenAIService {
 
     try {
       const result = await PromptExecutor.executeWithSchemaEnforcement('questions_generation', {
-        response: prompt
+        analysis: prompt,
+        prompt: ''
       }, context) as { questions: Question[] };
 
       // Log the step if imageId is provided
@@ -161,7 +162,10 @@ export class OpenAIService {
 
     try {
       // Use PromptExecutor for image generation
-      const result = await PromptExecutor.executeWithSchemaEnforcement('image_generation', { prompt });
+      const result = await PromptExecutor.executeWithSchemaEnforcement('image_generation', { 
+        prompt,
+        flow_summary: {}
+      });
       
       // Type guard to ensure we have the image_base64 property
       if (!('image_base64' in result)) {

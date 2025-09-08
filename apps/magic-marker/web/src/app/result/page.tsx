@@ -104,7 +104,8 @@ function ResultContent() {
                 alt="Original image"
                 width={800}
                 height={600}
-                className="max-w-full max-h-96 rounded-lg shadow-lg border-2 border-white/20"
+                className="max-w-full max-h-96 rounded-lg shadow-lg border-2 border-white/20 object-contain"
+                style={{ aspectRatio: 'auto' }}
               />
             </div>
           </div>
@@ -120,7 +121,8 @@ function ResultContent() {
                 alt="Generated image"
                 width={800}
                 height={600}
-                className="max-w-full max-h-96 rounded-lg shadow-lg border-2 border-white/20"
+                className="max-w-full max-h-96 rounded-lg shadow-lg border-2 border-white/20 object-contain"
+                style={{ aspectRatio: 'auto' }}
               />
             </div>
           </div>

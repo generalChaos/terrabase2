@@ -147,25 +147,29 @@ export default function HomePage() {
           addLog(`🐛 Context data available for debugging`)
         }
         
-        addLog(`Image analysis completed. Generated ${data.questions.length} questions`)
+        // Handle case where questions might be undefined or empty
+        const questions = data.questions || []
+        const questionCount = questions.length
+        
+        addLog(`Image analysis completed. Generated ${questionCount} questions`)
         
         // Show success toast
         success(
           'Image Uploaded Successfully!',
-          `Analysis completed and ${data.questions.length} questions generated.`
+          `Analysis completed and ${questionCount} questions generated.`
         )
         
         setCurrentImageAnalysis({
           id: data.imageAnalysisId,
           originalImagePath: data.originalImagePath,
           analysisResult: data.analysis || '',
-          questions: data.questions,
+          questions: questions,
           createdAt: new Date(),
           updatedAt: new Date(),
           // New fields from analysis flows
           sessionId: data.sessionId,
           flowId: data.flowId, // Store the analysis flow ID
-          totalQuestions: data.questions?.length || 0,
+          totalQuestions: questionCount,
           totalAnswers: 0,
           currentStep: 'questions',
           totalCostUsd: 0,
@@ -174,6 +178,8 @@ export default function HomePage() {
           contextData: data.contextData // Store the context data for debugging
         })
         console.log('🔄 [UPLOAD] Setting currentStep to dynamic and currentStepIndex to 1 (questions_generation step)')
+        console.log('🔄 [UPLOAD] Questions data:', questions)
+        console.log('🔄 [UPLOAD] Question count:', questionCount)
         setCurrentStep('dynamic')
         setCurrentStepIndex(1) // Start at step 2 (questions_generation) to show questions to user 
         queryClient.invalidateQueries('images')
@@ -541,8 +547,8 @@ export default function HomePage() {
                                 ...prev, 
                                 questions: result.response.questions 
                               } : null)
-                              console.log('❓ [QUESTIONS] Questions stored, staying on current step to show questions')
-                              // Don't call moveToNextStep() here - let the UI show the questions
+                              console.log('❓ [QUESTIONS] Questions stored, staying in dynamic flow to show questions')
+                              // Don't change step - let the dynamic flow handle showing questions
                             } else {
                               console.error('❓ [QUESTIONS] Failed to generate questions:', result.error)
                             }

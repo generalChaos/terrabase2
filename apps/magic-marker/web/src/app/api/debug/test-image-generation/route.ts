@@ -68,10 +68,11 @@ export async function GET() {
       .from('images')
       .insert({
         id: testImageId,
-        original_image_path: 'test/path.jpg',
         analysis_result: 'Test analysis for image generation',
-        questions: JSON.stringify([]),
-        answers: JSON.stringify([])
+        image_type: 'original',
+        file_path: 'test/path.jpg',
+        file_size: 1024,
+        mime_type: 'image/jpeg'
       })
       .select()
       .single();

@@ -9,7 +9,6 @@ export interface ContextLogEntry {
   category: 'context' | 'prompt' | 'response' | 'flow' | 'error'
   step: string
   flowId: string
-  sessionId: string
   requestId: string
   message: string
   data?: Record<string, unknown>
@@ -23,7 +22,6 @@ export interface ContextLogEntry {
 
 export interface FlowDetails {
   flowId: string
-  sessionId: string
   steps: Array<{
     stepName: string
     stepOrder: number
@@ -58,7 +56,6 @@ export class ContextLogger {
     category: ContextLogEntry['category'],
     step: string,
     flowId: string,
-    sessionId: string,
     requestId: string,
     message: string,
     data?: Record<string, unknown>,
@@ -70,7 +67,6 @@ export class ContextLogger {
       category,
       step,
       flowId,
-      sessionId,
       requestId,
       message,
       data: this.sanitizeData(data),
@@ -84,33 +80,25 @@ export class ContextLogger {
       this.logs = this.logs.slice(-this.maxLogs)
     }
 
-    // Console logging with appropriate level
-    const logMessage = `[${entry.timestamp}] [${level.toUpperCase()}] [${category}] [${step}] ${message}`
-    const logData = data ? { data: this.sanitizeData(data), metadata } : { metadata }
-
-    switch (level) {
-      case 'debug':
-        console.debug(logMessage, logData)
-        break
-      case 'info':
-        console.info(logMessage, logData)
-        break
-      case 'warn':
-        console.warn(logMessage, logData)
-        break
-      case 'error':
-        console.error(logMessage, logData)
-        break
+    // Console logging for development
+    const logMessage = `[${level.toUpperCase()}] ${category}:${step} - ${message}`
+    if (level === 'error') {
+      console.error(logMessage, data)
+    } else if (level === 'warn') {
+      console.warn(logMessage, data)
+    } else if (level === 'debug') {
+      console.debug(logMessage, data)
+    } else {
+      console.log(logMessage, data)
     }
   }
 
   /**
    * Start tracking a new flow
    */
-  static startFlow(flowId: string, sessionId: string): void {
+  static startFlow(flowId: string): void {
     const flowDetails: FlowDetails = {
       flowId,
-      sessionId,
       steps: [],
       totalTokensUsed: 0,
       totalCostUsd: 0,
@@ -119,9 +107,9 @@ export class ContextLogger {
 
     this.flowDetails.set(flowId, flowDetails)
     
-    this.log('info', 'flow', 'flow_start', flowId, sessionId, 'flow_start', 
+    this.log('info', 'flow', 'flow_start', flowId, 'flow_start', 
       `Started new flow: ${flowId.substring(0, 8)}...`, 
-      { flowId, sessionId })
+      { flowId })
   }
 
   /**
@@ -129,14 +117,13 @@ export class ContextLogger {
    */
   static startStep(
     flowId: string, 
-    sessionId: string, 
     stepName: string, 
     stepOrder: number,
     input?: Record<string, unknown>
   ): void {
     const flow = this.flowDetails.get(flowId)
     if (!flow) {
-      this.log('warn', 'flow', stepName, flowId, sessionId, 'step_start', 
+      this.log('warn', 'flow', stepName, flowId, 'step_start', 
         'Flow not found when starting step', { flowId, stepName })
       return
     }
@@ -151,7 +138,7 @@ export class ContextLogger {
 
     flow.steps.push(step)
     
-    this.log('info', 'flow', stepName, flowId, sessionId, 'step_start', 
+    this.log('info', 'flow', stepName, flowId, 'step_start', 
       `Started step: ${stepName}`, 
       { stepName, stepOrder, input: this.sanitizeData(input) })
   }
@@ -161,7 +148,6 @@ export class ContextLogger {
    */
   static completeStep(
     flowId: string,
-    sessionId: string,
     stepName: string,
     output?: Record<string, unknown>,
     context?: Record<string, unknown>,
@@ -170,14 +156,14 @@ export class ContextLogger {
   ): void {
     const flow = this.flowDetails.get(flowId)
     if (!flow) {
-      this.log('warn', 'flow', stepName, flowId, sessionId, 'step_complete', 
+      this.log('warn', 'flow', stepName, flowId, 'step_complete', 
         'Flow not found when completing step', { flowId, stepName })
       return
     }
 
     const step = flow.steps.find(s => s.stepName === stepName && s.status === 'in_progress')
     if (!step) {
-      this.log('warn', 'flow', stepName, flowId, sessionId, 'step_complete', 
+      this.log('warn', 'flow', stepName, flowId, 'step_complete', 
         'Step not found when completing', { flowId, stepName })
       return
     }
@@ -198,7 +184,7 @@ export class ContextLogger {
     if (tokensUsed) flow.totalTokensUsed += tokensUsed
     if (costUsd) flow.totalCostUsd += costUsd
 
-    this.log('info', 'flow', stepName, flowId, sessionId, 'step_complete', 
+    this.log('info', 'flow', stepName, flowId, 'step_complete', 
       `Completed step: ${stepName}`, 
       { 
         stepName, 
@@ -215,21 +201,20 @@ export class ContextLogger {
    */
   static failStep(
     flowId: string,
-    sessionId: string,
     stepName: string,
     error: string,
     input?: Record<string, unknown>
   ): void {
     const flow = this.flowDetails.get(flowId)
     if (!flow) {
-      this.log('warn', 'flow', stepName, flowId, sessionId, 'step_fail', 
+      this.log('warn', 'flow', stepName, flowId, 'step_fail', 
         'Flow not found when failing step', { flowId, stepName })
       return
     }
 
     const step = flow.steps.find(s => s.stepName === stepName && s.status === 'in_progress')
     if (!step) {
-      this.log('warn', 'flow', stepName, flowId, sessionId, 'step_fail', 
+      this.log('warn', 'flow', stepName, flowId, 'step_fail', 
         'Step not found when failing', { flowId, stepName })
       return
     }
@@ -244,7 +229,7 @@ export class ContextLogger {
     step.error = error
     step.input = this.sanitizeData(input)
 
-    this.log('error', 'flow', stepName, flowId, sessionId, 'step_fail', 
+    this.log('error', 'flow', stepName, flowId, 'step_fail', 
       `Failed step: ${stepName}`, 
       { stepName, error, duration, input: this.sanitizeData(input) })
   }
@@ -252,25 +237,25 @@ export class ContextLogger {
   /**
    * Complete a flow
    */
-  static completeFlow(flowId: string, sessionId: string): void {
+  static completeFlow(flowId: string): void {
     const flow = this.flowDetails.get(flowId)
     if (!flow) {
-      this.log('warn', 'flow', 'flow_complete', flowId, sessionId, 'flow_complete', 
+      this.log('warn', 'flow', 'flow_complete', flowId, 'flow_complete', 
         'Flow not found when completing', { flowId })
       return
     }
 
     const endTime = new Date().toISOString()
     const totalDuration = new Date(endTime).getTime() - new Date(flow.startTime).getTime()
-
+    
     flow.endTime = endTime
     flow.totalDuration = totalDuration
 
-    this.log('info', 'flow', 'flow_complete', flowId, sessionId, 'flow_complete', 
+    this.log('info', 'flow', 'flow_complete', flowId, 'flow_complete', 
       `Completed flow: ${flowId.substring(0, 8)}...`, 
       { 
-        flowId, 
-        totalDuration, 
+        flowId,
+        totalDuration,
         totalTokensUsed: flow.totalTokensUsed,
         totalCostUsd: flow.totalCostUsd,
         stepsCompleted: flow.steps.filter(s => s.status === 'completed').length,
@@ -283,19 +268,18 @@ export class ContextLogger {
    */
   static logContextBuilding(
     flowId: string,
-    sessionId: string,
     requestId: string,
     stepName: string,
     contextData: Record<string, unknown>,
     relevantContext: Record<string, unknown>
   ): void {
-    this.log('debug', 'context', stepName, flowId, sessionId, requestId, 
+    this.log('debug', 'context', stepName, flowId, requestId, 
       `Building context for step: ${stepName}`, 
       {
-        originalContextKeys: Object.keys(contextData),
+        contextDataKeys: Object.keys(contextData),
         relevantContextKeys: Object.keys(relevantContext),
-        contextSize: JSON.stringify(contextData).length,
-        relevantSize: JSON.stringify(relevantContext).length
+        contextDataSize: JSON.stringify(contextData).length,
+        relevantContextSize: JSON.stringify(relevantContext).length
       })
   }
 
@@ -304,20 +288,20 @@ export class ContextLogger {
    */
   static logPromptConstruction(
     flowId: string,
-    sessionId: string,
     requestId: string,
     stepName: string,
     promptText: string,
     input: Record<string, unknown>,
     context: Record<string, unknown>
   ): void {
-    this.log('debug', 'prompt', stepName, flowId, sessionId, requestId, 
+    this.log('debug', 'prompt', stepName, flowId, requestId, 
       `Constructing prompt for step: ${stepName}`, 
       {
         promptLength: promptText.length,
         inputKeys: Object.keys(input),
         contextKeys: Object.keys(context),
-        hasImageData: 'image_base64' in input || 'image' in input
+        input: this.sanitizeData(input),
+        context: this.sanitizeData(context)
       })
   }
 
@@ -326,7 +310,6 @@ export class ContextLogger {
    */
   static logAIResponse(
     flowId: string,
-    sessionId: string,
     requestId: string,
     stepName: string,
     response: Record<string, unknown>,
@@ -335,17 +318,19 @@ export class ContextLogger {
     model?: string,
     duration?: number
   ): void {
-    this.log('info', 'response', stepName, flowId, sessionId, requestId, 
+    this.log('info', 'response', stepName, flowId, requestId, 
       `AI response received for step: ${stepName}`, 
       {
         responseKeys: Object.keys(response),
         responseSize: JSON.stringify(response).length,
+        response: this.sanitizeData(response)
+      },
+      {
         tokensUsed,
         costUsd,
         model,
         duration
-      },
-      { tokensUsed, costUsd, model, duration })
+      })
   }
 
   /**
@@ -363,21 +348,14 @@ export class ContextLogger {
   }
 
   /**
-   * Get all flow details
+   * Get all logs
    */
-  static getAllFlowDetails(): FlowDetails[] {
-    return Array.from(this.flowDetails.values())
+  static getAllLogs(): ContextLogEntry[] {
+    return [...this.logs]
   }
 
   /**
-   * Get recent logs
-   */
-  static getRecentLogs(limit: number = 100): ContextLogEntry[] {
-    return this.logs.slice(-limit)
-  }
-
-  /**
-   * Clear logs (useful for testing)
+   * Clear all logs
    */
   static clearLogs(): void {
     this.logs = []
@@ -385,24 +363,28 @@ export class ContextLogger {
   }
 
   /**
-   * Sanitize data to remove sensitive information
+   * Sanitize data for logging (remove sensitive information)
    */
   private static sanitizeData(data?: Record<string, unknown>): Record<string, unknown> | undefined {
     if (!data) return undefined
 
     const sanitized = { ...data }
     
-    // Remove or truncate sensitive fields
-    const sensitiveFields = ['image_base64', 'image', 'password', 'token', 'key']
-    
-    for (const field of sensitiveFields) {
+    // Remove or mask sensitive fields
+    const sensitiveFields = ['password', 'token', 'key', 'secret', 'apiKey']
+    sensitiveFields.forEach(field => {
       if (field in sanitized) {
-        const value = sanitized[field]
-        if (typeof value === 'string' && value.length > 100) {
-          sanitized[field] = value.substring(0, 100) + '... [TRUNCATED]'
-        }
+        sanitized[field] = '[REDACTED]'
       }
-    }
+    })
+
+    // Truncate very long strings
+    Object.keys(sanitized).forEach(key => {
+      const value = sanitized[key]
+      if (typeof value === 'string' && value.length > 1000) {
+        sanitized[key] = value.substring(0, 1000) + '... [TRUNCATED]'
+      }
+    })
 
     return sanitized
   }

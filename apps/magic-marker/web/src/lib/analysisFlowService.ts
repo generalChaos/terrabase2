@@ -29,12 +29,10 @@ export class AnalysisFlowService {
    */
   static async createAnalysisFlow(
     originalImageId: string,
-    sessionId: string,
     imageAnalysis: string
   ): Promise<AnalysisFlow> {
     console.log('🔄 [AnalysisFlowService] Creating analysis flow:', {
       originalImageId: originalImageId.substring(0, 8) + '...',
-      sessionId: sessionId.substring(0, 8) + '...',
       imageAnalysisLength: imageAnalysis.length
     });
 
@@ -47,6 +45,8 @@ export class AnalysisFlowService {
       answersCount: answers.length
     });
 
+    const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+    
     console.log('🔄 [AnalysisFlowService] Creating new analysis flow:', {
       originalImageId: originalImageId.substring(0, 8) + '...',
       sessionId: sessionId.substring(0, 8) + '...',

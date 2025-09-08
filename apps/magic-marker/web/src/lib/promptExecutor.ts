@@ -174,7 +174,8 @@ export class PromptExecutor {
       const result = await SchemaEnforcer.executeWithSchemaEnforcement(
         definition,
         cleanPromptText,
-        context
+        context,
+        input
       );
 
       if (!result.success) {
@@ -203,6 +204,14 @@ export class PromptExecutor {
   }
 
   /**
+   * Clear the prompt cache (useful for development/testing)
+   */
+  static clearCache(): void {
+    console.log('🗑️ [PromptExecutor] Clearing prompt cache');
+    this.promptCache.clear();
+  }
+
+  /**
    * Get prompt definition from database with caching
    */
   private static async getPromptDefinition(name: string): Promise<PromptDefinition | null> {
@@ -210,7 +219,11 @@ export class PromptExecutor {
       // Check cache first
       const cached = this.getCachedPrompt(name);
       if (cached) {
-        console.log(`✅ [PromptExecutor] Using cached prompt: ${name}`);
+        console.log(`✅ [PromptExecutor] Using cached prompt: ${name}`, {
+          model: cached.model,
+          promptLength: cached.prompt_text?.length || 0,
+          promptPreview: cached.prompt_text?.substring(0, 100) + '...'
+        });
         return cached;
       }
 
@@ -232,7 +245,12 @@ export class PromptExecutor {
         return null;
       }
 
-      console.log(`✅ [PromptExecutor] Prompt fetched successfully: ${name}`);
+      console.log(`✅ [PromptExecutor] Prompt fetched successfully: ${name}`, {
+        model: data.model,
+        promptLength: data.prompt_text?.length || 0,
+        promptPreview: data.prompt_text?.substring(0, 100) + '...',
+        outputSchema: data.output_schema
+      });
 
       // Cache the result
       this.setCachedPrompt(name, data);
@@ -295,20 +313,18 @@ export class PromptExecutor {
     context: StepContext,
     requestId: string
   ): string {
-    ContextLogger.log('debug', 'prompt', context.currentStep, context.flowId, context.sessionId, requestId,
+    ContextLogger.log('debug', 'prompt', context.currentStep, context.flowId, requestId,
       `Building context-aware prompt for step: ${context.currentStep}`);
     
     // Get relevant context for this step
     const relevantContext = ContextManager.getRelevantContextForStep(
       context.contextData as unknown as Record<string, unknown>,
       context.currentStep,
-      context.flowId,
-      context.sessionId
+      context.flowId
     );
     
     ContextLogger.logPromptConstruction(
       context.flowId,
-      context.sessionId,
       requestId,
       context.currentStep,
       definition.prompt_text,
@@ -318,6 +334,12 @@ export class PromptExecutor {
     
     // Start with base prompt
     let promptText = definition.prompt_text;
+    
+    // Note: Image data is handled directly in SchemaEnforcer for vision models
+    if (definition.type === 'image_analysis' && 'image' in input && input.image) {
+      console.log(`🖼️ [${requestId}] Image analysis detected - image data will be handled by SchemaEnforcer`);
+      console.log(`🖼️ [${requestId}] Image data length:`, input.image.length);
+    }
     
     // Replace {prompt} placeholder if it exists
     if ('prompt' in input) {
@@ -495,19 +517,41 @@ export class PromptExecutor {
       console.log(`📝 [${requestId}] PROMPT:`, prompt);
       this.safeLogData(input, `📊 [${requestId}] INPUT`);
 
-      // Special handling for image generation (DALL-E API)
+      // Special handling for image generation (GPT-5 + DALL-E)
       if (definition.type === 'image_generation') {
-        console.log(`🖼️ [${requestId}] Using DALL-E API for image generation`);
+        console.log(`🖼️ [${requestId}] Using GPT-5 + DALL-E for image generation`);
         
-        // Extract prompt from input (should be { prompt: string })
-        const imagePrompt = (input as { prompt: string }).prompt;
-        if (!imagePrompt || typeof imagePrompt !== 'string') {
-          throw new Error('Image generation requires a prompt string');
+        // Step 1: Use GPT-5 to create the DALL-E prompt
+        console.log(`📝 [${requestId}] Step 1: Creating DALL-E prompt with GPT-5`);
+        const messageContent = this.buildMessageContent(definition, prompt, input);
+        
+        // Ensure messages is an array
+        const messages = Array.isArray(messageContent) 
+          ? messageContent 
+          : [{ role: "user" as const, content: messageContent }];
+        
+        const gptResponse = await openai.chat.completions.create({
+          model: definition.model,
+          messages: messages,
+          max_completion_tokens: definition.max_tokens,
+          temperature: definition.temperature || 0.7
+        });
+
+        const gptResult = gptResponse.choices[0]?.message?.content;
+        if (!gptResult) {
+          throw new Error('GPT-4o failed to generate DALL-E prompt');
         }
 
+        // Use the GPT-4o response directly as the DALL-E prompt
+        const dallEPrompt = gptResult;
+
+        console.log(`🎨 [${requestId}] Step 2: Generating image with DALL-E`);
+        console.log(`📝 [${requestId}] DALL-E prompt:`, dallEPrompt);
+
+        // Step 2: Use DALL-E to generate the actual image
         const response = await openai.images.generate({
           model: "dall-e-3",
-          prompt: imagePrompt,
+          prompt: dallEPrompt,
           n: 1,
           size: "1024x1024",
           quality: "standard",

@@ -62,11 +62,8 @@ export async function POST(request: NextRequest) {
       
       // Build context for image generation step
       const contextFlowId = analysisFlow.id;
-      const contextSessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
-      
       const context: StepContext = ContextManager.buildContextForStep(
         contextFlowId,
-        contextSessionId,
         'image_generation',
         3,
         {
@@ -83,8 +80,7 @@ Style: Artistic and creative interpretation of the user's preferences`,
             totalTokens: 0,
             totalCost: 0,
             lastUpdated: new Date().toISOString(),
-            flowId: contextFlowId,
-            sessionId: contextSessionId
+            flowId: contextFlowId
           }
         }
       );
@@ -92,11 +88,19 @@ Style: Artistic and creative interpretation of the user's preferences`,
       // Use image generation with schema enforcement
       console.log('🎨 Starting image generation with schema enforcement...');
       const imageGenerationStartTime = Date.now();
-      const imageGenerationResult = await PromptExecutor.executeWithSchemaEnforcement('image_generation', {
+      const imageGenerationResult = await PromptExecutor.execute('image_generation', {
         prompt: `Create an image based on these artistic preferences:
 Questions: ${questions.map((q: { text: string }) => q.text).join(', ')}
 Answers: ${answerStrings.join(', ')}
-Style: Artistic and creative interpretation of the user's preferences`
+Style: Artistic and creative interpretation of the user's preferences`,
+        flow_summary: {
+          analysis: context?.contextData?.imageAnalysis || '',
+          questions: questions,
+          answers: answerStrings,
+          artisticDirection: context?.contextData?.artisticDirection || '',
+          stepResults: context?.contextData?.stepResults || {},
+          conversationHistory: context?.contextData?.conversationHistory || []
+        }
       }, context);
       const imageGenerationTime = Date.now() - imageGenerationStartTime;
       
