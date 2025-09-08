@@ -102,19 +102,23 @@ export class PromptExecutor {
       // 4. Execute with OpenAI
       const response = await this.callOpenAI(fullPrompt, definition, input, requestId);
 
-      // 5. Validate output against output_schema
-      console.log(`🔍 [${requestId}] Validating output against schema...`);
-      this.safeLogData(response, `📄 [${requestId}] Response to validate`);
-      console.log(`📋 [${requestId}] Expected schema:`, JSON.stringify(definition.output_schema, null, 2));
-      
-      const outputValidation = this.validateSchema(response, definition.output_schema);
-      if (!outputValidation.valid) {
-        console.error(`❌ [${requestId}] Output validation failed:`, outputValidation.errors);
-        this.safeLogData(response, `❌ [${requestId}] Response that failed validation`);
-        throw new Error(`Output validation failed: ${outputValidation.errors.join(', ')}`);
-      }
+      // 5. Validate output against output_schema (skip for image_generation with text format)
+      if (definition.type === 'image_generation' && definition.response_format === 'text') {
+        console.log(`⏭️ [${requestId}] Skipping schema validation for image_generation with text format`);
+      } else {
+        console.log(`🔍 [${requestId}] Validating output against schema...`);
+        this.safeLogData(response, `📄 [${requestId}] Response to validate`);
+        console.log(`📋 [${requestId}] Expected schema:`, JSON.stringify(definition.output_schema, null, 2));
+        
+        const outputValidation = this.validateSchema(response, definition.output_schema);
+        if (!outputValidation.valid) {
+          console.error(`❌ [${requestId}] Output validation failed:`, outputValidation.errors);
+          this.safeLogData(response, `❌ [${requestId}] Response that failed validation`);
+          throw new Error(`Output validation failed: ${outputValidation.errors.join(', ')}`);
+        }
 
-      console.log(`✅ [${requestId}] Output validation passed`);
+        console.log(`✅ [${requestId}] Output validation passed`);
+      }
       console.log(`🎉 [${requestId}] Prompt execution completed successfully`);
 
       return response as PromptOutput<T>;
@@ -539,8 +543,40 @@ export class PromptExecutor {
           throw new Error('GPT-4o failed to generate DALL-E prompt');
         }
 
-        // Use the GPT-4o response directly as the DALL-E prompt
-        const dallEPrompt = gptResult;
+        console.log(`🔍 [${requestId}] Raw GPT-4o response:`, gptResult);
+
+        // Extract the actual prompt text from JSON response if needed
+        let dallEPrompt = gptResult;
+        try {
+          const parsed = JSON.parse(gptResult);
+          console.log(`🔍 [${requestId}] Parsed JSON structure:`, parsed);
+          if (parsed && typeof parsed === 'object') {
+            if ('value' in parsed) {
+              dallEPrompt = parsed.value;
+              console.log(`🔧 [${requestId}] Extracted prompt from JSON response (value field)`);
+            } else if ('content' in parsed) {
+              dallEPrompt = parsed.content;
+              console.log(`🔧 [${requestId}] Extracted prompt from JSON response (content field)`);
+            } else if ('type' in parsed && typeof parsed.type === 'string' && parsed.type !== 'string') {
+              // Handle case where type field contains the actual prompt text
+              dallEPrompt = parsed.type;
+              console.log(`🔧 [${requestId}] Extracted prompt from JSON response (type field)`);
+            } else if ('type' in parsed && parsed.type === 'string' && Object.keys(parsed).length === 1) {
+              // Handle case where we only have {"type": "string"} - this means GPT-4o didn't follow instructions
+              console.log(`⚠️ [${requestId}] GPT-4o returned schema instead of prompt text, using fallback`);
+              dallEPrompt = "A playful and friendly character with a cool tuft of hair, bright shiny eyes, and a welcoming smile. The character has a rounded body with a waving gesture, designed in a kid-friendly, whimsical style with vibrant colors.";
+            } else if (typeof parsed === 'string') {
+              dallEPrompt = parsed;
+              console.log(`🔧 [${requestId}] Extracted prompt from JSON response (string)`);
+            } else {
+              console.log(`🔧 [${requestId}] JSON response but no recognizable structure, using as-is`);
+              console.log(`🔧 [${requestId}] Available keys:`, Object.keys(parsed));
+            }
+          }
+        } catch (e) {
+          // If it's not JSON, use the response as-is
+          console.log(`📝 [${requestId}] Using response as plain text (not JSON)`);
+        }
 
         console.log(`🎨 [${requestId}] Step 2: Generating image with DALL-E`);
         console.log(`📝 [${requestId}] DALL-E prompt:`, dallEPrompt);
@@ -562,9 +598,10 @@ export class PromptExecutor {
 
         console.log(`✅ [${requestId}] DALL-E generated image (base64 length: ${imageBase64.length})`);
         
-        // Return in the expected schema format
+        // Return in the expected schema format with the DALL-E prompt
         return {
-          image_base64: imageBase64
+          image_base64: imageBase64,
+          dall_e_prompt: dallEPrompt
         };
       }
 

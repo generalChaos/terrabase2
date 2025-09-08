@@ -224,7 +224,7 @@ export default function AnalysisFlowDetailsPage() {
                   {originalImage ? (
                     <div className="mt-2 flex items-center space-x-3">
                       <NextImage
-                        src={ImageService.getImageUrl(originalImage.file_path)}
+                        src={originalImage.file_path.startsWith('http') ? originalImage.file_path : ImageService.getImageUrl(originalImage.file_path)}
                         alt="Original"
                         width={64}
                         height={64}
@@ -247,7 +247,7 @@ export default function AnalysisFlowDetailsPage() {
                   {finalImage ? (
                     <div className="mt-2 flex items-center space-x-3">
                       <NextImage
-                        src={ImageService.getImageUrl(finalImage.file_path)}
+                        src={finalImage.file_path.startsWith('http') ? finalImage.file_path : ImageService.getImageUrl(finalImage.file_path)}
                         alt="Final"
                         width={64}
                         height={64}
@@ -356,6 +356,17 @@ export default function AnalysisFlowDetailsPage() {
                           </div>
                         ) : null}
                         
+                        {step.step_type === 'image_generation' && step.output_data && typeof step.output_data === 'object' && 'dall_e_prompt' in step.output_data ? (
+                          <div className="bg-orange-50 p-3 rounded-lg border border-orange-200">
+                            <p className="text-sm font-medium text-orange-900 mb-2">DALL-E Prompt:</p>
+                            <div className="bg-white p-3 rounded border border-orange-200">
+                              <p className="text-sm text-orange-800 font-mono leading-relaxed">
+                                {String((step.output_data as Record<string, unknown>).dall_e_prompt)}
+                              </p>
+                            </div>
+                          </div>
+                        ) : null}
+
                         {/* Questions Generated (for questions_generation step) */}
                         {step.step_type === 'questions' && analysisFlow.questions && analysisFlow.questions.length > 0 && (
                           <div className="bg-purple-50 p-3 rounded-lg">
@@ -390,17 +401,6 @@ export default function AnalysisFlowDetailsPage() {
                                   </div>
                                 )
                               })}
-                            </div>
-                          </div>
-                        )}
-                        
-                        
-                        {/* Image Generation Prompt (for image_generation step) */}
-                        {step.step_type === 'image_generation' && step.prompt_content && (
-                          <div className="bg-green-50 p-3 rounded-lg">
-                            <p className="text-sm font-medium text-green-900 mb-3">Image Generation Prompt:</p>
-                            <div className="bg-white p-3 rounded border border-green-200">
-                              <p className="text-sm text-green-800 font-mono">{step.prompt_content}</p>
                             </div>
                           </div>
                         )}
