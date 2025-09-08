@@ -109,7 +109,8 @@ export class SchemaEnforcer {
       const functionName = this.getFunctionName(definition.type);
       const response = await openai.chat.completions.create({
         model: definition.model,
-        messages: messages,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        messages: messages as any,
         functions: [{
           name: functionName,
           description: this.getFunctionDescription(definition.type),
@@ -322,7 +323,8 @@ export class SchemaEnforcer {
 
         const response = await openai.chat.completions.create({
           model: definition.model,
-          messages: messages,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          messages: messages as any,
           response_format: { type: "json_object" },
           max_completion_tokens: definition.max_tokens
         });
