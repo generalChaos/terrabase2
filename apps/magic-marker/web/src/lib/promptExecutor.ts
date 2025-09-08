@@ -520,12 +520,16 @@ export class PromptExecutor {
         
         // Ensure messages is an array of proper message objects
         const messages = Array.isArray(messageContent) 
-          ? messageContent.map(msg => ({ role: "user" as const, content: msg }))
+          ? messageContent.map(msg => ({ 
+              role: "user" as const, 
+              content: typeof msg === 'string' ? msg : [msg]
+            }))
           : [{ role: "user" as const, content: messageContent }];
         
         const gptResponse = await openai.chat.completions.create({
           model: definition.model,
-          messages: messages,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          messages: messages as any,
           max_completion_tokens: definition.max_tokens,
           temperature: definition.temperature || 0.7
         });
