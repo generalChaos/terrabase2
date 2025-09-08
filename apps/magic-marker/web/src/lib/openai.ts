@@ -1,6 +1,7 @@
 import { PromptExecutor } from './promptExecutor';
 import { Question } from './types';
 import { StepService } from './stepService';
+import { StepContext } from './contextManager';
 
 export class OpenAIService {
   /**
@@ -9,16 +10,17 @@ export class OpenAIService {
   static async analyzeImage(
     imageBase64: string, 
     imageId?: string,
-    prompt?: string
+    prompt?: string,
+    context?: StepContext
   ): Promise<{ response: string }> {
     const requestId = Math.random().toString(36).substring(7);
-    console.log(`🤖 [${requestId}] Analyzing image with prompt system`);
+    console.log(`🤖 [${requestId}] Analyzing image with schema enforcement`);
 
     try {
-      const result = await PromptExecutor.execute('image_analysis', {
+      const result = await PromptExecutor.executeWithSchemaEnforcement('image_analysis', {
         image: imageBase64,
         prompt: prompt || 'Analyze this image and describe what you see, focusing on artistic elements, composition, colors, and mood.'
-      }) as { response: string };
+      }, context) as { response: string };
 
       // Log the step if imageId is provided
       if (imageId) {
@@ -68,15 +70,17 @@ export class OpenAIService {
    */
   static async generateQuestions(
     prompt: string, 
-    imageId?: string
+    imageId?: string,
+    context?: StepContext
   ): Promise<Question[]> {
     const requestId = Math.random().toString(36).substring(7);
-    console.log(`❓ [${requestId}] Generating questions with prompt system`);
+    console.log(`❓ [${requestId}] Generating questions with schema enforcement`);
 
     try {
-      const result = await PromptExecutor.execute('questions_generation', {
-        response: prompt
-      }) as { questions: Question[] };
+      const result = await PromptExecutor.executeWithSchemaEnforcement('questions_generation', {
+        analysis: prompt,
+        prompt: ''
+      }, context) as { questions: Question[] };
 
       // Log the step if imageId is provided
       if (imageId) {
@@ -115,117 +119,6 @@ export class OpenAIService {
     }
   }
 
-  /**
-   * Generate a conversational question using the prompt system
-   */
-  static async generateConversationalQuestion(
-    analysis: string,
-    previousAnswers: string[],
-    conversationContext: {
-      questions: Question[];
-      artisticDirection?: string;
-      previousAnswers: string[];
-    },
-    imageId?: string
-  ): Promise<{ question?: Question; context?: { reasoning: string; builds_on: string; artistic_focus: string }; questions: Question[]; done: boolean; summary?: string }> {
-    const requestId = Math.random().toString(36).substring(7);
-    console.log(`💬 [${requestId}] Generating conversational question with prompt system`);
-
-    try {
-      // Build conversation context for the AI in the format the prompt expects
-      const conversationHistory = conversationContext.questions
-        .map((q: { text: string; answer?: string }, index: number) => `Q${index + 1}: ${q.text}\nA${index + 1}: ${q.answer || 'Not answered'}`)
-        .join('\n\n');
-      
-      const prompt = `Image Analysis: ${analysis}
-
-Previous Conversation:
-${conversationHistory}
-
-Current Context: ${conversationContext.artisticDirection || 'No specific direction yet'}`;
-
-      const result = await PromptExecutor.execute('conversational_question', {
-        response: analysis,
-        previousAnswers: previousAnswers
-      }) as { questions: Question[]; done: boolean; summary?: string };
-
-      console.log(`✅ [${requestId}] Conversational response received:`, {
-        done: result.done,
-        questionsCount: result.questions.length,
-        hasSummary: !!result.summary
-      });
-
-      // Extract the first question if not done
-      let question: Question | undefined;
-      let context: { reasoning: string; builds_on: string; artistic_focus: string } | undefined;
-
-      if (!result.done && result.questions.length > 0) {
-        const firstQuestion = result.questions[0];
-        question = {
-          id: `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          text: firstQuestion.text,
-          type: 'multiple_choice' as const,
-          options: firstQuestion.options,
-          required: firstQuestion.required
-        };
-        context = {
-          reasoning: `AI generated question based on conversation history`,
-          builds_on: previousAnswers.join(', ') || 'Initial conversation',
-          artistic_focus: conversationContext.artisticDirection || 'General artistic preferences'
-        };
-      }
-
-      // Log the step if imageId is provided
-      if (imageId) {
-        await StepService.logStep({
-          flow_id: imageId,
-          step_type: 'conversational_question',
-          step_order: 3,
-          input_data: { 
-            prompt,
-            analysis,
-            previousAnswers,
-            conversationContext
-          },
-          output_data: result,
-          response_time_ms: 0,
-          model_used: 'gpt-4o',
-          success: true
-        });
-      }
-
-      return {
-        question,
-        context,
-        questions: result.questions,
-        done: result.done,
-        summary: result.summary
-      };
-    } catch (error: unknown) {
-      console.error(`❌ [${requestId}] Conversational question generation failed:`, error);
-      
-      // Log the error step if imageId is provided
-      if (imageId) {
-        await StepService.logStep({
-          flow_id: imageId,
-          step_type: 'conversational_question',
-          step_order: 3,
-          input_data: { 
-            analysis,
-            previousAnswers,
-            conversationContext
-          },
-          output_data: null,
-          response_time_ms: 0,
-          model_used: 'gpt-4o',
-          success: false,
-          error_message: error instanceof Error ? error.message : 'Unknown error'
-        });
-      }
-      
-      throw error;
-    }
-  }
 
 
   /**
@@ -242,7 +135,7 @@ Current Context: ${conversationContext.artisticDirection || 'No specific directi
 
     try {
       // Removed deprecated image_text_analysis prompt type
-      const result = await PromptExecutor.execute('image_analysis', {
+      const result = await PromptExecutor.executeWithSchemaEnforcement('image_analysis', {
         image: imageBase64,
         prompt: textPrompt
       }) as { response: string };
@@ -269,7 +162,10 @@ Current Context: ${conversationContext.artisticDirection || 'No specific directi
 
     try {
       // Use PromptExecutor for image generation
-      const result = await PromptExecutor.execute('image_generation', { prompt });
+      const result = await PromptExecutor.executeWithSchemaEnforcement('image_generation', { 
+        prompt,
+        flow_summary: {}
+      });
       
       // Type guard to ensure we have the image_base64 property
       if (!('image_base64' in result)) {

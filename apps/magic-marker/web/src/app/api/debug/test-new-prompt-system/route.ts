@@ -20,9 +20,11 @@ export async function GET() {
     
     // Test questions generation
     console.log('🧪 Testing questions generation...');
-    const questionsResult = await OpenAIService.generateQuestions(
-      analysisResult.response
-    );
+    const analysisText = (analysisResult as { analysis?: string }).analysis;
+    if (!analysisText) {
+      throw new Error('No analysis text available for questions generation');
+    }
+    const questionsResult = await OpenAIService.generateQuestions(analysisText);
     
     console.log('✅ Questions generation successful:', questionsResult);
     console.log('📊 Questions count:', questionsResult.length);

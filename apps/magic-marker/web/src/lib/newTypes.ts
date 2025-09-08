@@ -92,7 +92,6 @@ export interface PromptDefinition {
   input_schema: Record<string, unknown>;
   output_schema: Record<string, unknown>;
   prompt_text: string;
-  return_schema: Record<string, unknown>;
   model: string;
   response_format: 'json_object' | 'text';
   max_tokens?: number;
@@ -107,7 +106,7 @@ export interface PromptDefinition {
 export interface ProcessingStep {
   id?: string;
   flow_id: string; // Changed from image_id to flow_id
-  step_type: 'analysis' | 'questions' | 'conversational_question' | 'answer_analysis' | 'image_generation';
+  step_type: 'analysis' | 'questions' | 'image_generation';
   step_order: number;
   prompt_id?: string;
   prompt_content?: string;

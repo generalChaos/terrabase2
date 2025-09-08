@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     console.log(`🔍 [DEBUG] Testing prompt: ${promptName}`)
     console.log(`🔍 [DEBUG] Input:`, JSON.stringify(input, null, 2))
 
-    const result = await PromptExecutor.execute(promptName, input)
+    const result = await PromptExecutor.executeWithSchemaEnforcement(promptName, input)
 
     console.log(`✅ [DEBUG] Prompt executed successfully`)
     console.log(`📄 [DEBUG] Result:`, JSON.stringify(result, null, 2))

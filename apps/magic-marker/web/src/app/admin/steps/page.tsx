@@ -7,7 +7,7 @@ import AdminLayout from '@/components/AdminLayout';
 interface ProcessingStep {
   id: string;
   image_id: string;
-  step_type: 'analysis' | 'questions' | 'conversational_question' | 'answer_analysis' | 'image_generation';
+  step_type: 'analysis' | 'questions' | 'image_generation';
   step_order: number;
   prompt_id?: string;
   prompt_content?: string;
@@ -70,8 +70,6 @@ export default function StepsPage() {
     switch (stepType) {
       case 'analysis': return 'bg-blue-100 text-blue-800';
       case 'questions': return 'bg-green-100 text-green-800';
-      case 'conversational_question': return 'bg-cyan-100 text-cyan-800';
-      case 'answer_analysis': return 'bg-yellow-100 text-yellow-800';
       case 'image_generation': return 'bg-purple-100 text-purple-800';
       default: return 'bg-gray-100 text-gray-800';
     }
@@ -125,7 +123,6 @@ export default function StepsPage() {
                 <option value="">All Types</option>
                 <option value="analysis">Analysis</option>
                 <option value="questions">Questions</option>
-                <option value="answer_analysis">Answer Analysis</option>
                 <option value="image_generation">Image Generation</option>
               </select>
             </div>
@@ -167,13 +164,7 @@ export default function StepsPage() {
             <div className="text-sm text-gray-600">Question Steps</div>
           </div>
           <div className="bg-white p-6 rounded-lg shadow">
-            <div className="text-2xl font-bold text-yellow-600">
-              {steps.filter(s => s.step_type === 'answer_analysis').length}
-            </div>
-            <div className="text-sm text-gray-600">Answer Analysis</div>
-          </div>
-          <div className="bg-white p-6 rounded-lg shadow">
-            <div className="text-2xl font-bold text-purple-600">
+            <div className="text-2xl font-bold text-cyan-600">
               {steps.filter(s => s.step_type === 'image_generation').length}
             </div>
             <div className="text-sm text-gray-600">Image Generation</div>

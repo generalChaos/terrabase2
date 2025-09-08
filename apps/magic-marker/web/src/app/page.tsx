@@ -3,24 +3,26 @@
 import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
 import axios from 'axios'
+import Image from 'next/image'
 import { ImageAnalysis, QuestionAnswer, Question } from '@/lib/types'
 import { AnalysisFlowService } from '@/lib/analysisFlowService'
 import ImageUpload from '@/components/ImageUpload'
 import QuestionFlow from '@/components/QuestionFlow'
-import ConversationalQuestionFlow from '@/components/ConversationalQuestionFlow'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import DebugPanel from '@/components/DebugPanel'
 import AnimatedHomepage from '@/components/AnimatedHomepage'
+import DebugContextViewer from '@/components/DebugContextViewer'
 import { ToastContainer, useToast } from '@/components/Toast'
 
 const API_BASE = '/api'
 
 export default function HomePage() {
-  const [currentStep, setCurrentStep] = useState<'homepage' | 'upload' | 'questions' | 'conversational' | 'generating' | 'dynamic'>('homepage')
+  const [currentStep, setCurrentStep] = useState<'homepage' | 'upload' | 'questions' | 'generating' | 'dynamic'>('homepage')
   const [currentImageAnalysis, setCurrentImageAnalysis] = useState<ImageAnalysis | null>(null)
   const [errors, setErrors] = useState<string[]>([])
   const [logs, setLogs] = useState<string[]>([])
   const [currentStepIndex, setCurrentStepIndex] = useState(0)
+  const [showDebug, setShowDebug] = useState(false)
   const hasTriggeredGeneration = useRef(false)
   const { toasts, removeToast, success, error, warning, info } = useToast()
   
@@ -125,7 +127,7 @@ export default function HomePage() {
 
   // Upload and analyze image mutation
   const uploadMutation = useMutation(
-    async (file: File) => {
+    async ({ file }: { file: File }) => {
       addLog(`Starting upload for file: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`)
       const formData = new FormData()
       formData.append('image', file)
@@ -139,32 +141,45 @@ export default function HomePage() {
     {
       onSuccess: (data) => {
         console.log('📤 [UPLOAD] Upload success - data:', data)
-        addLog(`Image analysis completed. Generated ${data.questions.length} questions`)
+        
+        // Store context data for debugging (without stopping the flow)
+        if (data.contextData) {
+          addLog(`🐛 Context data available for debugging`)
+        }
+        
+        // Handle case where questions might be undefined or empty
+        const questions = data.questions || []
+        const questionCount = questions.length
+        
+        addLog(`Image analysis completed. Generated ${questionCount} questions`)
         
         // Show success toast
         success(
           'Image Uploaded Successfully!',
-          `Analysis completed and ${data.questions.length} questions generated.`
+          `Analysis completed and ${questionCount} questions generated.`
         )
         
         setCurrentImageAnalysis({
           id: data.imageAnalysisId,
           originalImagePath: data.originalImagePath,
           analysisResult: data.analysis || '',
-          questions: data.questions,
+          questions: questions,
           createdAt: new Date(),
           updatedAt: new Date(),
           // New fields from analysis flows
           sessionId: data.sessionId,
           flowId: data.flowId, // Store the analysis flow ID
-          totalQuestions: data.questions?.length || 0,
+          totalQuestions: questionCount,
           totalAnswers: 0,
           currentStep: 'questions',
           totalCostUsd: 0,
           totalTokens: 0,
-          isActive: true
+          isActive: true,
+          contextData: data.contextData // Store the context data for debugging
         })
         console.log('🔄 [UPLOAD] Setting currentStep to dynamic and currentStepIndex to 1 (questions_generation step)')
+        console.log('🔄 [UPLOAD] Questions data:', questions)
+        console.log('🔄 [UPLOAD] Question count:', questionCount)
         setCurrentStep('dynamic')
         setCurrentStepIndex(1) // Start at step 2 (questions_generation) to show questions to user 
         queryClient.invalidateQueries('images')
@@ -193,14 +208,9 @@ export default function HomePage() {
         
         // Extract error message safely
         let errorMessage = 'Unknown error occurred'
-        let debugInfo = null
         
         if (errorObj?.response?.data?.error) {
           errorMessage = errorObj.response.data.error
-          // Check if there's debug info in the response
-          if (errorObj.response.data && 'debug' in errorObj.response.data) {
-            debugInfo = (errorObj.response.data as { debug?: unknown }).debug
-          }
         } else if (errorObj?.message) {
           errorMessage = errorObj.message
         } else if (errorObj?.response?.statusText) {
@@ -213,12 +223,7 @@ export default function HomePage() {
           errorMessage
         )
         
-        // Still add to debug panel for developers
-        const fullErrorMessage = debugInfo 
-          ? `Upload failed: ${errorMessage}\nDebug: ${JSON.stringify(debugInfo, null, 2)}`
-          : `Upload failed: ${errorMessage}`
-        
-        addError(fullErrorMessage)
+        addError(`Upload failed: ${errorMessage}`)
       }
     }
   )
@@ -235,8 +240,13 @@ export default function HomePage() {
       return response.data
     },
     {
-      onSuccess: async (_data) => {
+      onSuccess: async (data) => {
         addLog('Image generated successfully!')
+        
+        // Update context data if provided
+        if (data.contextData) {
+          setCurrentImageAnalysis(prev => prev ? { ...prev, contextData: data.contextData } : null)
+        }
         
         // Deactivate the analysis flow now that image generation is complete
         if (currentImageAnalysis?.flowId) {
@@ -280,7 +290,6 @@ export default function HomePage() {
           errorMessage
         )
         
-        // Still add to debug panel for developers
         addError(`Image generation failed: ${errorMessage}`)
         setCurrentStep('questions')
       }
@@ -316,7 +325,7 @@ export default function HomePage() {
       'Uploading Image...',
       'Please wait while we analyze your image.'
     )
-    uploadMutation.mutate(file)
+    uploadMutation.mutate({ file })
   }
 
   const handleQuestionsSubmit = (answers: QuestionAnswer[]) => {
@@ -335,21 +344,6 @@ export default function HomePage() {
     moveToNextStep()
   }
 
-  const handleConversationalComplete = (conversationData: unknown) => {
-    console.log('💬 [CONVERSATION] handleConversationalComplete called with data:', conversationData)
-    console.log('💬 [CONVERSATION] Current step index:', currentStepIndex)
-    // Store conversation data and move to next step
-    setCurrentImageAnalysis(prev => prev ? { ...prev, conversationData } : null)
-    console.log('💬 [CONVERSATION] Moving to next step after storing conversation data')
-    moveToNextStep()
-  }
-
-  const handleConversationalSkip = () => {
-    console.log('⏭️ [CONVERSATION] Skipping conversational step due to error')
-    console.log('⏭️ [CONVERSATION] Current step index:', currentStepIndex)
-    // Move to next step without conversation data
-    moveToNextStep()
-  }
 
   const handleReset = () => {
     setCurrentStep('homepage')
@@ -367,6 +361,18 @@ export default function HomePage() {
       {/* Toast Container */}
       <ToastContainer toasts={toasts} onRemove={removeToast} />
       
+      {/* Global Debug Toggle */}
+      {currentStep !== 'homepage' && (
+        <div className="fixed top-4 right-4 z-50">
+          <button
+            onClick={() => setShowDebug(!showDebug)}
+            className="px-3 py-1 text-xs bg-gray-800 text-white rounded hover:bg-gray-700 transition-colors"
+          >
+            {showDebug ? 'Hide' : 'Show'} Debug
+          </button>
+        </div>
+      )}
+      
       {currentStep === 'homepage' && (
         <div className="">
           <main className="max-w-4xl mx-auto">
@@ -378,7 +384,18 @@ export default function HomePage() {
 
       {currentStep === 'upload' && (
         <div className="min-h-screen flex items-center justify-center p-4">
-          <ImageUpload onUpload={handleImageUpload} isLoading={uploadMutation.isLoading} />
+          <div className="w-full max-w-4xl">
+            <ImageUpload onUpload={handleImageUpload} isLoading={uploadMutation.isLoading} />
+            
+            {/* Debug Context Viewer for Upload Step */}
+            {showDebug && currentImageAnalysis && currentImageAnalysis.contextData && (
+              <DebugContextViewer
+                contextData={currentImageAnalysis.contextData}
+                stepName="Upload & Analysis"
+                canContinue={false}
+              />
+            )}
+          </div>
         </div>
       )}
 
@@ -432,9 +449,11 @@ export default function HomePage() {
                       Your Generated Image
                     </h2>
                     <div className="flex justify-center mb-6">
-                      <img
+                      <Image
                         src={currentImageAnalysis.finalImagePath}
                         alt="Generated image"
+                        width={800}
+                        height={600}
                         className="max-w-full h-auto max-h-96 border border-gray-300 rounded-lg shadow-lg"
                       />
                     </div>
@@ -472,13 +491,23 @@ export default function HomePage() {
                 // Show questions if they exist, otherwise show generate button
                 if (currentImageAnalysis.questions && currentImageAnalysis.questions.length > 0) {
                   return (
-                    <QuestionFlow
-                      questions={currentImageAnalysis.questions}
-                      originalImagePath={currentImageAnalysis.originalImagePath}
-                      onSubmit={handleQuestionsSubmit}
-                      onReset={handleReset}
-                      isLoading={generateMutation.isLoading}
-                    />
+                    <>
+                      <QuestionFlow
+                        questions={currentImageAnalysis.questions}
+                        originalImagePath={currentImageAnalysis.originalImagePath}
+                        onSubmit={handleQuestionsSubmit}
+                        onReset={handleReset}
+                        isLoading={generateMutation.isLoading}
+                      />
+                      {/* Debug Context Viewer for Questions Step */}
+                      {showDebug && currentImageAnalysis.contextData && (
+                        <DebugContextViewer
+                          contextData={currentImageAnalysis.contextData}
+                          stepName="Questions Flow"
+                          canContinue={false}
+                        />
+                      )}
+                    </>
                   )
                 } else {
                   return (
@@ -518,8 +547,8 @@ export default function HomePage() {
                                 ...prev, 
                                 questions: result.response.questions 
                               } : null)
-                              console.log('❓ [QUESTIONS] Questions stored, staying on current step to show questions')
-                              // Don't call moveToNextStep() here - let the UI show the questions
+                              console.log('❓ [QUESTIONS] Questions stored, staying in dynamic flow to show questions')
+                              // Don't change step - let the dynamic flow handle showing questions
                             } else {
                               console.error('❓ [QUESTIONS] Failed to generate questions:', result.error)
                             }
@@ -535,19 +564,6 @@ export default function HomePage() {
                   )
                 }
               
-              case 'conversational_question':
-                // Show the conversational question flow
-                return (
-                  <ConversationalQuestionFlow
-                    imageId={currentImageAnalysis.id}
-                    imageAnalysis={currentImageAnalysis.analysisResult}
-                    originalImagePath={currentImageAnalysis.originalImagePath}
-                    onSubmit={handleQuestionsSubmit}
-                    onReset={handleReset}
-                    onSkip={handleConversationalSkip}
-                    isLoading={generateMutation.isLoading}
-                  />
-                )
               
               case 'text_processing':
                 return (
@@ -571,15 +587,25 @@ export default function HomePage() {
                 // Check if we're in generating state for this step
                 if (currentStep === 'dynamic' && currentStepInfo.type === 'image_generation') {
                   return (
-                    <div className="text-center py-12">
-                      <LoadingSpinner />
-                      <h2 className="text-2xl font-semibold text-white mt-4 drop-shadow-lg">
-                        Generating your image...
-                      </h2>
-                      <p className="text-white/90 mt-2 drop-shadow-md">
-                        This may take a few moments. Please wait.
-                      </p>
-                    </div>
+                    <>
+                      <div className="text-center py-12">
+                        <LoadingSpinner />
+                        <h2 className="text-2xl font-semibold text-white mt-4 drop-shadow-lg">
+                          Generating your image...
+                        </h2>
+                        <p className="text-white/90 mt-2 drop-shadow-md">
+                          This may take a few moments. Please wait.
+                        </p>
+                      </div>
+                      {/* Debug Context Viewer for Image Generation Step */}
+                      {showDebug && currentImageAnalysis.contextData && (
+                        <DebugContextViewer
+                          contextData={currentImageAnalysis.contextData}
+                          stepName="Image Generation"
+                          canContinue={false}
+                        />
+                      )}
+                    </>
                   )
                 }
                 

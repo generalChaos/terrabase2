@@ -2,15 +2,34 @@
 
 ## Overview
 
-The Magic Marker prompt system uses a structured approach with predefined input/output schemas and placeholder variables. This guide explains how to create and manage prompts effectively.
+The Magic Marker prompt system uses a structured approach with predefined input/output schemas and placeholder variables, specifically designed for character drawing disambiguation and professional illustration generation. This guide explains how to create and manage prompts effectively within our disambiguation strategy.
+
+## Disambiguation Strategy Integration
+
+Magic Marker prompts are designed around a specific disambiguation strategy for character drawings:
+
+### **Core Philosophy**
+- **Child as Creative Director**: Children make important decisions about their character
+- **Preserve Original Vision**: Final image feels like "their character, but better"
+- **Transform Ambiguities into Strengths**: Unclear elements become creative opportunities
+
+### **Prompt Design Principles**
+- **Conversational Tone**: Use enthusiastic, encouraging language
+- **Visual Disambiguation First**: Focus on shapes, colors, features
+- **Character Concepts Second**: Personality, mood, abilities
+- **Simple, Fun Questions**: Frame as creative game, not test
+- **Show Understanding**: Demonstrate you "get" their creative vision
+
+For detailed strategy documentation, see [Disambiguation Strategy Guide](../architecture/DISAMBIGUATION_STRATEGY.md).
 
 ## Key Concepts
 
 ### 1. Prompt Types
 Each prompt has a specific `type` that defines its purpose and expected input/output format:
 
-- **`image_analysis`** - Analyze images and return structured analysis
-- **`questions_generation`** - Generate questions based on analysis
+- **`image_analysis`** - Analyze character drawings with conversational, enthusiastic tone
+- **`questions_generation`** - Generate simple, fun disambiguation questions
+- **`image_generation`** - Create professional character illustrations
 - **`conversational_question`** - Generate follow-up questions in conversation flow
 - **`image_prompt_creation`** - Create image generation prompts from Q&A
 - **`text_processing`** - Process text with various transformations

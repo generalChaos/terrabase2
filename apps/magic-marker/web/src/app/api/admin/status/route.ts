@@ -97,13 +97,23 @@ export async function GET() {
       console.error('Error getting prompt definitions info:', error)
     }
 
+    // Schema enforcement status (mock data for now - will be real metrics later)
+    const schemaEnforcementStatus = {
+      enabled: true,
+      function_calling_success_rate: 95.2,
+      retry_fallback_rate: 4.8,
+      total_attempts: 1247,
+      last_test: new Date().toISOString()
+    }
+
     const systemStatus = {
       environment,
       database: databaseStatus,
       openai: openaiStatus,
       supabase: supabaseStatus,
       storage: storageStatus,
-      prompts: promptsInfo
+      prompts: promptsInfo,
+      schema_enforcement: schemaEnforcementStatus
     }
 
     return NextResponse.json(systemStatus)

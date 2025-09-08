@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import Image from 'next/image'
 import { Question, QuestionAnswer } from '@/lib/types'
 
 interface QuestionFlowProps {
@@ -89,9 +90,11 @@ const QuestionFlow: React.FC<QuestionFlowProps> = ({
             Original Image
           </h3>
           <div className="flex justify-center">
-            <img
+            <Image
               src={originalImagePath}
               alt="Original image for analysis"
+              width={600}
+              height={400}
               className="max-w-full max-h-64 rounded-lg shadow-lg border-2 border-white/20"
             />
           </div>

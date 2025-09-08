@@ -24,7 +24,6 @@ export async function GET(request: NextRequest) {
         
         const newFlow = await AnalysisFlowService.createAnalysisFlow(
           testImageId,
-          testSessionId,
           'Test image analysis'
         );
         
@@ -66,12 +65,10 @@ export async function GET(request: NextRequest) {
       default:
         // Run all tests
         const testImageIdAll = `test-image-all-${Date.now()}`;
-        const testSessionIdAll = AnalysisFlowService.generateSessionId();
         
         // Test 1: Create flow
         const flow = await AnalysisFlowService.createAnalysisFlow(
           testImageIdAll,
-          testSessionIdAll,
           'Test image analysis'
         );
         
