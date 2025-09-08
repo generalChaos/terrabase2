@@ -69,10 +69,17 @@ export async function POST(request: NextRequest) {
         {
           imageAnalysis: imageData.analysis_result,
           previousAnswers: answerStrings,
-          artisticDirection: `Create an image based on these artistic preferences:
-Questions: ${questions.map((q: { text: string }) => q.text).join(', ')}
-Answers: ${answerStrings.join(', ')}
-Style: Artistic and creative interpretation of the user's preferences`,
+          artisticDirection: `Based on the comprehensive analysis of the child's original drawing and their detailed responses:
+
+ORIGINAL DRAWING ANALYSIS: ${imageData.analysis_result}
+
+CHILD'S CLARIFICATIONS:
+${questions.map((q: { text: string }, index: number) => {
+  const answer = answerStrings[index] || 'Not specified';
+  return `- ${q.text}: ${answer}`;
+}).join('\n')}
+
+ARTISTIC VISION: Create a detailed illustration that enhances the child's original drawing with these specific clarifications, maintaining the playful, imaginative nature while incorporating all the child's detailed preferences. Focus on preserving their original elements while adding the professional details they've specified.`,
           stepResults: {},
           conversationHistory: [],
           userPreferences: null,
@@ -158,7 +165,7 @@ Style: Artistic and creative interpretation of the user's preferences`,
         flow_id: analysisFlow.id,
         step_type: 'image_generation',
         step_order: 4,
-        prompt_content: `Generate an artistic image based on the original image analysis and user preferences: ${answerStrings.join(', ')}`,
+        prompt_content: dallEPrompt.length > 500 ? `${dallEPrompt.substring(0, 500)}...` : dallEPrompt,
         input_data: { 
           prompt: `Generated image based on answers: ${answerStrings.join(', ')}`,
           dall_e_prompt: dallEPrompt

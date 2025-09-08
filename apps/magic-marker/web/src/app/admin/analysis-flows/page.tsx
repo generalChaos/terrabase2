@@ -9,15 +9,12 @@ import { AnalysisFlow } from '@/lib/newTypes'
 import { ImageService } from '@/lib/imageService'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import AdminLayout from '@/components/AdminLayout'
-import AnalysisFlowModal from '@/components/AnalysisFlowModal'
 import { ToggleLeft, ToggleRight, Calendar, MessageSquare, Image as ImageIcon } from 'lucide-react'
 
 const API_BASE = '/api'
 
 export default function AnalysisFlowsPage() {
   const [errors, setErrors] = useState<string[]>([])
-  const [selectedFlow, setSelectedFlow] = useState<AnalysisFlow | null>(null)
-  const [isModalOpen, setIsModalOpen] = useState(false)
   const [imageThumbnails, setImageThumbnails] = useState<Record<string, string>>({})
   const queryClient = useQueryClient()
   const router = useRouter()
@@ -93,7 +90,7 @@ export default function AnalysisFlowsPage() {
   }
 
   const handleRowClick = (flow: AnalysisFlow) => {
-    console.log('🔍 [AnalysisFlowsPage] Setting selected flow:', {
+    console.log('🔍 [AnalysisFlowsPage] Navigating to flow details:', {
       id: flow.id,
       total_questions: flow.total_questions,
       total_answers: flow.total_answers,
@@ -101,14 +98,9 @@ export default function AnalysisFlowsPage() {
       questions_count: flow.questions?.length || 0,
       answers_count: flow.answers?.length || 0
     });
-    setSelectedFlow(flow)
-    setIsModalOpen(true)
+    router.push(`/admin/analysis-flows/${flow.id}`)
   }
 
-  const handleCloseModal = () => {
-    setIsModalOpen(false)
-    setSelectedFlow(null)
-  }
 
   if (isLoading) {
     return (
@@ -337,12 +329,6 @@ export default function AnalysisFlowsPage() {
         </div>
       </div>
 
-      {/* Modal */}
-      <AnalysisFlowModal
-        analysisFlow={selectedFlow}
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-      />
     </AdminLayout>
   )
 }
