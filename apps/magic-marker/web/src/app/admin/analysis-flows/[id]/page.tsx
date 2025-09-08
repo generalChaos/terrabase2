@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import NextImage from 'next/image'
 import { AnalysisFlow, Question, QuestionAnswer } from '@/lib/analysisFlowService'
-import { Image, ImageType } from '@/lib/imageService'
+import { Image, ImageType, ImageService } from '@/lib/imageService'
 import { ProcessingStep } from '@/lib/newTypes'
 import { ArrowLeft, Calendar, MessageSquare, Image as ImageIcon, FileText, Clock, CheckCircle, XCircle, Hash, Activity, AlertTriangle, Database, Zap, BarChart3, Code } from 'lucide-react'
 
@@ -224,7 +224,7 @@ export default function AnalysisFlowDetailsPage() {
                   {originalImage ? (
                     <div className="mt-2 flex items-center space-x-3">
                       <NextImage
-                        src={originalImage.file_path}
+                        src={ImageService.getImageUrl(originalImage.file_path)}
                         alt="Original"
                         width={64}
                         height={64}
@@ -246,7 +246,7 @@ export default function AnalysisFlowDetailsPage() {
                   {finalImage ? (
                     <div className="mt-2 flex items-center space-x-3">
                       <NextImage
-                        src={finalImage.file_path}
+                        src={ImageService.getImageUrl(finalImage.file_path)}
                         alt="Final"
                         width={64}
                         height={64}

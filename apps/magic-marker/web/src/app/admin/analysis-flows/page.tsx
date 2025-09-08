@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import axios from 'axios'
 import NextImage from 'next/image'
 import { AnalysisFlow } from '@/lib/newTypes'
+import { ImageService } from '@/lib/imageService'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import AdminLayout from '@/components/AdminLayout'
 import AnalysisFlowModal from '@/components/AnalysisFlowModal'
@@ -29,13 +30,15 @@ export default function AnalysisFlowsPage() {
     const thumbnails: Record<string, string> = {}
     
     for (const flow of flows) {
-      // Use the image paths that are now included in the API response
+      // Use the image paths that are now included in the API response and convert to public URLs
       if (flow.original_image_id && (flow as AnalysisFlow & { original_image_path?: string }).original_image_path) {
-        thumbnails[flow.original_image_id] = (flow as AnalysisFlow & { original_image_path?: string }).original_image_path!
+        const filePath = (flow as AnalysisFlow & { original_image_path?: string }).original_image_path!
+        thumbnails[flow.original_image_id] = ImageService.getImageUrl(filePath)
       }
       
       if (flow.final_image_id && (flow as AnalysisFlow & { final_image_path?: string }).final_image_path) {
-        thumbnails[flow.final_image_id] = (flow as AnalysisFlow & { final_image_path?: string }).final_image_path!
+        const filePath = (flow as AnalysisFlow & { final_image_path?: string }).final_image_path!
+        thumbnails[flow.final_image_id] = ImageService.getImageUrl(filePath)
       }
     }
     
