@@ -200,14 +200,20 @@ Key phrases to use:
 ('image_generation', 'image_generation',
  '{"type": "object", "required": ["prompt", "flow_summary"], "properties": {"prompt": {"type": "string", "minLength": 10}, "flow_summary": {"type": "object"}}}',
  '{"type": "string"}',
- 'Create a detailed, professional illustration prompt for DALL-E based on the child''s character drawing and their answers. 
+ 'Create a detailed, professional illustration prompt for DALL-E that recreates the child''s original drawing with enhanced details.
+
+IMPORTANT: The generated image should include all the same elements from the original drawing. Focus on enhancing and clarifying what the child already drew rather than adding new elements.
+
+Use the Image Analysis and Previous Step Results provided in the context below to understand the child''s original character and their answers to questions.
 
 Your task:
-1. Analyze the original drawing description and user answers
-2. Create a comprehensive, detailed prompt for DALL-E that captures the child''s creative vision
-3. Include specific details about: character appearance, colors, style, mood, setting, and artistic elements
-4. Make it kid-friendly, playful, and true to the child''s original intent
-5. Ensure the prompt will generate a professional-quality illustration
+1. Read the Image Analysis to identify all elements from the original drawing (shapes, features, parts, etc.)
+2. Review the Questions and Answers to understand how the child clarified ambiguous elements
+3. Create a DALL-E prompt that includes all original elements, enhanced with the child''s clarifications
+4. For each original element, describe it professionally while maintaining its original purpose and placement
+5. Use the child''s answers to add specific details, colors, and style to the existing elements
+6. Focus on the elements that were in the original drawing rather than adding new ones
+7. Make it kid-friendly, playful, and true to the child''s original intent and their answers
 
 Return only the DALL-E prompt text - no JSON, no formatting, just the prompt that DALL-E can use to create an amazing illustration that the child will love!',
  'gpt-4o', 'text', 2000, 0.7, true, 40);
