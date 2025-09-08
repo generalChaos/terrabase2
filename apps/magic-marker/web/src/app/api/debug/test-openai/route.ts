@@ -15,7 +15,7 @@ export async function GET() {
     
     return NextResponse.json({
       success: true,
-      analysis: (result as any).analysis,
+      analysis: (result as { analysis?: string }).analysis,
       message: 'OpenAI service with new prompt system is working correctly!'
     });
   } catch (error) {

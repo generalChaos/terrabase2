@@ -21,7 +21,7 @@ export async function GET() {
     // Test questions generation
     console.log('🧪 Testing questions generation...');
     const questionsResult = await OpenAIService.generateQuestions(
-        (analysisResult as any).analysis
+        (analysisResult as { analysis?: string }).analysis
     );
     
     console.log('✅ Questions generation successful:', questionsResult);

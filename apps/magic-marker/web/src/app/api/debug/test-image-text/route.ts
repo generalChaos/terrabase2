@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     );
     
     console.log('✅ Image + text analysis successful:', {
-      response: (result as any).analysis?.substring(0, 100) + '...'
+      response: (result as { analysis?: string }).analysis?.substring(0, 100) + '...'
     });
     
     return NextResponse.json({
@@ -63,7 +63,7 @@ export async function GET() {
     );
     
     console.log('✅ Image + text analysis successful:', {
-      response: (result as any).analysis?.substring(0, 100) + '...'
+      response: (result as { analysis?: string }).analysis?.substring(0, 100) + '...'
     });
     
     return NextResponse.json({
