@@ -226,6 +226,7 @@ export default function AnalysisFlowsPage() {
                                 width={48}
                                 height={48}
                                 className="w-12 h-12 object-cover rounded-lg border border-gray-200"
+                                unoptimized
                               />
                             ) : (
                               <div className="w-12 h-12 bg-gray-100 rounded-lg border border-gray-200 flex items-center justify-center">
@@ -245,6 +246,7 @@ export default function AnalysisFlowsPage() {
                                   width={48}
                                   height={48}
                                   className="w-12 h-12 object-cover rounded-lg border border-green-200"
+                                  unoptimized
                                 />
                               ) : (
                                 <div className="w-12 h-12 bg-green-50 rounded-lg border border-green-200 flex items-center justify-center">

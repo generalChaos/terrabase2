@@ -229,6 +229,7 @@ export default function AnalysisFlowDetailsPage() {
                         width={64}
                         height={64}
                         className="w-16 h-16 object-cover rounded-lg border"
+                        unoptimized
                       />
                       <div>
                         <p className="text-sm text-gray-900 font-mono">{originalImage.id}</p>
@@ -251,6 +252,7 @@ export default function AnalysisFlowDetailsPage() {
                         width={64}
                         height={64}
                         className="w-16 h-16 object-cover rounded-lg border"
+                        unoptimized
                       />
                       <div>
                         <p className="text-sm text-gray-900 font-mono">{finalImage.id}</p>
