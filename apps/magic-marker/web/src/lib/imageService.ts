@@ -96,6 +96,17 @@ export class ImageService {
   }
 
   /**
+   * Get public URL for an image
+   */
+  static getImageUrl(filePath: string): string {
+    const { data } = supabase.storage
+      .from('images')
+      .getPublicUrl(filePath);
+    
+    return data.publicUrl;
+  }
+
+  /**
    * Update image analysis result
    */
   static async updateAnalysisResult(
