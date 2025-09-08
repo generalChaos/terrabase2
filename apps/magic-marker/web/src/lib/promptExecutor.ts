@@ -203,13 +203,6 @@ export class PromptExecutor {
     return promptText.replace(schemaRegex, '\n\nReturn your response as valid JSON.');
   }
 
-  /**
-   * Clear the prompt cache (useful for development/testing)
-   */
-  static clearCache(): void {
-    console.log('🗑️ [PromptExecutor] Clearing prompt cache');
-    this.promptCache.clear();
-  }
 
   /**
    * Get prompt definition from database with caching
@@ -525,9 +518,9 @@ export class PromptExecutor {
         console.log(`📝 [${requestId}] Step 1: Creating DALL-E prompt with GPT-5`);
         const messageContent = this.buildMessageContent(definition, prompt, input);
         
-        // Ensure messages is an array
+        // Ensure messages is an array of proper message objects
         const messages = Array.isArray(messageContent) 
-          ? messageContent 
+          ? messageContent.map(msg => ({ role: "user" as const, content: msg }))
           : [{ role: "user" as const, content: messageContent }];
         
         const gptResponse = await openai.chat.completions.create({
