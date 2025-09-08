@@ -54,7 +54,7 @@ export class SchemaEnforcer {
 
       // Check if this is an image analysis request
       const isImageAnalysis = definition.type === 'image_analysis';
-      let messages: any[] = [];
+      let messages: Array<{ role: string; content: string | Array<{ type: string; text?: string; image_url?: { url: string } }> }> = [];
       
       if (isImageAnalysis && input?.image) {
         console.log('🖼️ [SchemaEnforcer] Setting up image analysis with function calling:', {
@@ -241,7 +241,7 @@ export class SchemaEnforcer {
         // Check if this is an image analysis request
         const isImageAnalysis = definition.type === 'image_analysis';
         
-        let messages: any[] = [];
+        let messages: Array<{ role: string; content: string | Array<{ type: string; text?: string; image_url?: { url: string } }> }> = [];
         
         if (isImageAnalysis) {
           // For image analysis, we need to get the image data from the input
