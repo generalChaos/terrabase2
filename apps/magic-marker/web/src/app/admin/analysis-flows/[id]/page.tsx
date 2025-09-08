@@ -23,10 +23,27 @@ export default function AnalysisFlowDetailsPage() {
   const [originalImage, setOriginalImage] = useState<Image | null>(null)
   const [finalImage, setFinalImage] = useState<Image | null>(null)
   const [processingSteps, setProcessingSteps] = useState<ProcessingStep[]>([])
+  const [promptDefinitions, setPromptDefinitions] = useState<Record<string, any>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const flowId = params.id as string
+
+  const fetchPromptDefinitions = async () => {
+    try {
+      const response = await fetch('/api/admin/prompt-definitions')
+      if (response.ok) {
+        const data = await response.json()
+        const promptsMap: Record<string, any> = {}
+        data.prompts.forEach((prompt: any) => {
+          promptsMap[prompt.name] = prompt
+        })
+        setPromptDefinitions(promptsMap)
+      }
+    } catch (error) {
+      console.warn('Failed to fetch prompt definitions:', error)
+    }
+  }
 
   useEffect(() => {
     const fetchAnalysisFlow = async () => {
@@ -92,6 +109,7 @@ export default function AnalysisFlowDetailsPage() {
 
     if (flowId) {
       fetchAnalysisFlow()
+      fetchPromptDefinitions()
     }
   }, [flowId])
 
@@ -276,7 +294,9 @@ export default function AnalysisFlowDetailsPage() {
               </h2>
 
               <div className="space-y-6">
-                {processingSteps.map((step, index) => {
+                {processingSteps
+                  .sort((a, b) => (a.step_order || 0) - (b.step_order || 0))
+                  .map((step, index) => {
                   const stepColors = {
                     'analysis': 'blue',
                     'questions': 'purple', 
@@ -314,95 +334,172 @@ export default function AnalysisFlowDetailsPage() {
                       </div>
                       
                       <div className="ml-9 space-y-3">
-                        {(step.prompt_content && typeof step.prompt_content === 'string') ? (
-                          <div className={`bg-${color}-50 p-3 rounded-lg`}>
-                            <p className={`text-sm font-medium text-${color}-900 mb-1`}>Initial Prompt:</p>
-                            <div className={`text-sm text-${color}-800 bg-white p-2 rounded border`}>
-                              {step.prompt_content as string}
+                        {/* For analysis step, show database prompt */}
+                        {step.step_type === 'analysis' ? (
+                          <>
+                            {/* Database Prompt for Analysis */}
+                            <div className="bg-blue-50 p-3 rounded-lg mb-3">
+                              <p className="text-sm font-medium text-blue-900 mb-1">Database Prompt:</p>
+                              <div className="text-sm text-blue-800 bg-white p-2 rounded border">
+                                {promptDefinitions['image_analysis']?.prompt_text || step.prompt_content || 'Loading prompt from database...'}
+                              </div>
                             </div>
-                          </div>
-                        ) : null}
-                        
-                        {step.output_data ? (
-                          <div className="bg-green-50 p-3 rounded-lg">
-                            <p className="text-sm font-medium text-green-900 mb-1">AI Response:</p>
-                            <div className="text-sm text-green-800">
-                              {(() => {
-                                // Try to extract human-readable content from the response
-                                if (typeof step.output_data === 'string') {
-                                  return step.output_data
-                                }
-                                
-                                // For structured responses, try to find the most relevant text
-                                const data = step.output_data as Record<string, unknown>
-                                if (data.analysis) return String(data.analysis)
-                                if (data.description) return String(data.description)
-                                if (data.response) return String(data.response)
-                                if (data.questions && Array.isArray(data.questions)) {
-                                  return data.questions.map((q: unknown, i: number) => {
-                                    if (typeof q === 'string') return `${i + 1}. ${q}`
-                                    if (typeof q === 'object' && q && 'text' in q) return `${i + 1}. ${(q as { text: string }).text}`
-                                    if (typeof q === 'object' && q && 'question' in q) return `${i + 1}. ${(q as { question: string }).question}`
-                                    return `${i + 1}. ${String(q)}`
-                                  }).join('\n')
-                                }
-                                if (data.answer) return String(data.answer)
-                                if (data.prompt) return String(data.prompt)
-                                
-                                // Fallback to JSON for complex structures
-                                return JSON.stringify(step.output_data, null, 2)
-                              })()}
-                            </div>
-                          </div>
-                        ) : null}
-                        
-                        {step.step_type === 'image_generation' && step.output_data && typeof step.output_data === 'object' && 'dall_e_prompt' in step.output_data ? (
-                          <div className="bg-orange-50 p-3 rounded-lg border border-orange-200">
-                            <p className="text-sm font-medium text-orange-900 mb-2">DALL-E Prompt:</p>
-                            <div className="bg-white p-3 rounded border border-orange-200">
-                              <p className="text-sm text-orange-800 font-mono leading-relaxed">
-                                {String((step.output_data as Record<string, unknown>).dall_e_prompt)}
-                              </p>
-                            </div>
-                          </div>
-                        ) : null}
-
-                        {/* Questions Generated (for questions_generation step) */}
-                        {step.step_type === 'questions' && analysisFlow.questions && analysisFlow.questions.length > 0 && (
-                          <div className="bg-purple-50 p-3 rounded-lg">
-                            <p className="text-sm font-medium text-purple-900 mb-3">Questions Generated with Answers:</p>
-                            <div className="space-y-4">
-                              {analysisFlow.questions.map((question: Question, qIndex: number) => {
-                                const answer = analysisFlow.answers?.find((a: QuestionAnswer) => a.questionId === question.id)
-                                return (
-                                  <div key={question.id} className="bg-white p-3 rounded border border-purple-200">
-                                    <p className="text-sm font-medium text-gray-900 mb-2">
-                                      Q{qIndex + 1}: {question.text}
+                            
+                            {/* AI Response for Analysis */}
+                            {step.output_data && (
+                              <div className="bg-green-50 p-3 rounded-lg">
+                                <p className="text-sm font-medium text-green-900 mb-1">AI Response:</p>
+                                <div className="text-sm text-green-800">
+                                  {(() => {
+                                    if (typeof step.output_data === 'string') {
+                                      return step.output_data
+                                    }
+                                    const data = step.output_data as Record<string, unknown>
+                                    if (data.analysis) return String(data.analysis)
+                                    return JSON.stringify(step.output_data, null, 2)
+                                  })()}
+                                </div>
+                              </div>
+                            )}
+                          </>
+                        ) : step.step_type === 'image_generation' ? (
+                          <>
+                            {/* 1. Context Used (Image Analysis + Artistic Direction) */}
+                            <div className="bg-purple-50 p-3 rounded-lg border border-purple-200">
+                              <p className="text-sm font-medium text-purple-900 mb-2">Context Used:</p>
+                              <div className="bg-white p-3 rounded border border-purple-200">
+                                <div className="text-sm text-purple-800 space-y-3">
+                                  <div>
+                                    <p className="font-medium mb-1">Image Analysis:</p>
+                                    <p className="text-xs text-gray-600 font-mono leading-relaxed">
+                                      {String(analysisFlow.context_data?.imageAnalysis || 'No analysis available')}
                                     </p>
-                                    {question.options && question.options.length > 0 && (
-                                      <div className="flex flex-wrap gap-2">
-                                        {question.options.map((option: string, optIndex: number) => {
-                                          const isSelected = answer && option === answer.answer
-                                          return (
-                                            <span
-                                              key={optIndex}
-                                              className={`px-3 py-1 text-xs rounded-full border ${
-                                                isSelected
-                                                  ? 'bg-green-100 text-green-800 border-green-300 font-medium'
-                                                  : 'bg-gray-100 text-gray-700 border-gray-300'
-                                              }`}
-                                            >
-                                              {option}
-                                            </span>
-                                          )
-                                        })}
-                                      </div>
-                                    )}
                                   </div>
-                                )
-                              })}
+                                  <div>
+                                    <p className="font-medium mb-1">Artistic Direction:</p>
+                                    <p className="text-xs text-gray-600 font-mono leading-relaxed">
+                                      {String(analysisFlow.context_data?.artisticDirection || 'No artistic direction available')}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
                             </div>
-                          </div>
+
+                            {/* 2. Database Prompt (Comprehensive) */}
+                            <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                              <p className="text-sm font-medium text-blue-900 mb-2">Database Prompt (Comprehensive):</p>
+                              <div className="bg-white p-3 rounded border border-blue-200">
+                                <p className="text-sm text-blue-800 font-mono leading-relaxed">
+                                  {promptDefinitions['image_generation']?.prompt_text || 'Loading prompt from database...'}
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* 3. Generated DALL-E Prompt */}
+                            {step.output_data && typeof step.output_data === 'object' && 'dall_e_prompt' in step.output_data ? (
+                              <div className="bg-orange-50 p-3 rounded-lg border border-orange-200">
+                                <p className="text-sm font-medium text-orange-900 mb-2">Generated DALL-E Prompt:</p>
+                                <div className="bg-white p-3 rounded border border-orange-200">
+                                  <p className="text-sm text-orange-800 font-mono leading-relaxed">
+                                    {String((step.output_data as Record<string, unknown>).dall_e_prompt)}
+                                  </p>
+                                </div>
+                              </div>
+                            ) : null}
+                          </>
+                        ) : (
+                          /* For other steps, show the original logic */
+                          <>
+                            {(step.prompt_content && typeof step.prompt_content === 'string' && (step.step_type as string) !== 'image_generation' && (step.step_type as string) !== 'questions') ? (
+                              <div className={`bg-${color}-50 p-3 rounded-lg`}>
+                                <p className={`text-sm font-medium text-${color}-900 mb-1`}>Initial Prompt:</p>
+                                <div className={`text-sm text-${color}-800 bg-white p-2 rounded border`}>
+                                  {step.prompt_content as string}
+                                </div>
+                              </div>
+                            ) : null}
+                            
+                            {step.output_data && (step.step_type as string) !== 'image_generation' && (step.step_type as string) !== 'questions' ? (
+                              <div className="bg-green-50 p-3 rounded-lg">
+                                <p className="text-sm font-medium text-green-900 mb-1">AI Response:</p>
+                                <div className="text-sm text-green-800">
+                                  {(() => {
+                                    // Try to extract human-readable content from the response
+                                    if (typeof step.output_data === 'string') {
+                                      return step.output_data
+                                    }
+                                    
+                                    // For structured responses, try to find the most relevant text
+                                    const data = step.output_data as Record<string, unknown>
+                                    if (data.analysis) return String(data.analysis)
+                                    if (data.description) return String(data.description)
+                                    if (data.response) return String(data.response)
+                                    if (data.questions && Array.isArray(data.questions)) {
+                                      return data.questions.map((q: unknown, i: number) => {
+                                        if (typeof q === 'string') return `${i + 1}. ${q}`
+                                        if (typeof q === 'object' && q && 'text' in q) return `${i + 1}. ${(q as { text: string }).text}`
+                                        if (typeof q === 'object' && q && 'question' in q) return `${i + 1}. ${(q as { question: string }).question}`
+                                        return `${i + 1}. ${String(q)}`
+                                      }).join('\n')
+                                    }
+                                    if (data.answer) return String(data.answer)
+                                    if (data.prompt) return String(data.prompt)
+                                    
+                                    // Fallback to JSON for complex structures
+                                    return JSON.stringify(step.output_data, null, 2)
+                                  })()}
+                                </div>
+                              </div>
+                            ) : null}
+                          </>
+                        )}
+
+                        {/* Questions Generated (for questions_generation step) - only show once */}
+                        {step.step_type === 'questions' && analysisFlow.questions && analysisFlow.questions.length > 0 && index === processingSteps.findIndex(s => s.step_type === 'questions') && (
+                          <>
+                            {/* Show the prompt for questions step */}
+                            <div className="bg-purple-50 p-3 rounded-lg mb-3">
+                              <p className="text-sm font-medium text-purple-900 mb-1">Database Prompt:</p>
+                              <div className="text-sm text-purple-800 bg-white p-2 rounded border">
+                                {promptDefinitions['questions_generation']?.prompt_text || step.prompt_content || 'Loading prompt from database...'}
+                              </div>
+                            </div>
+                            
+                            <div className="bg-purple-50 p-3 rounded-lg">
+                              <p className="text-sm font-medium text-purple-900 mb-3">Questions Generated with Answers:</p>
+                              <div className="space-y-4">
+                                {analysisFlow.questions.map((question: Question, qIndex: number) => {
+                                  const answer = analysisFlow.answers?.find((a: QuestionAnswer) => a.questionId === question.id)
+                                  return (
+                                    <div key={question.id} className="bg-white p-3 rounded border border-purple-200">
+                                      <p className="text-sm font-medium text-gray-900 mb-2">
+                                        Q{qIndex + 1}: {question.text}
+                                      </p>
+                                      {question.options && question.options.length > 0 && (
+                                        <div className="flex flex-wrap gap-2">
+                                          {question.options.map((option: string, optIndex: number) => {
+                                            const isSelected = answer && option === answer.answer
+                                            return (
+                                              <span
+                                                key={optIndex}
+                                                className={`px-3 py-1 text-xs rounded-full border ${
+                                                  isSelected
+                                                    ? 'bg-green-100 text-green-800 border-green-300 font-medium'
+                                                    : 'bg-gray-100 text-gray-700 border-gray-300'
+                                                }`}
+                                              >
+                                                {option}
+                                              </span>
+                                            )
+                                          })}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            </div>
+                          </>
                         )}
                         
                         {/* Error Message */}
@@ -466,21 +563,6 @@ export default function AnalysisFlowDetailsPage() {
                   <ImageIcon className="w-5 h-5 mr-2" />
                   Final Generated Image
                 </h2>
-                
-                {/* Image Generation Prompt */}
-                {(() => {
-                  const imageGenStep = processingSteps.find(step => step.step_type === 'image_generation' && step.prompt_content)
-                  return imageGenStep ? (
-                    <div className="mb-6">
-                      <h3 className="text-md font-medium text-gray-900 mb-3">Generation Prompt:</h3>
-                      <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                        <p className="text-sm text-green-800 font-mono leading-relaxed">
-                          {imageGenStep.prompt_content}
-                        </p>
-                      </div>
-                    </div>
-                  ) : null
-                })()}
                 
                 <div className="flex justify-center">
                   <div className="max-w-2xl w-full">
