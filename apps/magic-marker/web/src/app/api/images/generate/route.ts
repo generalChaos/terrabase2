@@ -152,12 +152,35 @@ ARTISTIC VISION: Create a detailed illustration that enhances the child's origin
         'image/png'
       );
 
-      // Update analysis flow with answers and final image
+      // Update analysis flow with answers, final image, and context data
       await AnalysisFlowService.updateAnalysisFlow(analysisFlow.id, {
         answers: answers,
         totalAnswers: answers.length,
         final_image_id: finalImageRecord.id,
-        currentStep: 'completed'
+        currentStep: 'completed',
+        contextData: {
+          imageAnalysis: imageData.analysis_result,
+          artisticDirection: `Based on the comprehensive analysis of the child's original drawing and their detailed responses:
+
+ORIGINAL DRAWING ANALYSIS: ${imageData.analysis_result}
+
+CHILD'S CLARIFICATIONS:
+${questions.map((q: { text: string }, index: number) => {
+  const answer = answerStrings[index] || 'Not specified';
+  return `- ${q.text}: ${answer}`;
+}).join('\n')}
+
+ARTISTIC VISION: Create a detailed illustration that enhances the child's original drawing with these specific clarifications, maintaining the playful, imaginative nature while incorporating all the child's detailed preferences. Focus on preserving their original elements while adding the professional details they've specified.`,
+          stepResults: {},
+          conversationHistory: [],
+          userPreferences: null,
+          metadata: {
+            totalTokens: 0,
+            totalCost: 0,
+            lastUpdated: new Date().toISOString(),
+            flowId: analysisFlow.id
+          }
+        }
       });
 
       // Log image generation step
