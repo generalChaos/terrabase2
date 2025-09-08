@@ -5,6 +5,7 @@ import { PromptExecutor } from '@/lib/promptExecutor';
 import { StepService } from '@/lib/stepService';
 import { ImageService } from '@/lib/imageService';
 import { AnalysisFlowService } from '@/lib/analysisFlowService';
+import { ContextManager, StepContext } from '@/lib/contextManager';
 import { Question } from '@/lib/types';
 
 export async function POST(request: NextRequest) {
@@ -139,29 +140,68 @@ export async function POST(request: NextRequest) {
 
     // Convert image to base64 for OpenAI API
     const base64Image: string = buffer.toString('base64');
-    console.log(`🔄 [${requestId}] Converted to base64, length:`, base64Image.length);
+    console.log(`🔄 [${requestId}] Converted to base64:`, {
+      length: base64Image.length,
+      sizeKB: Math.round(base64Image.length / 1024)
+    });
 
-    // Step 1: Analyze image using prompt system
-    console.log(`🤖 [${requestId}] Starting image analysis with prompt system...`);
+    // Step 1: Analyze image using schema enforcement
+    console.log(`🤖 [${requestId}] Starting image analysis with schema enforcement...`);
+    console.log(`🖼️ [${requestId}] Image data:`, {
+      length: base64Image.length,
+      sizeKB: Math.round(base64Image.length / 1024),
+      startsWith: base64Image.substring(0, 20),
+      endsWith: base64Image.substring(base64Image.length - 20)
+    });
     const analysisStartTime: number = Date.now();
-    const analysisResult = await PromptExecutor.execute('image_analysis', {
+    const analysisResult = await PromptExecutor.executeWithSchemaEnforcement('image_analysis', {
       image: base64Image,
-      prompt: 'Analyze this image and describe what you see, focusing on artistic elements, composition, colors, and mood.'
+      prompt: '' // Empty prompt - will be replaced by database prompt text
     });
     const analysisTime: number = Date.now() - analysisStartTime;
     console.log(`✅ [${requestId}] Image analysis completed in ${analysisTime}ms`);
-    // Type guard to ensure we have the response property
-    if (!('response' in analysisResult)) {
-      throw new Error('Analysis failed: No response returned');
+    // Type guard to ensure we have the analysis property
+    if (!('analysis' in analysisResult)) {
+      throw new Error('Analysis failed: No analysis returned');
     }
-    console.log(`📝 [${requestId}] Analysis length:`, analysisResult.response?.length || 0);
+    console.log(`📝 [${requestId}] Analysis length:`, analysisResult.analysis?.length || 0);
 
-    // Step 2: Generate questions from analysis using prompt system
-    console.log(`❓ [${requestId}] Starting questions generation with prompt system...`);
+    // Step 2: Generate questions from analysis using prompt system with context
+    console.log(`❓ [${requestId}] Starting questions generation with context...`);
     const questionsStartTime: number = Date.now();
-    const questionsResult = await PromptExecutor.execute('questions_generation', {
-      response: analysisResult.response
+    
+    // Create context for questions generation
+    const contextFlowId = `flow_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+    const context: StepContext = ContextManager.buildContextForStep(
+      contextFlowId,
+      'questions_generation',
+      2,
+      {
+        imageAnalysis: analysisResult.analysis,
+        previousAnswers: [],
+        artisticDirection: null,
+        stepResults: {},
+        conversationHistory: [],
+        userPreferences: null,
+        metadata: {
+          totalTokens: 0,
+          totalCost: 0,
+          lastUpdated: new Date().toISOString(),
+          flowId: contextFlowId
+        }
+      }
+    );
+    
+    console.log(`🔗 [${requestId}] Context created for questions generation:`, {
+      flowId: context.flowId,
+      currentStep: context.currentStep,
+      contextKeys: Object.keys(context.contextData)
     });
+    
+    const questionsResult = await PromptExecutor.executeWithSchemaEnforcement('questions_generation', {
+      analysis: analysisResult.analysis,
+      prompt: ''
+    }, context);
     const questionsTime: number = Date.now() - questionsStartTime;
     console.log(`✅ [${requestId}] Questions generation completed in ${questionsTime}ms`);
     console.log(`🔍 [${requestId}] Questions result structure:`, JSON.stringify(questionsResult, null, 2));
@@ -174,20 +214,18 @@ export async function POST(request: NextRequest) {
     // Create image record using ImageService
     console.log(`💾 [${requestId}] Creating image record...`);
     const imageRecord = await ImageService.createImage(
-      analysisResult.response,
+      analysisResult.analysis,
       'original',
       publicUrl,
       file.size,
       file.type
     );
 
-    // Generate session ID and create analysis flow
+    // Create analysis flow
     console.log(`🔄 [${requestId}] Creating analysis flow...`);
-    const sessionId: string = AnalysisFlowService.generateSessionId();
     const analysisFlow = await AnalysisFlowService.createAnalysisFlow(
       imageRecord.id,
-      sessionId,
-      analysisResult.response
+      analysisResult.analysis
     );
 
     // Ensure unique IDs for questions
@@ -211,7 +249,7 @@ export async function POST(request: NextRequest) {
       step_type: 'analysis',
       step_order: 1,
       input_data: { image_base64_length: base64Image.length },
-      output_data: { response: analysisResult.response },
+      output_data: { analysis: analysisResult.analysis },
       response_time_ms: analysisTime,
       model_used: 'gpt-4o',
       success: true
@@ -222,7 +260,7 @@ export async function POST(request: NextRequest) {
       flow_id: analysisFlow.id,
       step_type: 'questions',
       step_order: 2,
-      input_data: { response: analysisResult.response.trim() },
+      input_data: { analysis: analysisResult.analysis.trim() },
       output_data: { questions: questionsResult.questions },
       response_time_ms: questionsTime,
       model_used: 'gpt-4o',
@@ -230,13 +268,18 @@ export async function POST(request: NextRequest) {
     });
 
     console.log(`🎉 [${requestId}] Upload completed successfully!`);
+    
+    // Include context data for debugging (without stopping the flow)
+    console.log(`🐛 [${requestId}] Including context data for debugging`);
+    
     return NextResponse.json({
       success: true,
       imageAnalysisId: imageRecord.id, // Return the actual image ID
       flowId: analysisFlow.id, // Return the analysis flow ID
       originalImagePath: publicUrl,
-      analysis: analysisResult.response,
-      questions: questionsWithUniqueIds // Return generated questions with unique IDs
+      analysis: analysisResult.analysis,
+      questions: questionsWithUniqueIds, // Return generated questions with unique IDs
+      contextData: context // Include the full context data for debugging
     });
 
   } catch (error: unknown) {
@@ -244,19 +287,8 @@ export async function POST(request: NextRequest) {
     
     let errorMessage: string = 'Upload failed';
     let statusCode: number = 500;
-    let debugInfo: { type: string; details: string; suggestion: string } | null = null;
-    
     if (error instanceof Error) {
       errorMessage = error.message;
-      
-      // Add debug info for validation errors
-      if (error.message.includes('validation failed')) {
-        debugInfo = {
-          type: 'validation_error',
-          details: error.message,
-          suggestion: 'Check the AI response format against expected schema'
-        };
-      }
       
       // Handle specific OpenAI errors
       if (error.message.includes('OpenAI API key not configured')) {
@@ -286,7 +318,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ 
       success: false, 
       error: errorMessage,
-      debug: debugInfo,
       timestamp: new Date().toISOString(),
       requestId: `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
     }, { status: statusCode });

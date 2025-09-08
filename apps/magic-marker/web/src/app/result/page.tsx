@@ -3,7 +3,9 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import LoadingSpinner from '@/components/LoadingSpinner'
+import { Question } from '@/lib/types'
 
 function ResultContent() {
   const searchParams = useSearchParams()
@@ -11,8 +13,8 @@ function ResultContent() {
     originalImagePath: string
     finalImagePath: string
     analysisResult: string
-    questions: { text: string }[]
-    answers: (string | { answer: string })[]
+    questions: Question[]
+    answers: { questionId: string; answer: string }[]
   } | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -97,10 +99,13 @@ function ResultContent() {
               Original Image
             </h2>
             <div className="flex justify-center">
-              <img
+              <Image
                 src={imageData.originalImagePath}
                 alt="Original image"
-                className="max-w-full max-h-96 rounded-lg shadow-lg border-2 border-white/20"
+                width={800}
+                height={600}
+                className="max-w-full max-h-96 rounded-lg shadow-lg border-2 border-white/20 object-contain"
+                style={{ aspectRatio: 'auto' }}
               />
             </div>
           </div>
@@ -111,10 +116,13 @@ function ResultContent() {
               Generated Image
             </h2>
             <div className="flex justify-center">
-              <img
+              <Image
                 src={imageData.finalImagePath}
                 alt="Generated image"
-                className="max-w-full max-h-96 rounded-lg shadow-lg border-2 border-white/20"
+                width={800}
+                height={600}
+                className="max-w-full max-h-96 rounded-lg shadow-lg border-2 border-white/20 object-contain"
+                style={{ aspectRatio: 'auto' }}
               />
             </div>
           </div>
@@ -139,15 +147,16 @@ function ResultContent() {
               Your Answers
             </h2>
             <div className="space-y-4">
-              {imageData.questions.map((question: { text: string }, index: number) => {
-                const answer = imageData.answers[index]
+              {imageData.questions.map((question: Question, index: number) => {
+                // Find the answer that matches this question's ID
+                const answer = imageData.answers.find((ans: { questionId: string, answer: string }) => ans.questionId === question.id)
                 return (
-                  <div key={index} className="bg-white/5 rounded-lg p-4 border border-white/10">
+                  <div key={question.id || index} className="bg-white/5 rounded-lg p-4 border border-white/10">
                     <h3 className="text-white font-medium mb-2 drop-shadow-md">
                       {question.text}
                     </h3>
                     <p className="text-white/80 drop-shadow-sm">
-                      <span className="font-medium">Answer:</span> {typeof answer === 'object' ? answer.answer : answer}
+                      <span className="font-medium">Answer:</span> {answer ? answer.answer : 'No answer provided'}
                     </p>
                   </div>
                 )

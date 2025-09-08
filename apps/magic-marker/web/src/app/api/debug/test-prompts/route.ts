@@ -33,7 +33,7 @@ export async function GET(_request: NextRequest) {
     const { data: imagePromptCreation } = await supabase
       .from('prompt_definitions')
       .select('*')
-      .eq('name', 'image_prompt_creation')
+      .eq('name', 'image_generation')
       .single();
     
     // Test prompt system functionality
@@ -49,7 +49,6 @@ export async function GET(_request: NextRequest) {
         prompt_text_length: p.prompt_text.length,
         has_input_schema: !!p.input_schema,
         has_output_schema: !!p.output_schema,
-        has_return_schema: !!p.return_schema,
         created_at: p.created_at
       })) || [],
       specific_prompts: {
@@ -67,7 +66,7 @@ export async function GET(_request: NextRequest) {
           prompt_text_length: questionsPrompt.prompt_text.length,
           found: true
         } : { found: false },
-        image_prompt_creation: imagePromptCreation ? {
+        image_generation: imagePromptCreation ? {
           id: imagePromptCreation.id,
           type: imagePromptCreation.type,
           active: imagePromptCreation.active,

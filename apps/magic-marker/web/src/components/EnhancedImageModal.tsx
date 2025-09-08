@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react'
+import Image from 'next/image'
 import { ImageAnalysis } from '@/lib/types'
 
 interface ProcessingStep {
   id: string
   image_id: string
-  step_type: 'analysis' | 'questions' | 'conversational_question' | 'answer_analysis' | 'image_generation'
+  step_type: 'analysis' | 'questions' | 'conversational_question' | 'image_generation'
   step_order: number
   prompt_id?: string
   prompt_content?: string
@@ -64,7 +65,6 @@ const EnhancedImageModal: React.FC<EnhancedImageModalProps> = ({ image, isOpen, 
       'analysis': '🔍',
       'questions': '❓',
       'conversational_question': '💬',
-      'answer_analysis': '📝',
       'image_generation': '🎨'
     }
     return icons[stepType as keyof typeof icons] || '⚙️'
@@ -75,7 +75,6 @@ const EnhancedImageModal: React.FC<EnhancedImageModalProps> = ({ image, isOpen, 
       'analysis': 'Image Analysis',
       'questions': 'Questions Generation',
       'conversational_question': 'Conversational Question',
-      'answer_analysis': 'Answer Analysis',
       'image_generation': 'Image Generation'
     }
     return titles[stepType as keyof typeof titles] || stepType
@@ -140,9 +139,11 @@ const EnhancedImageModal: React.FC<EnhancedImageModalProps> = ({ image, isOpen, 
                 <div>
                   <h3 className="text-lg font-semibold text-white mb-3">Original Image</h3>
                   <div className="aspect-square bg-gray-200 rounded-lg overflow-hidden">
-                    <img
+                    <Image
                       src={image.originalImagePath}
                       alt="Original"
+                      width={400}
+                      height={400}
                       className="w-full h-full object-cover"
                       onError={(e) => {
                         const target = e.target as HTMLImageElement
@@ -157,9 +158,11 @@ const EnhancedImageModal: React.FC<EnhancedImageModalProps> = ({ image, isOpen, 
                   <h3 className="text-lg font-semibold text-white mb-3">Generated Image</h3>
                   <div className="aspect-square bg-gray-200 rounded-lg overflow-hidden">
                     {image.finalImagePath ? (
-                      <img
+                      <Image
                         src={image.finalImagePath}
                         alt="Generated"
+                        width={400}
+                        height={400}
                         className="w-full h-full object-cover"
                         onError={(e) => {
                           const target = e.target as HTMLImageElement

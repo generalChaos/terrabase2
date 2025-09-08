@@ -6,6 +6,7 @@ import { StepService } from '@/lib/stepService';
 import { ImageService } from '@/lib/imageService';
 import { AnalysisFlowService } from '@/lib/analysisFlowService';
 import { PromptExecutor } from '@/lib/promptExecutor';
+import { ContextManager, StepContext } from '@/lib/contextManager';
 
 // POST /api/images/generate - Generate new image based on answers
 export async function POST(request: NextRequest) {
@@ -49,7 +50,7 @@ export async function POST(request: NextRequest) {
       // Log answer analysis step
       await StepService.logStep({
         flow_id: analysisFlow.id,
-        step_type: 'answer_analysis',
+        step_type: 'questions',
         step_order: 3,
         prompt_content: 'Analyze user answers and prepare for image generation',
         input_data: { questions, answers: answerStrings },
@@ -59,15 +60,56 @@ export async function POST(request: NextRequest) {
         success: true
       });
       
-      // Use image generation prompt system
-      console.log('🎨 Starting image generation with prompt system...');
-      const imageGenerationStartTime = Date.now();
-      const imageGenerationResult = await PromptExecutor.execute('image_generation', {
-        prompt: `Create an image based on these artistic preferences:
+      // Build context for image generation step
+      const contextFlowId = analysisFlow.id;
+      const context: StepContext = ContextManager.buildContextForStep(
+        contextFlowId,
+        'image_generation',
+        3,
+        {
+          imageAnalysis: imageData.analysis_result,
+          previousAnswers: answerStrings,
+          artisticDirection: `Create an image based on these artistic preferences:
 Questions: ${questions.map((q: { text: string }) => q.text).join(', ')}
 Answers: ${answerStrings.join(', ')}
-Style: Artistic and creative interpretation of the user's preferences`
-      });
+Style: Artistic and creative interpretation of the user's preferences`,
+          stepResults: {},
+          conversationHistory: [],
+          userPreferences: null,
+          metadata: {
+            totalTokens: 0,
+            totalCost: 0,
+            lastUpdated: new Date().toISOString(),
+            flowId: contextFlowId
+          }
+        }
+      );
+
+      // Use image generation with schema enforcement
+      console.log('🎨 Starting image generation with schema enforcement...');
+      const imageGenerationStartTime = Date.now();
+      const imageGenerationResult = await PromptExecutor.execute('image_generation', {
+        prompt: `Create an image based on this character analysis and the child's answers:
+
+ORIGINAL CHARACTER ANALYSIS:
+${context?.contextData?.imageAnalysis || 'No analysis available'}
+
+QUESTIONS AND ANSWERS:
+${questions.map((q: { text: string; id: string }, index: number) => {
+          const answer = answerStrings[index] || 'No answer provided';
+          return `Q${index + 1}: ${q.text}\nA${index + 1}: ${answer}`;
+        }).join('\n\n')}
+
+STYLE: Artistic and creative interpretation that brings the child's vision to life`,
+        flow_summary: {
+          analysis: context?.contextData?.imageAnalysis || '',
+          questions: questions,
+          answers: answerStrings,
+          artisticDirection: context?.contextData?.artisticDirection || '',
+          stepResults: context?.contextData?.stepResults || {},
+          conversationHistory: context?.contextData?.conversationHistory || []
+        }
+      }, context);
       const imageGenerationTime = Date.now() - imageGenerationStartTime;
       
       // Type guard to ensure we have the image_base64 property
@@ -134,7 +176,8 @@ Style: Artistic and creative interpretation of the user's preferences`
 
       return NextResponse.json({
         success: true,
-        finalImagePath: publicUrl
+        finalImagePath: publicUrl,
+        contextData: context // Include context data for debugging
       });
 
     } catch (error) {

@@ -1,10 +1,9 @@
 // Core prompt types - SIMPLIFIED
 export type PromptType = 
-  | 'image_analysis'      // Image + prompt → response
+  | 'image_analysis'      // Image + prompt → analysis
   | 'questions_generation' // Analysis → questions
   | 'image_generation'    // Prompt → image_base64
   | 'text_processing'     // Prompt → response
-  | 'conversational_question' // Analysis + previous answers → question/options/done
 
 // SIMPLIFIED Input/Output type mappings
 export interface PromptTypeMap {
@@ -14,13 +13,14 @@ export interface PromptTypeMap {
       prompt: string // text prompt for analysis
     }
     output: {
-      response: string // analysis text
+      analysis: string // analysis text
     }
   }
   
   'questions_generation': {
     input: {
-      response: string
+      analysis: string
+      prompt: string
     }
     output: {
       questions: Question[]
@@ -30,6 +30,7 @@ export interface PromptTypeMap {
   'image_generation': {
     input: {
       prompt: string
+      flow_summary: object
     }
     output: {
       image_base64: string
@@ -45,18 +46,6 @@ export interface PromptTypeMap {
     }
   }
   
-  'conversational_question': {
-    input: {
-      response: string // Image analysis response
-      previousAnswers: string[] // Previous user answers
-    }
-    output: {
-      questions: Question[] // Single question when not done, empty when done
-      done: boolean // AI decides when conversation is complete
-      summary?: string // Final summary when done=true
-      response: string // AI response text
-    }
-  }
 }
 
 // Helper types
@@ -106,7 +95,6 @@ export interface PromptDefinition<T extends PromptType = PromptType> {
   
   // Prompt components
   prompt_text: string        // The actual prompt content
-  return_schema: JSONSchema  // What the AI should return (auto-appended)
   
   // Model configuration
   model: string
@@ -137,9 +125,9 @@ export const OUTPUT_SCHEMAS: Record<PromptType, JSONSchema> = {
   'image_analysis': {
     type: 'object',
     properties: {
-      response: { type: 'string', minLength: 10 }
+      analysis: { type: 'string', minLength: 10 }
     },
-    required: ['response']
+    required: ['analysis']
   },
 
   'questions_generation': {
@@ -186,28 +174,5 @@ export const OUTPUT_SCHEMAS: Record<PromptType, JSONSchema> = {
     required: ['response']
   },
 
-  'conversational_question': {
-    type: 'object',
-    properties: {
-      questions: {
-        type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-            text: { type: 'string' },
-            type: { type: 'string', enum: ['multiple_choice'] },
-            options: { type: 'array', items: { type: 'string' } },
-            required: { type: 'boolean' }
-          },
-          required: ['id', 'text', 'type', 'options', 'required']
-        }
-      },
-      done: { type: 'boolean' },
-      summary: { type: 'string' },
-      response: { type: 'string', minLength: 10 }
-    },
-    required: ['questions', 'done']
-  }
 
 }

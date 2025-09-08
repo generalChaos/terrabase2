@@ -2,6 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import AdminLayout from '@/components/AdminLayout'
+import CollapsibleDebugSection from '@/components/admin/CollapsibleDebugSection'
+import StatusCard from '@/components/admin/StatusCard'
+import MetricCard from '@/components/admin/MetricCard'
+import DebugModeToggle from '@/components/admin/DebugModeToggle'
+import ErrorExplanation from '@/components/admin/ErrorExplanation'
 
 interface SystemStatus {
   environment: string
@@ -26,12 +31,20 @@ interface SystemStatus {
     uploads_available: boolean
     error?: string
   }
+  schema_enforcement?: {
+    enabled: boolean
+    function_calling_success_rate: number
+    retry_fallback_rate: number
+    total_attempts: number
+    last_test?: string
+  }
 }
 
 export default function SystemStatusPage() {
   const [status, setStatus] = useState<SystemStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [debugMode, setDebugMode] = useState(false)
 
   useEffect(() => {
     loadSystemStatus()
@@ -56,13 +69,6 @@ export default function SystemStatusPage() {
     }
   }
 
-  const getStatusColor = (status: boolean) => {
-    return status ? 'text-green-600' : 'text-red-600'
-  }
-
-  const getStatusIcon = (status: boolean) => {
-    return status ? '✅' : '❌'
-  }
 
   if (loading) {
     return (
@@ -82,8 +88,7 @@ export default function SystemStatusPage() {
       <AdminLayout title="System Status" description="Check system health and configuration">
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
-            <div className="text-red-600 text-lg font-medium">Error</div>
-            <p className="mt-2 text-gray-600">{error || 'Failed to load system status'}</p>
+            <ErrorExplanation error={error || 'Failed to load system status'} />
             <button
               onClick={loadSystemStatus}
               className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
@@ -97,171 +102,202 @@ export default function SystemStatusPage() {
   }
 
   return (
-    <AdminLayout title="System Status" description="Check system health and configuration">
-      {/* Environment Info */}
+    <AdminLayout title="System Status" description="Monitor system health and performance metrics">
+      {/* Debug Toggle */}
+      <div className="mb-6 flex justify-end">
+        <DebugModeToggle debugMode={debugMode} onToggle={setDebugMode} />
+      </div>
+
+      {/* Environment Overview */}
       <div className="mb-8">
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-medium text-gray-900">Environment</h2>
-          </div>
-          <div className="px-6 py-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <StatusCard
+          title="Environment"
+          status="active"
+          value={status.environment}
+          subtitle={`Last updated: ${new Date().toLocaleString()}`}
+          critical={true}
+        />
+      </div>
+
+      {/* Core System Status */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <StatusCard
+          title="Database"
+          status={status.database.connected ? 'success' : 'error'}
+          value={status.database.connected ? 'Connected' : 'Disconnected'}
+          subtitle="PostgreSQL connection"
+        />
+        <StatusCard
+          title="OpenAI"
+          status={status.openai.configured ? 'success' : 'error'}
+          value={status.openai.configured ? 'Configured' : 'Not Configured'}
+          subtitle="AI model access"
+        />
+        <StatusCard
+          title="Supabase"
+          status={status.supabase.configured ? 'success' : 'error'}
+          value={status.supabase.configured ? 'Configured' : 'Not Configured'}
+          subtitle="Backend services"
+        />
+        <StatusCard
+          title="Storage"
+          status={status.storage.uploads_available ? 'success' : 'error'}
+          value={status.storage.uploads_available ? 'Available' : 'Unavailable'}
+          subtitle="File uploads"
+        />
+      </div>
+
+      {/* Debug Information - Collapsible */}
+      <CollapsibleDebugSection 
+        title="Detailed System Information" 
+        defaultOpen={debugMode}
+      >
+        <div className="space-y-6">
+          {/* Error Details */}
+          {(status.database.error || status.openai.error || status.supabase.error || status.storage.error) && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <h4 className="font-medium text-red-900 mb-3">System Errors</h4>
+              <div className="space-y-2">
+                {status.database.error && (
+                  <div className="text-sm text-red-800">
+                    <strong>Database:</strong> {status.database.error}
+                  </div>
+                )}
+                {status.openai.error && (
+                  <div className="text-sm text-red-800">
+                    <strong>OpenAI:</strong> {status.openai.error}
+                  </div>
+                )}
+                {status.supabase.error && (
+                  <div className="text-sm text-red-800">
+                    <strong>Supabase:</strong> {status.supabase.error}
+                  </div>
+                )}
+                {status.storage.error && (
+                  <div className="text-sm text-red-800">
+                    <strong>Storage:</strong> {status.storage.error}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Environment Details */}
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+            <h4 className="font-medium text-gray-900 mb-3">Environment Details</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div>
-                <dt className="text-sm font-medium text-gray-500">Environment</dt>
-                <dd className="mt-1 text-sm text-gray-900">{status.environment}</dd>
+                <span className="font-medium text-gray-700">Environment:</span>
+                <span className="ml-2 text-gray-600">{status.environment}</span>
               </div>
               <div>
-                <dt className="text-sm font-medium text-gray-500">Timestamp</dt>
-                <dd className="mt-1 text-sm text-gray-900">{new Date().toLocaleString()}</dd>
+                <span className="font-medium text-gray-700">Last Check:</span>
+                <span className="ml-2 text-gray-600">{new Date().toLocaleString()}</span>
               </div>
             </div>
           </div>
+        </div>
+      </CollapsibleDebugSection>
+
+      {/* Prompts Metrics */}
+      <div className="mb-8">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Prompt Configuration</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <MetricCard
+            title="Database Prompts"
+            value={status.prompts.database_enabled ? 'Enabled' : 'Disabled'}
+            subtitle="Prompt storage method"
+            trend={status.prompts.database_enabled ? 'up' : 'down'}
+          />
+          <MetricCard
+            title="Total Prompts"
+            value={status.prompts.total_prompts}
+            subtitle="All prompt definitions"
+          />
+          <MetricCard
+            title="Active Prompts"
+            value={status.prompts.active_prompts}
+            subtitle="Currently in use"
+            trend={status.prompts.active_prompts > 0 ? 'up' : 'down'}
+          />
         </div>
       </div>
 
-      {/* System Components */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        {/* Database Status */}
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900 flex items-center">
-              <span className="mr-2">🗄️</span>
-              Database
-            </h3>
+      {/* Schema Enforcement Status */}
+      {status.schema_enforcement && (
+        <div className="mb-8">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Schema Enforcement</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatusCard
+              title="Schema Enforcement"
+              status={status.schema_enforcement.enabled ? 'success' : 'error'}
+              value={status.schema_enforcement.enabled ? 'Enabled' : 'Disabled'}
+              subtitle="AI response validation"
+            />
+            <MetricCard
+              title="Function Calling Success"
+              value={`${status.schema_enforcement.function_calling_success_rate.toFixed(1)}%`}
+              subtitle="OpenAI function calling success rate"
+              trend={status.schema_enforcement.function_calling_success_rate > 90 ? 'up' : 'down'}
+            />
+            <MetricCard
+              title="Retry Fallback Rate"
+              value={`${status.schema_enforcement.retry_fallback_rate.toFixed(1)}%`}
+              subtitle="Fallback to retry mechanism"
+              trend={status.schema_enforcement.retry_fallback_rate < 10 ? 'up' : 'down'}
+            />
+            <MetricCard
+              title="Total Attempts"
+              value={status.schema_enforcement.total_attempts}
+              subtitle="Schema enforcement attempts"
+            />
           </div>
-          <div className="px-6 py-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-500">Connection</span>
-              <span className={`text-sm font-medium ${getStatusColor(status.database.connected)}`}>
-                {getStatusIcon(status.database.connected)} {status.database.connected ? 'Connected' : 'Disconnected'}
-              </span>
+          
+          {status.schema_enforcement.last_test && (
+            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+              <p className="text-sm text-blue-800">
+                <strong>Last Test:</strong> {status.schema_enforcement.last_test}
+              </p>
             </div>
-            {status.database.error && (
-              <div className="mt-2 text-sm text-red-600">
-                Error: {status.database.error}
-              </div>
-            )}
-          </div>
+          )}
         </div>
-
-        {/* OpenAI Status */}
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900 flex items-center">
-              <span className="mr-2">🤖</span>
-              OpenAI
-            </h3>
-          </div>
-          <div className="px-6 py-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-500">Configuration</span>
-              <span className={`text-sm font-medium ${getStatusColor(status.openai.configured)}`}>
-                {getStatusIcon(status.openai.configured)} {status.openai.configured ? 'Configured' : 'Not Configured'}
-              </span>
-            </div>
-            {status.openai.error && (
-              <div className="mt-2 text-sm text-red-600">
-                Error: {status.openai.error}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Supabase Status */}
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900 flex items-center">
-              <span className="mr-2">⚡</span>
-              Supabase
-            </h3>
-          </div>
-          <div className="px-6 py-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-500">Configuration</span>
-              <span className={`text-sm font-medium ${getStatusColor(status.supabase.configured)}`}>
-                {getStatusIcon(status.supabase.configured)} {status.supabase.configured ? 'Configured' : 'Not Configured'}
-              </span>
-            </div>
-            {status.supabase.error && (
-              <div className="mt-2 text-sm text-red-600">
-                Error: {status.supabase.error}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Storage Status */}
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900 flex items-center">
-              <span className="mr-2">💾</span>
-              Storage
-            </h3>
-          </div>
-          <div className="px-6 py-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-500">Uploads</span>
-              <span className={`text-sm font-medium ${getStatusColor(status.storage.uploads_available)}`}>
-                {getStatusIcon(status.storage.uploads_available)} {status.storage.uploads_available ? 'Available' : 'Unavailable'}
-              </span>
-            </div>
-            {status.storage.error && (
-              <div className="mt-2 text-sm text-red-600">
-                Error: {status.storage.error}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Prompts Status */}
-      <div className="bg-white overflow-hidden shadow rounded-lg">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900 flex items-center">
-            <span className="mr-2">✏️</span>
-            Prompts Configuration
-          </h3>
-        </div>
-        <div className="px-6 py-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <dt className="text-sm font-medium text-gray-500">Database Prompts</dt>
-              <dd className={`mt-1 text-sm font-medium ${getStatusColor(status.prompts.database_enabled)}`}>
-                {getStatusIcon(status.prompts.database_enabled)} {status.prompts.database_enabled ? 'Enabled' : 'Disabled'}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-sm font-medium text-gray-500">Total Prompts</dt>
-              <dd className="mt-1 text-sm text-gray-900">{status.prompts.total_prompts}</dd>
-            </div>
-            <div>
-              <dt className="text-sm font-medium text-gray-500">Active Prompts</dt>
-              <dd className="mt-1 text-sm text-gray-900">{status.prompts.active_prompts}</dd>
-            </div>
-          </div>
-        </div>
-      </div>
+      )}
 
       {/* Quick Actions */}
       <div className="mt-8">
         <h2 className="text-xl font-semibold text-gray-900 mb-6">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Test Database Connection</h3>
+        
+        {/* Primary Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+          <div className="bg-white p-6 rounded-lg shadow border border-gray-200">
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Schema Enforcement Test</h3>
             <p className="text-sm text-gray-600 mb-4">
-              Verify database connectivity and prompt retrieval
+              Test all prompts with schema enforcement
             </p>
             <a
-              href="/api/debug/prompts"
+              href="/api/debug/test-all-prompts"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
             >
-              Test Database
+              Test Schema Enforcement
             </a>
           </div>
 
-          <div className="bg-white p-6 rounded-lg shadow">
+          <div className="bg-white p-6 rounded-lg shadow border border-gray-200">
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Prompt Tester</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Interactive prompt testing interface
+            </p>
+            <a
+              href="/admin/prompt-tester"
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+            >
+              Open Tester
+            </a>
+          </div>
+
+          <div className="bg-white p-6 rounded-lg shadow border border-gray-200">
             <h3 className="text-lg font-medium text-gray-900 mb-2">System Diagnostics</h3>
             <p className="text-sm text-gray-600 mb-4">
               Run comprehensive system health check
@@ -276,6 +312,59 @@ export default function SystemStatusPage() {
             </a>
           </div>
         </div>
+
+        {/* Advanced Testing - Collapsible */}
+        <CollapsibleDebugSection 
+          title="Advanced Testing Tools" 
+          defaultOpen={debugMode}
+        >
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="bg-white p-6 rounded-lg shadow border border-gray-200">
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Test Database Connection</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Verify database connectivity and prompt retrieval
+              </p>
+              <a
+                href="/api/debug/prompts"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                Test Database
+              </a>
+            </div>
+
+            <div className="bg-white p-6 rounded-lg shadow border border-gray-200">
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Questions Generation Test</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Test questions generation with schema enforcement
+              </p>
+              <a
+                href="/api/debug/test-questions"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
+              >
+                Test Questions
+              </a>
+            </div>
+
+            <div className="bg-white p-6 rounded-lg shadow border border-gray-200">
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Image Analysis Test</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Test image analysis with schema enforcement
+              </p>
+              <a
+                href="/api/debug/test-simple"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              >
+                Test Image Analysis
+              </a>
+            </div>
+          </div>
+        </CollapsibleDebugSection>
       </div>
     </AdminLayout>
   )

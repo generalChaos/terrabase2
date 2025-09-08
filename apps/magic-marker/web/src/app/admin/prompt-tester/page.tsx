@@ -3,7 +3,11 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import AdminLayout from '@/components/AdminLayout';
-// import { PromptType, PromptTypeMap } from '@/lib/promptTypes' // Unused for now;
+import CollapsibleDebugSection from '@/components/admin/CollapsibleDebugSection'
+import StatusCard from '@/components/admin/StatusCard'
+import SchemaPreview from '@/components/admin/SchemaPreview'
+import ErrorExplanation from '@/components/admin/ErrorExplanation'
+import DebugModeToggle from '@/components/admin/DebugModeToggle'
 
 interface Question {
   id: string;
@@ -27,7 +31,6 @@ interface PromptDefinition {
   prompt_text: string;
   input_schema: Record<string, unknown>;
   output_schema: Record<string, unknown>;
-  return_schema: Record<string, unknown>;
   model: string;
   response_format: string;
   max_tokens?: number;
@@ -51,11 +54,12 @@ export default function PromptTesterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingPrompts, setIsLoadingPrompts] = useState(true);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [debugMode, setDebugMode] = useState(false);
   
   // Individual input fields
   const [inputFields, setInputFields] = useState<Record<string, unknown>>({});
   
-  // Conversational Q&A state
+  // Q&A state
   const [conversationState, setConversationState] = useState<ConversationState>({
     questions: [],
     answers: {},
@@ -168,10 +172,10 @@ export default function PromptTesterPage() {
     const samples: Record<string, Record<string, unknown>> = {
       'image_analysis': {
         image: imagePlaceholder,
-        prompt: 'Describe what you see in this image, focusing on colors, composition, and artistic style.'
+        prompt: 'Analyze this image and describe what you see'
       },
       'questions_generation': {
-        prompt: 'This is a test image showing a beautiful landscape with mountains and a lake at sunset. The composition is well-balanced with warm colors and dramatic lighting.'
+        response: 'This is a test image showing a beautiful landscape with mountains and a lake at sunset. The composition is well-balanced with warm colors and dramatic lighting. The image has a serene, peaceful mood with warm golden hour lighting.'
       },
       'image_generation': {
         prompt: 'A beautiful landscape with mountains and a lake at sunset, in a happy and bright style'
@@ -179,9 +183,6 @@ export default function PromptTesterPage() {
       'text_processing': {
         prompt: 'This is a test text to process. Please analyze it and provide insights.'
       },
-      'conversational_question': {
-        prompt: 'I want to create an image. Help me discover my artistic preferences through a fun conversation.'
-      }
     };
 
     return samples[promptType] || {};
@@ -196,7 +197,7 @@ export default function PromptTesterPage() {
 
       const startTime = Date.now();
       
-      const response = await fetch('/api/test-prompt', {
+      const response = await fetch('/api/debug/test-prompt', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -218,8 +219,8 @@ export default function PromptTesterPage() {
         tokensUsed: result.tokensUsed
       });
 
-      // If this is a conversational question and we got questions back, update conversation state
-      if (selectedPrompt.type === 'conversational_question' && result.success && result.response) {
+      // If this is a questions generation and we got questions back, update conversation state
+      if (selectedPrompt.type === 'questions_generation' && result.success && result.response) {
         const { questions, done, summary } = result.response;
         if (questions && Array.isArray(questions)) {
           setConversationState(prev => ({
@@ -241,7 +242,7 @@ export default function PromptTesterPage() {
   };
 
   const generateNextQuestion = async () => {
-    if (!selectedPrompt || selectedPrompt.type !== 'conversational_question') return;
+    if (!selectedPrompt || selectedPrompt.type !== 'questions_generation') return;
 
     try {
       setIsGeneratingQuestion(true);
@@ -253,7 +254,7 @@ export default function PromptTesterPage() {
         artisticDirection: conversationState.summary || 'Discovering artistic preferences'
       };
 
-      const response = await fetch('/api/test-prompt', {
+      const response = await fetch('/api/debug/test-prompt', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -391,8 +392,12 @@ export default function PromptTesterPage() {
       title="Prompt Tester" 
       description="Test and debug AI prompts with real inputs and outputs"
     >
-      <div className="space-y-6">
+      {/* Debug Toggle */}
+      <div className="mb-6 flex justify-end">
+        <DebugModeToggle debugMode={debugMode} onToggle={setDebugMode} />
+      </div>
 
+      <div className="space-y-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left Panel - Prompt Selection and Input */}
           <div className="space-y-6">
@@ -481,6 +486,19 @@ export default function PromptTesterPage() {
                                   rows={2}
                                 />
                               </div>
+                            ) : fieldDef.type === 'string' && Array.isArray(fieldDef.enum) ? (
+                              <select
+                                value={String(fieldValue)}
+                                onChange={(e) => handleInputFieldChange(fieldName, e.target.value)}
+                                className="w-full p-3 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white"
+                              >
+                                <option value="">Select {fieldName}...</option>
+                                {fieldDef.enum.map((option: string) => (
+                                  <option key={option} value={option}>
+                                    {option}
+                                  </option>
+                                ))}
+                              </select>
                             ) : fieldDef.type === 'string' ? (
                               <textarea
                                 value={String(fieldValue)}
@@ -566,31 +584,50 @@ export default function PromptTesterPage() {
 
           {/* Right Panel - Schema and Results */}
           <div className="space-y-6">
-            {/* Schema Information */}
+            {/* Schema Information - Collapsible */}
             {selectedPrompt && (
-              <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-lg font-semibold mb-4 text-gray-900">Schema Information</h2>
+              <CollapsibleDebugSection 
+                title="Schema Information" 
+                defaultOpen={debugMode}
+              >
                 <div className="space-y-4">
-                  <div>
-                    <h3 className="font-medium text-gray-700 mb-2">Input Schema</h3>
-                    <pre className="bg-gray-100 p-3 rounded text-xs overflow-auto max-h-32 text-gray-800">
-                      {JSON.stringify(selectedPrompt.input_schema, null, 2)}
-                    </pre>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <SchemaPreview
+                      schema={selectedPrompt.input_schema}
+                      type="input"
+                      explanation="Defines what data the AI expects to receive"
+                      howItWorks="Used to validate and structure input data before sending to the AI model"
+                    />
+                    <SchemaPreview
+                      schema={selectedPrompt.output_schema}
+                      type="output"
+                      explanation="Defines the exact format the AI must return"
+                      howItWorks="Enforced via OpenAI Function Calling to guarantee 100% schema compliance"
+                    />
                   </div>
-                  <div>
-                    <h3 className="font-medium text-gray-700 mb-2">Output Schema</h3>
-                    <pre className="bg-gray-100 p-3 rounded text-xs overflow-auto max-h-32 text-gray-800">
-                      {JSON.stringify(selectedPrompt.output_schema, null, 2)}
-                    </pre>
-                  </div>
-                  <div>
-                    <h3 className="font-medium text-gray-700 mb-2">Return Schema (Sent to AI)</h3>
-                    <pre className="bg-gray-100 p-3 rounded text-xs overflow-auto max-h-32 text-gray-800">
-                      {JSON.stringify(selectedPrompt.return_schema, null, 2)}
-                    </pre>
-                  </div>
+
+                  {/* Advanced Schema Details */}
+                  <CollapsibleDebugSection 
+                    title="Full Schema Details" 
+                    defaultOpen={false}
+                  >
+                    <div className="space-y-4">
+                      <div>
+                        <h5 className="text-sm font-medium text-gray-700 mb-2">Input Schema (Raw)</h5>
+                        <pre className="text-xs bg-gray-100 p-3 rounded overflow-x-auto">
+                          {JSON.stringify(selectedPrompt.input_schema, null, 2)}
+                        </pre>
+                      </div>
+                      <div>
+                        <h5 className="text-sm font-medium text-gray-700 mb-2">Output Schema (Raw)</h5>
+                        <pre className="text-xs bg-gray-100 p-3 rounded overflow-x-auto">
+                          {JSON.stringify(selectedPrompt.output_schema, null, 2)}
+                        </pre>
+                      </div>
+                    </div>
+                  </CollapsibleDebugSection>
                 </div>
-              </div>
+              </CollapsibleDebugSection>
             )}
 
             {/* Test Results */}
@@ -626,7 +663,7 @@ export default function PromptTesterPage() {
                         {testResult.tokensUsed} tokens
                       </span>
                     )}
-                    {selectedPrompt?.type === 'conversational_question' && (
+                    {selectedPrompt?.type === 'questions_generation' && (
                       (() => {
                         const currentStep = getCurrentStep(conversationState);
                         return (
@@ -639,35 +676,66 @@ export default function PromptTesterPage() {
                   </div>
 
                   {testResult.error && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                      <h3 className="font-medium text-red-800 mb-2">Error</h3>
-                      <pre className="text-sm text-red-700 whitespace-pre-wrap">
-                        {testResult.error}
-                      </pre>
+                    <div className="mb-4">
+                      <ErrorExplanation error={testResult.error} />
                     </div>
                   )}
 
                   {testResult.response && (
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                      <h3 className="font-medium text-green-800 mb-2">Response</h3>
-                      
-                      {/* Check if response contains base64 image */}
-                      {testResult.response.image_base64 ? (
-                        <div className="mb-4">
-                          <h4 className="font-medium text-green-700 mb-2">Generated Image:</h4>
-                          <Image 
-                            src={`data:image/png;base64,${testResult.response.image_base64}`}
-                            alt="Generated image"
-                            width={400}
-                            height={256}
-                            className="max-w-full h-auto max-h-64 border border-gray-300 rounded"
-                          />
+                    <div className="space-y-4">
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <h3 className="font-medium text-green-800 mb-2">Response</h3>
+                        
+                        {/* Check if response contains base64 image */}
+                        {testResult.response.image_base64 ? (
+                          <div className="mb-4">
+                            <h4 className="font-medium text-green-700 mb-2">Generated Image:</h4>
+                            <Image 
+                              src={`data:image/png;base64,${testResult.response.image_base64}`}
+                              alt="Generated image"
+                              width={400}
+                              height={256}
+                              className="max-w-full h-auto max-h-64 border border-gray-300 rounded"
+                            />
+                          </div>
+                        ) : null}
+                        
+                        <pre className="text-sm text-green-700 whitespace-pre-wrap overflow-auto max-h-64">
+                          {JSON.stringify(testResult.response, null, 2)}
+                        </pre>
+                      </div>
+
+                      {/* Debug Information - Collapsible */}
+                      <CollapsibleDebugSection 
+                        title="Test Execution Details" 
+                        defaultOpen={debugMode}
+                      >
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <StatusCard
+                              title="Execution Time"
+                              status="success"
+                              value={`${testResult.executionTime}ms`}
+                              subtitle="Total processing time"
+                            />
+                            {testResult.tokensUsed && (
+                              <StatusCard
+                                title="Tokens Used"
+                                status="success"
+                                value={testResult.tokensUsed}
+                                subtitle="OpenAI token consumption"
+                              />
+                            )}
+                          </div>
+
+                          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                            <h5 className="font-medium text-gray-900 mb-2">Raw Response Data</h5>
+                            <pre className="text-xs bg-white p-3 rounded overflow-x-auto">
+                              {JSON.stringify(testResult.response, null, 2)}
+                            </pre>
+                          </div>
                         </div>
-                      ) : null}
-                      
-                      <pre className="text-sm text-green-700 whitespace-pre-wrap overflow-auto max-h-64">
-                        {JSON.stringify(testResult.response, null, 2)}
-                      </pre>
+                      </CollapsibleDebugSection>
                     </div>
                   )}
                 </div>
@@ -680,12 +748,12 @@ export default function PromptTesterPage() {
               )}
             </div>
 
-            {/* Conversational Q&A UI */}
-            {selectedPrompt?.type === 'conversational_question' && (
+            {/* Questions Generation UI */}
+            {selectedPrompt?.type === 'questions_generation' && (
               <div className="bg-white rounded-lg shadow p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <h2 className="text-lg font-semibold text-gray-900">Conversational Q&A Flow</h2>
+                    <h2 className="text-lg font-semibold text-gray-900">Questions Generation Flow</h2>
                     {(() => {
                       const currentStep = getCurrentStep(conversationState);
                       return (
@@ -718,7 +786,7 @@ export default function PromptTesterPage() {
                 {/* Step-by-step Instructions */}
                 {conversationState.questions.length === 0 && (
                   <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                    <h3 className="font-medium text-blue-800 mb-3">How to Test the Conversational Flow:</h3>
+                    <h3 className="font-medium text-blue-800 mb-3">How to Test the Questions Generation Flow:</h3>
                     <ol className="list-decimal list-inside space-y-2 text-sm text-blue-700">
                       <li><strong>Click &quot;Run Test&quot;</strong> to start the conversation with the AI</li>
                       <li><strong>Answer each question</strong> by clicking on one of the provided options</li>

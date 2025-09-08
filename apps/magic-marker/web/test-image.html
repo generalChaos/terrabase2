@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Base64 Image</title>
+</head>
+<body>
+    <h1>Test Base64 Image from Logs</h1>
+    <p>Paste the full base64 string from the logs below:</p>
+    <textarea id="base64Input" placeholder="Paste base64 string here..." style="width: 100%; height: 100px;"></textarea>
+    <br><br>
+    <button onclick="testImage()">Test Image</button>
+    <br><br>
+    <img id="testImage" style="max-width: 500px; border: 1px solid #ccc;" />
+    
+    <script>
+        async function testImage() {
+            const base64String = document.getElementById('base64Input').value.trim();
+            
+            if (!base64String) {
+                alert('Please paste the base64 string first');
+                return;
+            }
+            
+            console.log('Testing base64 string length:', base64String.length);
+            
+            try {
+                // Test 1: Direct data URL
+                document.getElementById('testImage').src = 'data:image/jpeg;base64,' + base64String;
+                
+                // Test 2: Send to API
+                const response = await fetch('/api/test-image', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ base64String })
+                });
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = URL.createObjectURL(blob);
+                    console.log('API test successful, image URL:', url);
+                } else {
+                    console.error('API test failed:', response.status, await response.text());
+                }
+            } catch (error) {
+                console.error('Error testing image:', error);
+            }
+        }
+    </script>
+</body>
+</html>

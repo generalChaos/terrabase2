@@ -28,7 +28,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { name, type, prompt_text, active, input_schema, output_schema, return_schema, model, response_format, max_tokens, temperature, sort_order } = body
+    const { name, type, prompt_text, active, input_schema, output_schema, model, response_format, max_tokens, temperature, sort_order } = body
 
     if (!name || !type) {
       return NextResponse.json({ error: 'Name and type are required' }, { status: 400 })
@@ -43,7 +43,6 @@ export async function POST(request: NextRequest) {
         active: active !== undefined ? active : true,
         input_schema: input_schema || {},
         output_schema: output_schema || {},
-        return_schema: return_schema || {},
         model: model || 'gpt-4o',
         response_format: response_format || 'json_object',
         max_tokens: max_tokens || null,
@@ -72,7 +71,7 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json()
-    const { id, name, prompt_text, active, input_schema, output_schema, return_schema, model, response_format, max_tokens, temperature } = body
+    const { id, name, prompt_text, active, input_schema, output_schema, model, response_format, max_tokens, temperature } = body
 
     if (!id && !name) {
       return NextResponse.json({ error: 'Prompt ID or name is required' }, { status: 400 })
@@ -83,7 +82,6 @@ export async function PUT(request: NextRequest) {
     if (active !== undefined) updateData.active = active
     if (input_schema !== undefined) updateData.input_schema = input_schema
     if (output_schema !== undefined) updateData.output_schema = output_schema
-    if (return_schema !== undefined) updateData.return_schema = return_schema
     if (body.sort_order !== undefined) updateData.sort_order = body.sort_order
     if (model !== undefined) updateData.model = model
     if (response_format !== undefined) updateData.response_format = response_format

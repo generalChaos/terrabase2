@@ -11,6 +11,8 @@ Welcome to the Magic Marker documentation! This index will help you navigate thr
 ### **Technical Reference**
 - **[API Reference](api-reference.md)** - Complete API endpoint documentation
 - **[Prompt Creation Guide](prompt-creation-guide.md)** - Guide for creating and managing AI prompts
+- **[Schema Enforcement Migration](schema-enforcement-migration.md)** - Comprehensive plan for migrating to guaranteed schema compliance
+- **[Conversational Module Archival](conversational-module-archival.md)** - Plan for archiving complex conversational module
 - **[Conversational Q&A Testing](conversational-qa-testing.md)** - Guide for testing conversational AI flows
 - **[Development Log](devlog.md)** - Development history, decisions, and lessons learned
 
@@ -30,6 +32,8 @@ docs/
 ├── setup-guide.md                  # Setup and deployment guide
 ├── api-reference.md                # API endpoint documentation
 ├── prompt-creation-guide.md        # Guide for creating and managing AI prompts
+├── schema-enforcement-migration.md # Schema enforcement migration plan
+├── conversational-module-archival.md # Plan for archiving conversational module
 ├── conversational-qa-testing.md    # Guide for testing conversational AI flows
 └── devlog.md                      # Development history and decisions
 ```
@@ -71,6 +75,13 @@ Magic Marker is an AI-powered image analysis and generation tool that:
 - Error codes and handling
 - Rate limits and best practices
 - SDK examples in multiple languages
+
+### **[Schema Enforcement Migration](schema-enforcement-migration.md)**
+- Comprehensive migration plan for guaranteed schema compliance
+- Architecture changes and implementation details
+- File-by-file impact analysis
+- Timeline and success metrics
+- Risk mitigation strategies
 
 ### **[Development Log](devlog.md)**
 - Development timeline and phases
