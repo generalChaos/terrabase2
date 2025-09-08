@@ -34,7 +34,6 @@ export interface EnhancedContextData {
     totalCost: number
     lastUpdated: string
     flowId: string
-    sessionId: string
   }
   
   // Index signature to allow additional properties
@@ -51,7 +50,6 @@ export interface ConversationEntry {
 
 export interface StepContext {
   flowId: string
-  sessionId: string
   currentStep: string
   stepOrder: number
   contextData: EnhancedContextData
@@ -67,14 +65,13 @@ export class ContextManager {
    */
   static buildContextForStep(
     flowId: string,
-    sessionId: string,
     currentStep: string,
     stepOrder: number,
     currentContextData: Record<string, unknown>
   ): StepContext {
     const requestId = `ctx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
     
-    ContextLogger.log('debug', 'context', currentStep, flowId, sessionId, requestId,
+    ContextLogger.log('debug', 'context', currentStep, flowId, requestId,
       `Building context for step: ${currentStep}`, {
         flowId: flowId.substring(0, 8) + '...',
         stepOrder,
@@ -85,19 +82,17 @@ export class ContextManager {
     // Convert existing context_data to enhanced format
     const enhancedContext = this.convertToEnhancedContext(
       currentContextData,
-      flowId,
-      sessionId
+      flowId
     )
 
     const stepContext = {
       flowId,
-      sessionId,
       currentStep,
       stepOrder,
       contextData: enhancedContext
     }
 
-    ContextLogger.log('info', 'context', currentStep, flowId, sessionId, requestId,
+    ContextLogger.log('info', 'context', currentStep, flowId, requestId,
       `Context built successfully for step: ${currentStep}`, {
         enhancedContextKeys: Object.keys(enhancedContext),
         contextSize: JSON.stringify(enhancedContext).length
@@ -156,15 +151,14 @@ export class ContextManager {
   static getRelevantContextForStep(
     contextData: Record<string, unknown>,
     stepName: string,
-    flowId?: string,
-    sessionId?: string
+    flowId?: string
   ): Record<string, unknown> {
     const requestId = `ctx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
     
-    ContextLogger.log('debug', 'context', stepName, flowId || 'unknown', sessionId || 'unknown', requestId,
+    ContextLogger.log('debug', 'context', stepName, flowId || 'unknown', requestId,
       `Getting relevant context for step: ${stepName}`)
 
-    const enhancedContext = this.convertToEnhancedContext(contextData)
+    const enhancedContext = this.convertToEnhancedContext(contextData, flowId)
     
     // Define context requirements for each step type
     const contextRequirements = {
@@ -184,7 +178,7 @@ export class ContextManager {
 
     const requirements = contextRequirements[stepName as keyof typeof contextRequirements]
     if (!requirements) {
-      ContextLogger.log('warn', 'context', stepName, flowId || 'unknown', sessionId || 'unknown', requestId,
+      ContextLogger.log('warn', 'context', stepName, flowId || 'unknown', requestId,
         `No context requirements defined for step: ${stepName}`)
       return enhancedContext
     }
@@ -198,7 +192,7 @@ export class ContextManager {
       if (value !== undefined) {
         this.setNestedValue(relevantContext, field, value)
       } else {
-        ContextLogger.log('warn', 'context', stepName, flowId || 'unknown', sessionId || 'unknown', requestId,
+        ContextLogger.log('warn', 'context', stepName, flowId || 'unknown', requestId,
           `Required field missing: ${field}`)
       }
     })
@@ -213,7 +207,6 @@ export class ContextManager {
 
     ContextLogger.logContextBuilding(
       flowId || 'unknown',
-      sessionId || 'unknown', 
       requestId,
       stepName,
       enhancedContext,
@@ -228,8 +221,7 @@ export class ContextManager {
    */
   private static convertToEnhancedContext(
     contextData: Record<string, unknown>,
-    flowId?: string,
-    sessionId?: string
+    flowId: string = ''
   ): EnhancedContextData {
     // Start with default enhanced structure
     const enhanced: EnhancedContextData = {
@@ -248,8 +240,7 @@ export class ContextManager {
         totalTokens: 0,
         totalCost: 0,
         lastUpdated: new Date().toISOString(),
-        flowId: flowId || '',
-        sessionId: sessionId || ''
+        flowId: flowId || ''
       }
     }
 

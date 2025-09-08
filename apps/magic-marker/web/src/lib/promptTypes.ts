@@ -1,6 +1,6 @@
 // Core prompt types - SIMPLIFIED
 export type PromptType = 
-  | 'image_analysis'      // Image + prompt → response
+  | 'image_analysis'      // Image + prompt → analysis
   | 'questions_generation' // Analysis → questions
   | 'image_generation'    // Prompt → image_base64
   | 'text_processing'     // Prompt → response
@@ -13,13 +13,14 @@ export interface PromptTypeMap {
       prompt: string // text prompt for analysis
     }
     output: {
-      response: string // analysis text
+      analysis: string // analysis text
     }
   }
   
   'questions_generation': {
     input: {
-      response: string
+      analysis: string
+      prompt: string
     }
     output: {
       questions: Question[]
@@ -29,6 +30,7 @@ export interface PromptTypeMap {
   'image_generation': {
     input: {
       prompt: string
+      flow_summary: object
     }
     output: {
       image_base64: string
@@ -123,9 +125,9 @@ export const OUTPUT_SCHEMAS: Record<PromptType, JSONSchema> = {
   'image_analysis': {
     type: 'object',
     properties: {
-      response: { type: 'string', minLength: 10 }
+      analysis: { type: 'string', minLength: 10 }
     },
-    required: ['response']
+    required: ['analysis']
   },
 
   'questions_generation': {
