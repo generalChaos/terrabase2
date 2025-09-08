@@ -112,6 +112,9 @@ STYLE: Artistic and creative interpretation that brings the child's vision to li
       }, context);
       const imageGenerationTime = Date.now() - imageGenerationStartTime;
       
+      // Extract the DALL-E prompt from the result if available
+      const dallEPrompt = (imageGenerationResult as { dall_e_prompt?: string }).dall_e_prompt || 'DALL-E prompt not captured';
+      
       // Type guard to ensure we have the image_base64 property
       if (!('image_base64' in imageGenerationResult)) {
         throw new Error('Image generation failed: No image data returned');
@@ -167,8 +170,14 @@ STYLE: Artistic and creative interpretation that brings the child's vision to li
         step_type: 'image_generation',
         step_order: 4,
         prompt_content: `Generate an artistic image based on the original image analysis and user preferences: ${answerStrings.join(', ')}`,
-        input_data: { prompt: `Generated image based on answers: ${answerStrings.join(', ')}` },
-        output_data: { image_base64_length: imageGenerationResult.image_base64.length },
+        input_data: { 
+          prompt: `Generated image based on answers: ${answerStrings.join(', ')}`,
+          dall_e_prompt: dallEPrompt
+        },
+        output_data: { 
+          image_base64_length: imageGenerationResult.image_base64.length,
+          dall_e_prompt: dallEPrompt
+        },
         response_time_ms: imageGenerationTime,
         model_used: 'dall-e-3',
         success: true

@@ -33,12 +33,14 @@ export default function AnalysisFlowsPage() {
       // Use the image paths that are now included in the API response and convert to public URLs
       if (flow.original_image_id && (flow as AnalysisFlow & { original_image_path?: string }).original_image_path) {
         const filePath = (flow as AnalysisFlow & { original_image_path?: string }).original_image_path!
-        thumbnails[flow.original_image_id] = ImageService.getImageUrl(filePath)
+        // Check if it's already a full URL, if not, convert it
+        thumbnails[flow.original_image_id] = filePath.startsWith('http') ? filePath : ImageService.getImageUrl(filePath)
       }
       
       if (flow.final_image_id && (flow as AnalysisFlow & { final_image_path?: string }).final_image_path) {
         const filePath = (flow as AnalysisFlow & { final_image_path?: string }).final_image_path!
-        thumbnails[flow.final_image_id] = ImageService.getImageUrl(filePath)
+        // Check if it's already a full URL, if not, convert it
+        thumbnails[flow.final_image_id] = filePath.startsWith('http') ? filePath : ImageService.getImageUrl(filePath)
       }
     }
     

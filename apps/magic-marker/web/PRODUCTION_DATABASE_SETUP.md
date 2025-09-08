@@ -219,3 +219,5 @@ If you encounter issues:
 ---
 
 **Next Steps**: Set up Supabase project and apply the clean database setup migration.
+
+

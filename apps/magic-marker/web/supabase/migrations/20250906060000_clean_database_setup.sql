@@ -199,7 +199,7 @@ Key phrases to use:
 
 ('image_generation', 'image_generation',
  '{"type": "object", "required": ["prompt", "flow_summary"], "properties": {"prompt": {"type": "string", "minLength": 10}, "flow_summary": {"type": "object"}}}',
- '{"type": "string"}',
+ NULL,
  'Create a detailed, professional illustration prompt for DALL-E that recreates the child''s original drawing with enhanced details.
 
 IMPORTANT: The generated image should include all the same elements from the original drawing. Focus on enhancing and clarifying what the child already drew rather than adding new elements.
@@ -215,7 +215,7 @@ Your task:
 6. Focus on the elements that were in the original drawing rather than adding new ones
 7. Make it kid-friendly, playful, and true to the child''s original intent and their answers
 
-Return only the DALL-E prompt text - no JSON, no formatting, just the prompt that DALL-E can use to create an amazing illustration that the child will love!',
+IMPORTANT: You must return ONLY the DALL-E prompt text as a plain string. Do not wrap it in JSON, do not add quotes, do not add any formatting. Just return the raw prompt text that DALL-E can use directly.',
  'gpt-4o', 'text', 2000, 0.7, true, 40);
 
 -- Create storage bucket for images
