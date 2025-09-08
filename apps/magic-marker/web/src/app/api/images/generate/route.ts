@@ -85,22 +85,11 @@ Style: Artistic and creative interpretation of the user's preferences`,
         }
       );
 
-      // Use image generation with schema enforcement
-      console.log('🎨 Starting image generation with schema enforcement...');
+      // Use image generation with the comprehensive database prompt
+      console.log('🎨 Starting image generation with comprehensive database prompt...');
       const imageGenerationStartTime = Date.now();
       const imageGenerationResult = await PromptExecutor.execute('image_generation', {
-        prompt: `Create an image based on this character analysis and the child's answers:
-
-ORIGINAL CHARACTER ANALYSIS:
-${context?.contextData?.imageAnalysis || 'No analysis available'}
-
-QUESTIONS AND ANSWERS:
-${questions.map((q: { text: string; id: string }, index: number) => {
-          const answer = answerStrings[index] || 'No answer provided';
-          return `Q${index + 1}: ${q.text}\nA${index + 1}: ${answer}`;
-        }).join('\n\n')}
-
-STYLE: Artistic and creative interpretation that brings the child's vision to life`,
+        prompt: '', // Empty prompt to use database prompt instead
         flow_summary: {
           analysis: context?.contextData?.imageAnalysis || '',
           questions: questions,
