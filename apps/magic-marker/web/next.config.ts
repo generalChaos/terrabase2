@@ -12,7 +12,21 @@ const nextConfig: NextConfig = {
     },
   },
   images: {
-    domains: ['localhost', '127.0.0.1', '*.supabase.co', '*.supabase.in'],
+    domains: [
+      'localhost', 
+      '127.0.0.1', 
+      'csjzzhibbavtelupqugc.supabase.co',
+      '*.supabase.co', 
+      '*.supabase.in'
+    ],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'csjzzhibbavtelupqugc.supabase.co',
+        port: '',
+        pathname: '/storage/v1/object/public/images/**',
+      },
+    ],
   },
 }
 
