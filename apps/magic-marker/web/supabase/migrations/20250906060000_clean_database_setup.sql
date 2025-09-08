@@ -199,7 +199,7 @@ Key phrases to use:
 
 ('image_generation', 'image_generation',
  '{"type": "object", "required": ["prompt", "flow_summary"], "properties": {"prompt": {"type": "string", "minLength": 10}, "flow_summary": {"type": "object"}}}',
- NULL,
+ '{}',
  'Create a detailed, professional illustration prompt for DALL-E that recreates the child''s original drawing with enhanced details.
 
 IMPORTANT: The generated image should include all the same elements from the original drawing. Focus on enhancing and clarifying what the child already drew rather than adding new elements.
