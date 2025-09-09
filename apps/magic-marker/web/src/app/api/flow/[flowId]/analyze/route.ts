@@ -5,10 +5,10 @@ import { ApiUtils } from '@/lib/apiUtils';
 // POST /api/flow/[flowId]/analyze - Analyze uploaded image
 export async function POST(
   request: NextRequest,
-  { params }: { params: { flowId: string } }
+  { params }: { params: Promise<{ flowId: string }> }
 ) {
   try {
-    const { flowId } = params;
+    const { flowId } = await params;
 
     if (!flowId) {
       return ApiUtils.validationError('Flow ID is required');
