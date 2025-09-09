@@ -6,10 +6,10 @@ import { QuestionAnswer } from '@/lib/types';
 // POST /api/flow/[flowId]/generate - Generate final image based on answers
 export async function POST(
   request: NextRequest,
-  { params }: { params: { flowId: string } }
+  { params }: { params: Promise<{ flowId: string }> }
 ) {
   try {
-    const { flowId } = params;
+    const { flowId } = await params;
     const body = await request.json();
     const { answers } = body;
 
