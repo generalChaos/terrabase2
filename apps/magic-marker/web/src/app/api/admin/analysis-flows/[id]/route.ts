@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { AnalysisFlowService } from '@/lib/analysisFlowService'
+import { ImageFlowService } from '@/lib/imageFlowService'
 import { ImageService } from '@/lib/imageService'
 
 // PATCH /api/admin/analysis-flows/[id] - Update analysis flow
@@ -20,7 +20,7 @@ export async function PATCH(
     }
 
     // Get the current flow
-    const currentFlow = await AnalysisFlowService.getAnalysisFlow(id)
+    const currentFlow = await ImageFlowService.getAnalysisFlow(id)
     if (!currentFlow) {
       return NextResponse.json({ 
         success: false, 
@@ -29,14 +29,9 @@ export async function PATCH(
     }
 
     // Update the flow
-    const updatedFlow = await AnalysisFlowService.updateAnalysisFlow(id, {
-      // Only update is_active status
+    const updatedFlow = await ImageFlowService.updateAnalysisFlow(id, {
+      is_active: is_active
     })
-
-    // Deactivate if needed
-    if (!is_active) {
-      await AnalysisFlowService.deactivateAnalysisFlow(id)
-    }
 
     return NextResponse.json({
       success: true,
@@ -60,7 +55,7 @@ export async function GET(
   try {
     const { id } = await context.params
 
-    const analysisFlow = await AnalysisFlowService.getAnalysisFlow(id)
+    const analysisFlow = await ImageFlowService.getAnalysisFlow(id)
     if (!analysisFlow) {
       return NextResponse.json({ 
         success: false, 

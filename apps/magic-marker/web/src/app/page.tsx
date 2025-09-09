@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from 'react-query'
 import axios from 'axios'
 import Image from 'next/image'
 import { ImageAnalysis, QuestionAnswer, Question } from '@/lib/types'
-import { AnalysisFlowService } from '@/lib/analysisFlowService'
+import { ImageFlowService } from '@/lib/imageFlowService'
 import ImageUpload from '@/components/ImageUpload'
 import QuestionFlow from '@/components/QuestionFlow'
 import LoadingSpinner from '@/components/LoadingSpinner'
@@ -252,7 +252,7 @@ export default function HomePage() {
         if (currentImageAnalysis?.flowId) {
           try {
             console.log('🔚 [GENERATION] Deactivating analysis flow:', currentImageAnalysis.flowId)
-            await AnalysisFlowService.deactivateAnalysisFlow(currentImageAnalysis.flowId)
+            await ImageFlowService.deactivateAnalysisFlow(currentImageAnalysis.flowId)
             console.log('✅ [GENERATION] Analysis flow deactivated successfully')
           } catch (error) {
             console.error('❌ [GENERATION] Failed to deactivate analysis flow:', error)

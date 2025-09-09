@@ -161,7 +161,7 @@ export class SimplePromptService {
       messages: [
         {
           role: "user",
-          content: `${prompt}\n\nContext: ${context}`
+          content: `${context} \n\n ${prompt}`
         }
       ],
       response_format: { type: "text" },
