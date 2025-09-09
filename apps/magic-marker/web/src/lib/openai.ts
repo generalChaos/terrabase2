@@ -1,5 +1,5 @@
 import { PromptExecutor } from './promptExecutor';
-import { Question } from './types';
+import { ImageAnalysis, Question } from './types';
 import { StepService } from './stepService';
 import { StepContext } from './contextManager';
 
@@ -9,7 +9,6 @@ export class OpenAIService {
    */
   static async analyzeImage(
     imageBase64: string, 
-    imageId?: string,
     prompt?: string,
     context?: StepContext
   ): Promise<{ response: string }> {
@@ -22,44 +21,9 @@ export class OpenAIService {
         prompt: prompt || 'Analyze this image and describe what you see, focusing on artistic elements, composition, colors, and mood.'
       }, context) as { response: string };
 
-      // Log the step if imageId is provided
-      if (imageId) {
-        await StepService.logStep({
-          flow_id: imageId,
-          step_type: 'analysis',
-          step_order: 1,
-          input_data: { 
-            image_base64_length: imageBase64.length,
-            prompt: prompt || 'Default analysis prompt'
-          },
-          output_data: result,
-          response_time_ms: 0, // Will be calculated by StepService
-          model_used: 'gpt-4o',
-          success: true
-        });
-      }
-
       return result;
     } catch (error: unknown) {
       console.error(`❌ [${requestId}] Image analysis failed:`, error);
-      
-      // Log the error step if imageId is provided
-      if (imageId) {
-        await StepService.logStep({
-          flow_id: imageId,
-          step_type: 'analysis',
-          step_order: 1,
-          input_data: { 
-            image_base64_length: imageBase64.length,
-            prompt: prompt || 'Default analysis prompt'
-          },
-          output_data: null,
-          response_time_ms: 0,
-          model_used: 'gpt-4o',
-          success: false,
-          error_message: error instanceof Error ? error.message : 'Unknown error'
-        });
-      }
       
       throw error;
     }
@@ -82,38 +46,9 @@ export class OpenAIService {
         prompt: ''
       }, context) as { questions: Question[] };
 
-      // Log the step if imageId is provided
-      if (imageId) {
-        await StepService.logStep({
-          flow_id: imageId,
-          step_type: 'questions',
-          step_order: 2,
-          input_data: { prompt },
-          output_data: result,
-          response_time_ms: 0,
-          model_used: 'gpt-4o',
-          success: true
-        });
-      }
-
       return result.questions;
     } catch (error: unknown) {
       console.error(`❌ [${requestId}] Questions generation failed:`, error);
-      
-      // Log the error step if imageId is provided
-      if (imageId) {
-        await StepService.logStep({
-          flow_id: imageId,
-          step_type: 'questions',
-          step_order: 2,
-          input_data: { prompt },
-          output_data: null,
-          response_time_ms: 0,
-          model_used: 'gpt-4o',
-          success: false,
-          error_message: error instanceof Error ? error.message : 'Unknown error'
-        });
-      }
       
       throw error;
     }
@@ -145,6 +80,29 @@ export class OpenAIService {
       console.error(`❌ [${requestId}] Image + text analysis failed:`, error);
       throw error;
     }
+  }
+
+  /**
+   * Create an image prompt from questions and answers with context from previous steps
+   */
+  static async createImagePrompt(
+    imageAnalysis: string,
+    questions: Question[], 
+    imageGenPrompt?: string
+  ): Promise<string> {
+    const prompt = `
+      ORIGINAL IMAGE ANALYSIS:
+      ${imageAnalysis || 'Analysis not available'}
+
+      USER PREFERENCES FROM QUESTIONS:
+      ${questions.map((q, index) => `- ${q.text}: ${answers[index] || 'Not specified'}`).join('\n')}
+
+      ARTISTIC VISION: Create a professional, artistic image that enhances the original drawing with the user's specific clarifications. Maintain the playful, imaginative nature while incorporating all the detailed preferences. Focus on preserving the original elements while adding professional details based on the user's responses.
+
+      Generate an image that brings together the original analysis with the user's creative input.
+    `;
+          
+          return prompt;
   }
 
   /**
