@@ -273,11 +273,11 @@ export class ImageFlowService {
 
      // 3. Build comprehensive context for image generation
      const context = `
-Analysis of the original image:
-${flowData.analysis_result}
+        Analysis of the original image:
+        ${flowData.analysis_result}
 
-Questions and Answers:
-${qaContext}`;
+        Questions and Answers:
+        ${qaContext}`;
 
      // 4. Generate DALL-E prompt using OpenAI
      const promptText = await SimplePromptService.generateImagePrompt(context);
@@ -292,7 +292,7 @@ ${qaContext}`;
        response_format: "b64_json"
      });
 
-     const imageData = response.data[0];
+     const imageData = response.data?.[0];
      if (!imageData || !imageData.b64_json) {
        throw new Error('Image generation failed: No image data returned');
      }
