@@ -248,8 +248,8 @@ export default function TestPage() {
                     <div>
                       <h4 className="font-medium text-gray-700 mb-2">Upload Result:</h4>
                       <div className="bg-gray-100 p-3 rounded text-sm">
-                        <p><strong>Flow ID:</strong> {step.data.data.flowId}</p>
-                        <p><strong>Image Path:</strong> {step.data.data.imagePath}</p>
+                        <p className="text-gray-800"><strong>Flow ID:</strong> {step.data.data.flowId}</p>
+                        <p className="text-gray-800"><strong>Image Path:</strong> {step.data.data.imagePath}</p>
                       </div>
                     </div>
                   )}
@@ -258,7 +258,7 @@ export default function TestPage() {
                     <div>
                       <h4 className="font-medium text-gray-700 mb-2">Analysis Result:</h4>
                       <div className="bg-gray-100 p-3 rounded text-sm max-h-40 overflow-y-auto">
-                        <pre className="whitespace-pre-wrap">{step.data.data.analysis}</pre>
+                        <pre className="whitespace-pre-wrap text-gray-800">{step.data.data.analysis}</pre>
                       </div>
                     </div>
                   )}
@@ -269,8 +269,8 @@ export default function TestPage() {
                       <div className="space-y-2">
                         {step.data.data.questions.map((q: Question, i: number) => (
                           <div key={q.id} className="bg-gray-100 p-3 rounded text-sm">
-                            <p><strong>Q{i + 1}:</strong> {q.text}</p>
-                            <p><strong>Options:</strong> {q.options.join(', ')}</p>
+                            <p className="text-gray-800"><strong>Q{i + 1}:</strong> {q.text}</p>
+                            <p className="text-gray-800"><strong>Options:</strong> {q.options.join(', ')}</p>
                           </div>
                         ))}
                       </div>
@@ -285,8 +285,8 @@ export default function TestPage() {
                           const question = step.data.questions.find((q: Question) => q.id === answer.questionId)
                           return (
                             <div key={answer.questionId} className="bg-gray-100 p-3 rounded text-sm">
-                              <p><strong>Q{i + 1}:</strong> {question?.text || 'Unknown question'}</p>
-                              <p><strong>Selected:</strong> {answer.answer}</p>
+                              <p className="text-gray-800"><strong>Q{i + 1}:</strong> {question?.text || 'Unknown question'}</p>
+                              <p className="text-gray-800"><strong>Selected:</strong> {answer.answer}</p>
                             </div>
                           )
                         })}
@@ -298,7 +298,7 @@ export default function TestPage() {
                     <div>
                       <h4 className="font-medium text-gray-700 mb-2">Generated Image:</h4>
                       <div className="bg-gray-100 p-3 rounded">
-                        <p className="text-sm mb-2"><strong>Image Path:</strong> {step.data.data.finalImagePath}</p>
+                        <p className="text-sm mb-2 text-gray-800"><strong>Image Path:</strong> {step.data.data.finalImagePath}</p>
                         <div className="relative w-64 h-64">
                           <Image
                             src={step.data.data.finalImagePath}
@@ -315,7 +315,7 @@ export default function TestPage() {
                     <div>
                       <h4 className="font-medium text-gray-700 mb-2">Deactivation Result:</h4>
                       <div className="bg-gray-100 p-3 rounded text-sm">
-                        <p><strong>Status:</strong> {step.data.data.message}</p>
+                        <p className="text-gray-800"><strong>Status:</strong> {step.data.data.message}</p>
                       </div>
                     </div>
                   )}
