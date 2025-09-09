@@ -3,7 +3,11 @@ import { Question, QuestionAnswer } from './types';
 import { supabase } from './supabase';
 import { SimplePromptService } from './simplePromptService';
 import { v4 as uuidv4 } from 'uuid';
-import { OpenAIService } from './openai';
+import OpenAI from 'openai';
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 export class ImageFlowService {
   /**
@@ -279,7 +283,21 @@ ${qaContext}`;
      const promptText = await SimplePromptService.generateImagePrompt(context);
 
      // 6. Generate the final image using DALL-E with the generated prompt
-     const imageBase64 = await OpenAIService.generateImage(promptText);
+     const response = await openai.images.generate({
+       model: "dall-e-3",
+       prompt: promptText,
+       n: 1,
+       size: "1024x1024",
+       quality: "standard",
+       response_format: "b64_json"
+     });
+
+     const imageData = response.data[0];
+     if (!imageData || !imageData.b64_json) {
+       throw new Error('Image generation failed: No image data returned');
+     }
+
+     const imageBase64 = imageData.b64_json;
 
      // 6. Convert base64 to buffer and upload to Supabase storage
      const buffer = Buffer.from(imageBase64, 'base64');
@@ -389,6 +407,89 @@ ${qaContext}`;
     } catch (error) {
       console.error('Error compiling Q&A:', error);
       throw new Error('Failed to compile questions and answers');
+    }
+  }
+
+  /**
+   * Get all analysis flows (for admin)
+   */
+  static async getAllAnalysisFlows(): Promise<any[]> {
+    const { data, error } = await supabase
+      .from('analysis_flows')
+      .select(`
+        *,
+        images!analysis_flows_original_image_id_fkey(id, file_path, image_type),
+        final_images:images!analysis_flows_final_image_id_fkey(id, file_path, image_type)
+      `)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Failed to fetch analysis flows:', error);
+      throw new Error('Failed to fetch analysis flows');
+    }
+
+    return data || [];
+  }
+
+  /**
+   * Get specific analysis flow by ID (for admin)
+   */
+  static async getAnalysisFlow(flowId: string): Promise<any | null> {
+    const { data, error } = await supabase
+      .from('analysis_flows')
+      .select(`
+        *,
+        images!analysis_flows_original_image_id_fkey(id, file_path, image_type),
+        final_images:images!analysis_flows_final_image_id_fkey(id, file_path, image_type)
+      `)
+      .eq('id', flowId)
+      .single();
+
+    if (error) {
+      console.error('Failed to fetch analysis flow:', error);
+      return null;
+    }
+
+    return data;
+  }
+
+  /**
+   * Update analysis flow (for admin)
+   */
+  static async updateAnalysisFlow(flowId: string, updates: any): Promise<any> {
+    const { data, error } = await supabase
+      .from('analysis_flows')
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', flowId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Failed to update analysis flow:', error);
+      throw new Error('Failed to update analysis flow');
+    }
+
+    return data;
+  }
+
+  /**
+   * Deactivate analysis flow (for admin)
+   */
+  static async deactivateAnalysisFlow(flowId: string): Promise<void> {
+    const { error } = await supabase
+      .from('analysis_flows')
+      .update({
+        is_active: false,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', flowId);
+
+    if (error) {
+      console.error('Failed to deactivate analysis flow:', error);
+      throw new Error('Failed to deactivate analysis flow');
     }
   }
 }
