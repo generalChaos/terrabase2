@@ -1,7 +1,7 @@
 import { SimpleImageService } from './simpleImageService';
 import { Question, QuestionAnswer } from './types';
 import { supabase } from './supabase';
-import { PromptExecutor } from './promptExecutor';
+import { SimplePromptService } from './simplePromptService';
 import { v4 as uuidv4 } from 'uuid';
 import { OpenAIService } from './openai';
 
@@ -153,22 +153,8 @@ export class ImageFlowService {
       const imageBuffer = await imageResponse.arrayBuffer();
       const base64Image = Buffer.from(imageBuffer).toString('base64');
 
-      // 4. Get the prompt from the database
-      const { data: promptData, error: promptError } = await supabase
-        .from('prompt_definitions')
-        .select('prompt_text')
-        .eq('name', 'image_analysis')
-        .single();
-
-      if (promptError || !promptData) {
-        return { success: false, error: 'Image analysis prompt not found in database' };
-      }
-
-      // 4. Use PromptExecutor to analyze the image
-      const result = await PromptExecutor.executeWithSchemaEnforcement('image_analysis', {
-        image: base64Image,
-        prompt: promptData.prompt_text
-      }) as unknown as string;
+      // 4. Analyze the image using OpenAI
+      const result = await SimplePromptService.analyzeImage(base64Image);
 
       // 5. Update the flow with the analysis result
       const { error: updateError } = await supabase
@@ -222,28 +208,14 @@ export class ImageFlowService {
         return { success: false, error: 'No analysis result found. Please analyze the image first.' };
       }
 
-       // 2. Get the prompt from the database
-      const { data: promptData, error: promptError } = await supabase
-        .from('prompt_definitions')
-        .select('prompt_text')
-        .eq('name', 'questions_generation')
-        .single();
-
-      if (promptError || !promptData) {
-        return { success: false, error: 'Questions generation prompt not found in database' };
-      }
-
-      // 3. Use PromptExecutor to generate questions based on the analysis
-      const result = await PromptExecutor.executeWithSchemaEnforcement('questions_generation', {
-        analysis: flowData.analysis_result,
-        prompt: promptData.prompt_text
-      }) as { questions: Question[] };
+      // 2. Generate questions using OpenAI
+      const questions = await SimplePromptService.generateQuestions(flowData.analysis_result);
 
       // 4. Update the flow with the questions
       const { error: updateError } = await supabase
         .from('analysis_flows')
         .update({
-          questions: result.questions,
+          questions: questions,
           updated_at: new Date().toISOString()
         })
         .eq('id', flowId);
@@ -255,7 +227,7 @@ export class ImageFlowService {
 
       return {
         success: true,
-        questions: result.questions
+        questions: questions
       };
 
     } catch (error) {
@@ -292,45 +264,19 @@ export class ImageFlowService {
        return { success: false, error: 'Missing analysis or questions. Please complete previous steps first.' };
      }
 
-     // 2. Get the image prompt generation prompt from the database
-     const { data: promptData, error: promptError } = await supabase
-       .from('prompt_definitions')
-       .select('prompt_text')
-       .eq('name', 'image_generation')
-       .single();
-
-     if (promptError || !promptData) {
-       return { success: false, error: 'Image prompt generation prompt not found in database' };
-     }
-
-     // 3. Compile questions and answers for context
+     // 2. Compile questions and answers for context
      const qaContext = await this.compileQandA(flowData.questions, answers);
 
-     // 4. Build comprehensive prompt with analysis and Q&A context
-     const comprehensivePrompt = `
+     // 3. Build comprehensive context for image generation
+     const context = `
+Analysis of the original image:
+${flowData.analysis_result}
 
-        Analysis of the original image:
-        ${flowData.analysis_result}
+Questions and Answers:
+${qaContext}`;
 
-        Questions and Answers:
-        ${qaContext}
-
-        ${promptData.prompt_text}
-
-        Please generate a detailed DALL-E prompt based on this analysis and the user's answers.`;
-
-     // 5. Generate the DALL-E prompt using PromptExecutor
-     const promptResult = await PromptExecutor.executeWithSchemaEnforcement('image_generation', {
-       prompt: comprehensivePrompt,
-       flow_summary: {}
-     });
-
-     console.log('Generated DALL-E prompt result:', promptResult);
-     console.log('Prompt result type:', typeof promptResult);
-
-     // Extract the actual prompt text from the result
-     // Since response_format is "text", the result should be the prompt string directly
-     const promptText = typeof promptResult === 'string' ? promptResult : JSON.stringify(promptResult);
+     // 4. Generate DALL-E prompt using OpenAI
+     const promptText = await SimplePromptService.generateImagePrompt(context);
 
      // 6. Generate the final image using DALL-E with the generated prompt
      const imageBase64 = await OpenAIService.generateImage(promptText);
@@ -363,7 +309,7 @@ export class ImageFlowService {
        .from('analysis_flows')
        .update({
          final_image_path: publicUrl,
-         final_image_prompt: promptResult,
+         final_image_prompt: promptText,
          updated_at: new Date().toISOString()
        })
        .eq('id', flowId);
