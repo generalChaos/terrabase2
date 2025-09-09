@@ -1,4 +1,4 @@
-import type { Player } from '../../../shared/types';
+import type { Player } from '../../../../shared/types';
 import Image from 'next/image';
 import { isImageAvatar, getAvatarImagePath, type Avatar } from '@/lib/avatar-utils';
 

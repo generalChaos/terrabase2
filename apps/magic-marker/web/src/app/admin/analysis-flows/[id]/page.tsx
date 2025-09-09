@@ -6,6 +6,7 @@ import NextImage from 'next/image'
 import { AnalysisFlow, Question, QuestionAnswer } from '@/lib/analysisFlowService'
 import { Image, ImageType, ImageService } from '@/lib/imageService'
 import { ProcessingStep } from '@/lib/newTypes'
+import { PromptDefinition } from '@/lib/promptTypes'
 import { ArrowLeft, Calendar, MessageSquare, Image as ImageIcon, FileText, Clock, CheckCircle, XCircle, Hash, Activity, AlertTriangle, Database, Zap, BarChart3, Code } from 'lucide-react'
 
 // Simple type assertion - we control the data so we can safely assert the type
@@ -23,7 +24,7 @@ export default function AnalysisFlowDetailsPage() {
   const [originalImage, setOriginalImage] = useState<Image | null>(null)
   const [finalImage, setFinalImage] = useState<Image | null>(null)
   const [processingSteps, setProcessingSteps] = useState<ProcessingStep[]>([])
-  const [promptDefinitions, setPromptDefinitions] = useState<Record<string, any>>({})
+  const [promptDefinitions, setPromptDefinitions] = useState<Record<string, PromptDefinition>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -34,8 +35,8 @@ export default function AnalysisFlowDetailsPage() {
       const response = await fetch('/api/admin/prompt-definitions')
       if (response.ok) {
         const data = await response.json()
-        const promptsMap: Record<string, any> = {}
-        data.prompts.forEach((prompt: any) => {
+        const promptsMap: Record<string, PromptDefinition> = {}
+        data.prompts.forEach((prompt: PromptDefinition) => {
           promptsMap[prompt.name] = prompt
         })
         setPromptDefinitions(promptsMap)

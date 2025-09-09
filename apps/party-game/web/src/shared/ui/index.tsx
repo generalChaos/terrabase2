@@ -1,4 +1,5 @@
 // Party Game Web - Shared UI Components
+import React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
@@ -52,60 +53,72 @@ interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   animation?: 'none' | 'scale' | 'fade';
 }
 
-const Card = ({ 
+const Card: React.FC<CardProps> = ({ 
   className, 
   variant = 'default',
   size = 'md',
   interactive = false,
   animation = 'none',
   ...props 
-}: CardProps) => (
-  <div
-    className={cn(
-      "rounded-lg border bg-card text-card-foreground shadow-sm",
-      {
-        'shadow-lg': variant === 'elevated',
-        'border-2': variant === 'outlined',
-        'bg-white/10 backdrop-blur-md border-white/20': variant === 'glass',
-        'p-4': size === 'sm',
-        'p-6': size === 'md',
-        'p-8': size === 'lg',
-        'p-10': size === 'xl',
-        'cursor-pointer hover:shadow-md transition-shadow': interactive,
-        'hover:scale-105 transition-transform': animation === 'scale',
-        'opacity-0 animate-fade-in': animation === 'fade',
-      },
-      className
-    )}
-    {...props}
-  />
-);
+}) => {
+  return (
+    <div
+      className={cn(
+        "rounded-lg border bg-card text-card-foreground shadow-sm",
+        {
+          'shadow-lg': variant === 'elevated',
+          'border-2': variant === 'outlined',
+          'bg-white/10 backdrop-blur-md border-white/20': variant === 'glass',
+          'p-4': size === 'sm',
+          'p-6': size === 'md',
+          'p-8': size === 'lg',
+          'p-10': size === 'xl',
+          'cursor-pointer hover:shadow-md transition-shadow': interactive,
+          'hover:scale-105 transition-transform': animation === 'scale',
+          'opacity-0 animate-fade-in': animation === 'fade',
+        },
+        className
+      )}
+      {...props}
+    />
+  );
+};
 
-const CardHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={cn("flex flex-col space-y-1.5 p-6", className)} {...props} />
-);
+const CardHeader: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({ className, ...props }) => {
+  return (
+    <div className={cn("flex flex-col space-y-1.5 p-6", className)} {...props} />
+  );
+};
 
-const CardTitle = ({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
-  <h3
-    className={cn(
-      "text-2xl font-semibold leading-none tracking-tight",
-      className
-    )}
-    {...props}
-  />
-);
+const CardTitle: React.FC<React.HTMLAttributes<HTMLHeadingElement>> = ({ className, ...props }) => {
+  return (
+    <h3
+      className={cn(
+        "text-2xl font-semibold leading-none tracking-tight",
+        className
+      )}
+      {...props}
+    />
+  );
+};
 
-const CardDescription = ({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) => (
-  <p className={cn("text-sm text-muted-foreground", className)} {...props} />
-);
+const CardDescription: React.FC<React.HTMLAttributes<HTMLParagraphElement>> = ({ className, ...props }) => {
+  return (
+    <p className={cn("text-sm text-muted-foreground", className)} {...props} />
+  );
+};
 
-const CardContent = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={cn("p-6 pt-0", className)} {...props} />
-);
+const CardContent: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({ className, ...props }) => {
+  return (
+    <div className={cn("p-6 pt-0", className)} {...props} />
+  );
+};
 
-const CardFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={cn("flex items-center p-6 pt-0", className)} {...props} />
-);
+const CardFooter: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({ className, ...props }) => {
+  return (
+    <div className={cn("flex items-center p-6 pt-0", className)} {...props} />
+  );
+};
 
 // Typography utilities
 const typography = {
@@ -117,16 +130,6 @@ const typography = {
   blockquote: "mt-6 border-l-2 pl-6 italic",
   list: "my-6 ml-6 list-disc [&>li]:mt-2",
   code: "relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm font-semibold",
-  fontSize: {
-    '4xl': ['2.25rem', { lineHeight: '2.5rem' }] as [string, { lineHeight: string }],
-    '3xl': ['1.875rem', { lineHeight: '2.25rem' }] as [string, { lineHeight: string }],
-    '2xl': ['1.5rem', { lineHeight: '2rem' }] as [string, { lineHeight: string }],
-    'xl': ['1.25rem', { lineHeight: '1.75rem' }] as [string, { lineHeight: string }],
-    'lg': ['1.125rem', { lineHeight: '1.75rem' }] as [string, { lineHeight: string }],
-    'base': ['1rem', { lineHeight: '1.5rem' }] as [string, { lineHeight: string }],
-    'sm': ['0.875rem', { lineHeight: '1.25rem' }] as [string, { lineHeight: string }],
-    'xs': ['0.75rem', { lineHeight: '1rem' }] as [string, { lineHeight: string }],
-  },
 };
 
 export { 
