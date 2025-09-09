@@ -285,24 +285,33 @@ export default function TestPage() {
 
                   {step.id === 'analyze' && (
                     <div>
-                      <h4 className="font-medium text-gray-700 mb-2">Analysis Result:</h4>
-                      <div className="bg-gray-100 p-3 rounded text-sm max-h-40 overflow-y-auto">
-                        <pre className="whitespace-pre-wrap text-gray-800">{step.data.data.analysis}</pre>
-                      </div>
-                      
                       {prompts && (
-                        <div className="mt-4">
+                        <div className="mb-4">
                           <h5 className="font-medium text-gray-600 mb-2">Used Prompt (image_analysis):</h5>
                           <div className="bg-blue-50 p-3 rounded text-sm max-h-32 overflow-y-auto">
                             <pre className="whitespace-pre-wrap text-gray-700">{prompts.find((p: any) => p.name === 'image_analysis')?.prompt_text || 'Prompt not found'}</pre>
                           </div>
                         </div>
                       )}
+                      
+                      <h4 className="font-medium text-gray-700 mb-2">Analysis Result:</h4>
+                      <div className="bg-gray-100 p-3 rounded text-sm max-h-40 overflow-y-auto">
+                        <pre className="whitespace-pre-wrap text-gray-800">{step.data.data.analysis}</pre>
+                      </div>
                     </div>
                   )}
 
                   {step.id === 'questions' && (
                     <div>
+                      {prompts && (
+                        <div className="mb-4">
+                          <h5 className="font-medium text-gray-600 mb-2">Used Prompt (questions_generation):</h5>
+                          <div className="bg-blue-50 p-3 rounded text-sm max-h-32 overflow-y-auto">
+                            <pre className="whitespace-pre-wrap text-gray-700">{prompts.find((p: any) => p.name === 'questions_generation')?.prompt_text || 'Prompt not found'}</pre>
+                          </div>
+                        </div>
+                      )}
+                      
                       <h4 className="font-medium text-gray-700 mb-2">Generated Questions ({step.data.data.questions.length}):</h4>
                       <div className="space-y-2">
                         {step.data.data.questions.map((q: Question, i: number) => (
@@ -312,15 +321,6 @@ export default function TestPage() {
                           </div>
                         ))}
                       </div>
-                      
-                      {prompts && (
-                        <div className="mt-4">
-                          <h5 className="font-medium text-gray-600 mb-2">Used Prompt (questions_generation):</h5>
-                          <div className="bg-blue-50 p-3 rounded text-sm max-h-32 overflow-y-auto">
-                            <pre className="whitespace-pre-wrap text-gray-700">{prompts.find((p: any) => p.name === 'questions_generation')?.prompt_text || 'Prompt not found'}</pre>
-                          </div>
-                        </div>
-                      )}
                     </div>
                   )}
 
@@ -343,6 +343,15 @@ export default function TestPage() {
 
                   {step.id === 'generate' && (
                     <div>
+                      {prompts && (
+                        <div className="mb-4">
+                          <h5 className="font-medium text-gray-600 mb-2">Used Prompt (image_generation):</h5>
+                          <div className="bg-blue-50 p-3 rounded text-sm max-h-32 overflow-y-auto">
+                            <pre className="whitespace-pre-wrap text-gray-700">{prompts.find((p: any) => p.name === 'image_generation')?.prompt_text || 'Prompt not found'}</pre>
+                          </div>
+                        </div>
+                      )}
+                      
                       <h4 className="font-medium text-gray-700 mb-2">Generated Image:</h4>
                       <div className="bg-gray-100 p-3 rounded">
                         <p className="text-sm mb-2 text-gray-800"><strong>Image Path:</strong> {step.data.data.finalImagePath}</p>
@@ -355,15 +364,6 @@ export default function TestPage() {
                           />
                         </div>
                       </div>
-                      
-                      {prompts && (
-                        <div className="mt-4">
-                          <h5 className="font-medium text-gray-600 mb-2">Used Prompt (image_generation):</h5>
-                          <div className="bg-blue-50 p-3 rounded text-sm max-h-32 overflow-y-auto">
-                            <pre className="whitespace-pre-wrap text-gray-700">{prompts.find((p: any) => p.name === 'image_generation')?.prompt_text || 'Prompt not found'}</pre>
-                          </div>
-                        </div>
-                      )}
                     </div>
                   )}
 
