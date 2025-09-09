@@ -1,6 +1,6 @@
 'use client';
 import { TimerPhaseLayout, gameStyles, animationDelays } from '../shared';
-import type { Choice } from '../../../shared/types';
+import type { Choice } from '../shared/types';
 
 type FibbingItScoringViewProps = {
   question: string;

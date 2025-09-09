@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { ComponentState } from '../../../shared/types';
+import type { ComponentState } from '../shared/types';
 
 type UseGamePhaseProps = {
   state: ComponentState;

@@ -20,3 +20,9 @@ export type Player = {
 };
 
 export type ComponentState = 'waiting' | 'input' | 'options' | 'reveal' | 'scoring' | 'game-over';
+
+export interface Choice {
+  id: string;
+  by: string;
+  text: string;
+}

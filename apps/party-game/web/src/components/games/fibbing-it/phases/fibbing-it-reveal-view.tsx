@@ -1,6 +1,6 @@
 'use client';
 import { PhaseLayout, gameStyles, animationDelays } from '../shared';
-import type { Choice } from '../../../shared/types';
+import type { Choice } from '../shared/types';
 
 type FibbingItRevealViewProps = {
   question: string;

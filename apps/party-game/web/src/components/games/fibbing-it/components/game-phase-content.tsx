@@ -2,7 +2,7 @@
 import { PromptInput } from './prompt-input';
 import { VotingOptions } from './voting-options';
 import { RevealResults } from './reveal-results';
-import type { ComponentState } from '../../../../shared/types';
+import type { ComponentState } from '../shared/types';
 
 type Option = {
   id: string;

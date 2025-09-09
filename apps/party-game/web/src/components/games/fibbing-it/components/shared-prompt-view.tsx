@@ -7,7 +7,7 @@ import {
   RoundInfo, 
   GamePhaseContent 
 } from './index';
-import type { ComponentState } from '../../../../shared/types';
+import type { ComponentState } from '../shared/types';
 
 type SharedPromptViewProps = {
   question: string;
