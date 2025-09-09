@@ -30,6 +30,7 @@ export default function TestPage() {
   ])
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [flowData, setFlowData] = useState<any>(null)
+  const [prompts, setPrompts] = useState<any>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const updateStepStatus = (stepId: string, status: FlowStep['status'], data?: any, error?: string) => {
@@ -40,11 +41,22 @@ export default function TestPage() {
     ))
   }
 
+  const fetchPrompts = async () => {
+    try {
+      const response = await axios.get(`${API_BASE}/admin/prompt-definitions`)
+      setPrompts(response.data.prompts || response.data)
+    } catch (error) {
+      console.error('Failed to fetch prompts:', error)
+    }
+  }
+
   const completeFlowMutation = useMutation(
     async ({ file }: { file: File }) => {
       const results: any = {}
       
       try {
+        // Fetch prompts first
+        await fetchPrompts()
         // Step 1: Upload Image
         updateStepStatus('upload', 'in_progress')
         setCurrentStep(1)
@@ -220,6 +232,23 @@ export default function TestPage() {
               </button>
             </div>
           )}
+
+          {/* Available Prompts */}
+          {prompts && (
+            <div className="mb-8">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Available Prompts:</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {prompts.map((prompt: any) => (
+                  <div key={prompt.id} className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h4 className="font-medium text-blue-900 mb-2">{prompt.name}</h4>
+                    <div className="text-sm text-blue-700 max-h-24 overflow-y-auto">
+                      <pre className="whitespace-pre-wrap">{prompt.prompt_text}</pre>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Flow Steps */}
@@ -260,6 +289,15 @@ export default function TestPage() {
                       <div className="bg-gray-100 p-3 rounded text-sm max-h-40 overflow-y-auto">
                         <pre className="whitespace-pre-wrap text-gray-800">{step.data.data.analysis}</pre>
                       </div>
+                      
+                      {prompts && (
+                        <div className="mt-4">
+                          <h5 className="font-medium text-gray-600 mb-2">Used Prompt (image_analysis):</h5>
+                          <div className="bg-blue-50 p-3 rounded text-sm max-h-32 overflow-y-auto">
+                            <pre className="whitespace-pre-wrap text-gray-700">{prompts.find((p: any) => p.name === 'image_analysis')?.prompt_text || 'Prompt not found'}</pre>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -274,6 +312,15 @@ export default function TestPage() {
                           </div>
                         ))}
                       </div>
+                      
+                      {prompts && (
+                        <div className="mt-4">
+                          <h5 className="font-medium text-gray-600 mb-2">Used Prompt (questions_generation):</h5>
+                          <div className="bg-blue-50 p-3 rounded text-sm max-h-32 overflow-y-auto">
+                            <pre className="whitespace-pre-wrap text-gray-700">{prompts.find((p: any) => p.name === 'questions_generation')?.prompt_text || 'Prompt not found'}</pre>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -308,6 +355,15 @@ export default function TestPage() {
                           />
                         </div>
                       </div>
+                      
+                      {prompts && (
+                        <div className="mt-4">
+                          <h5 className="font-medium text-gray-600 mb-2">Used Prompt (image_generation):</h5>
+                          <div className="bg-blue-50 p-3 rounded text-sm max-h-32 overflow-y-auto">
+                            <pre className="whitespace-pre-wrap text-gray-700">{prompts.find((p: any) => p.name === 'image_generation')?.prompt_text || 'Prompt not found'}</pre>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
 
