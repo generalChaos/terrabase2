@@ -1,130 +1,54 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { supabase, supabaseAdmin } from '@/lib/supabase';
-import { OpenAIService } from '@/lib/openai';
+import { NextRequest } from 'next/server';
+import { SimpleImageService } from '@/lib/simpleImageService';
 import { QuestionAnswer } from '@/lib/types';
-import { StepService } from '@/lib/stepService';
-import { ImageService } from '@/lib/imageService';
-import { AnalysisFlowService } from '@/lib/analysisFlowService';
-import { PromptExecutor } from '@/lib/promptExecutor';
-import { ContextManager, StepContext } from '@/lib/contextManager';
+import { OpenAIService } from '@/lib/openai';
+import { ApiUtils } from '@/lib/apiUtils';
+import { supabase } from '@/lib/supabase';
 
 // POST /api/images/generate - Generate new image based on answers
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { imageAnalysisId, answers } = body;
+    const { imageAnalysisId, answers, prompt } = body;
 
     if (!imageAnalysisId || !answers || answers.length === 0) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Missing required fields' 
-      }, { status: 400 });
+      return ApiUtils.validationError('Missing required fields: imageAnalysisId and answers');
     }
 
-    // Get the original image data
-    const imageData = await ImageService.getImage(imageAnalysisId);
-    if (!imageData) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Image not found' 
-      }, { status: 404 });
+    // Get the image analysis
+    const imageAnalysis = await SimpleImageService.getImageAnalysis(imageAnalysisId);
+    if (!imageAnalysis) {
+      return ApiUtils.notFound('Image analysis not found');
     }
 
-    // Get the analysis flow for this image
-    const analysisFlow = await AnalysisFlowService.getActiveAnalysisFlow(imageAnalysisId);
-    if (!analysisFlow) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Analysis flow not found' 
-      }, { status: 404 });
-    }
+    // TODO match the answers to the questions.  remove the other options.  Format: "this is a question? answer"
 
     try {
-      const questions = analysisFlow.questions;
+      // Update the image analysis with answers
+      const updatedAnalysis = await SimpleImageService.updateImageAnalysis(imageAnalysisId, answers);
       
-      // Step 3: Answer Analysis
-      console.log('🔍 Starting answer analysis...');
-      const answerAnalysisStartTime = Date.now();
-      const answerStrings = (answers as QuestionAnswer[]).map(a => a.answer);
-      
-      // Log answer analysis step
-      await StepService.logStep({
-        flow_id: analysisFlow.id,
-        step_type: 'questions',
-        step_order: 3,
-        prompt_content: 'Analyze user answers and prepare for image generation',
-        input_data: { questions, answers: answerStrings },
-        output_data: { analyzed_answers: answerStrings },
-        response_time_ms: 0, // This is just processing, no AI call
-        model_used: 'none',
-        success: true
-      });
-      
-      // Build context for image generation step
-      const contextFlowId = analysisFlow.id;
-      const context: StepContext = ContextManager.buildContextForStep(
-        contextFlowId,
-        'image_generation',
-        3,
-        {
-          imageAnalysis: imageData.analysis_result,
-          previousAnswers: answerStrings,
-          artisticDirection: `Based on the comprehensive analysis of the child's original drawing and their detailed responses:
-
-ORIGINAL DRAWING ANALYSIS: ${imageData.analysis_result}
-
-CHILD'S CLARIFICATIONS:
-${questions.map((q: { text: string }, index: number) => {
-  const answer = answerStrings[index] || 'Not specified';
-  return `- ${q.text}: ${answer}`;
-}).join('\n')}
-
-ARTISTIC VISION: Create a detailed illustration that enhances the child's original drawing with these specific clarifications, maintaining the playful, imaginative nature while incorporating all the child's detailed preferences. Focus on preserving their original elements while adding the professional details they've specified.`,
-          stepResults: {},
-          conversationHistory: [],
-          userPreferences: null,
-          metadata: {
-            totalTokens: 0,
-            totalCost: 0,
-            lastUpdated: new Date().toISOString(),
-            flowId: contextFlowId
-          }
-        }
+      // Create image prompt from questions and answers with context (or use custom prompt)
+      const answerStrings = answers.map((a: QuestionAnswer) => a.answer);
+      const imagePrompt = await OpenAIService.createImagePrompt(
+        imageAnalysis, 
+        answers, 
+        prompt
       );
-
-      // Use image generation with the comprehensive database prompt
-      console.log('🎨 Starting image generation with comprehensive database prompt...');
-      const imageGenerationStartTime = Date.now();
-      const imageGenerationResult = await PromptExecutor.execute('image_generation', {
-        prompt: '', // Empty prompt to use database prompt instead
-        flow_summary: {
-          analysis: context?.contextData?.imageAnalysis || '',
-          questions: questions,
-          answers: answerStrings,
-          artisticDirection: context?.contextData?.artisticDirection || '',
-          stepResults: context?.contextData?.stepResults || {},
-          conversationHistory: context?.contextData?.conversationHistory || []
-        }
-      }, context);
-      const imageGenerationTime = Date.now() - imageGenerationStartTime;
       
-      // Extract the DALL-E prompt from the result if available
-      const dallEPrompt = (imageGenerationResult as { dall_e_prompt?: string }).dall_e_prompt || 'DALL-E prompt not captured';
+      // Generate new image
+      const imageUrl = await OpenAIService.generateImage(imagePrompt);
       
-      // Type guard to ensure we have the image_base64 property
-      if (!('image_base64' in imageGenerationResult)) {
-        throw new Error('Image generation failed: No image data returned');
-      }
-      
-      // Convert base64 image to buffer
-      const imageBuffer = Buffer.from(imageGenerationResult.image_base64, 'base64');
+      // Download and save the generated image to Supabase Storage
+      const imageResponse = await fetch(imageUrl);
+      const imageBuffer = await imageResponse.arrayBuffer();
+      const buffer = Buffer.from(imageBuffer);
       
       const filename = `generated-${imageAnalysisId}-${Date.now()}.png`;
       
       // Upload to Supabase Storage
-      const { data: _uploadData, error: uploadError } = await supabaseAdmin.storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
         .from('images')
-        .upload(filename, imageBuffer, {
+        .upload(filename, buffer, {
           contentType: 'image/png',
           cacheControl: '3600',
           upsert: false
@@ -132,119 +56,30 @@ ARTISTIC VISION: Create a detailed illustration that enhances the child's origin
 
       if (uploadError) {
         console.error('Supabase storage error:', uploadError);
-        return NextResponse.json({ 
-          success: false, 
-          error: 'Failed to upload generated image to storage' 
-        }, { status: 500 });
+        return ApiUtils.internalError('Failed to upload generated image to storage');
       }
 
       // Get public URL for the uploaded image
-      const { data: { publicUrl } } = supabaseAdmin.storage
+      const { data: { publicUrl } } = supabase.storage
         .from('images')
         .getPublicUrl(filename);
       
-      // Create final image record
-      const finalImageRecord = await ImageService.createImage(
-        'Generated image based on user preferences',
-        'final',
-        publicUrl,
-        imageBuffer.length,
-        'image/png'
-      );
+      // Set final image
+      const finalAnalysis = await SimpleImageService.setFinalImage(imageAnalysisId, publicUrl);
 
-      // Update analysis flow with answers, final image, and context data
-      await AnalysisFlowService.updateAnalysisFlow(analysisFlow.id, {
-        answers: answers,
-        totalAnswers: answers.length,
-        final_image_id: finalImageRecord.id,
-        currentStep: 'completed',
-        contextData: {
-          imageAnalysis: imageData.analysis_result,
-          artisticDirection: `Based on the comprehensive analysis of the child's original drawing and their detailed responses:
-
-ORIGINAL DRAWING ANALYSIS: ${imageData.analysis_result}
-
-CHILD'S CLARIFICATIONS:
-${questions.map((q: { text: string }, index: number) => {
-  const answer = answerStrings[index] || 'Not specified';
-  return `- ${q.text}: ${answer}`;
-}).join('\n')}
-
-ARTISTIC VISION: Create a detailed illustration that enhances the child's original drawing with these specific clarifications, maintaining the playful, imaginative nature while incorporating all the child's detailed preferences. Focus on preserving their original elements while adding the professional details they've specified.`,
-          stepResults: {},
-          conversationHistory: [],
-          userPreferences: null,
-          metadata: {
-            totalTokens: 0,
-            totalCost: 0,
-            lastUpdated: new Date().toISOString(),
-            flowId: analysisFlow.id
-          }
-        }
-      });
-
-      // Log image generation step
-      await StepService.logStep({
-        flow_id: analysisFlow.id,
-        step_type: 'image_generation',
-        step_order: 4,
-        prompt_content: dallEPrompt.length > 500 ? `${dallEPrompt.substring(0, 500)}...` : dallEPrompt,
-        input_data: { 
-          prompt: `Generated image based on answers: ${answerStrings.join(', ')}`,
-          dall_e_prompt: dallEPrompt
-        },
-        output_data: { 
-          image_base64_length: imageGenerationResult.image_base64.length,
-          dall_e_prompt: dallEPrompt
-        },
-        response_time_ms: imageGenerationTime,
-        model_used: 'dall-e-3',
-        success: true
-      });
-
-      return NextResponse.json({
+      return ApiUtils.success({
         success: true,
         finalImagePath: publicUrl,
-        contextData: context // Include context data for debugging
+        imageAnalysis: finalAnalysis
       });
 
     } catch (error) {
       console.error('Image generation error:', error);
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Failed to generate image' 
-      }, { status: 500 });
+      return ApiUtils.internalError('Failed to generate image');
     }
 
   } catch (error) {
-    console.error('Generate route error:', error);
-    
-    let errorMessage = 'Image generation failed';
-    let statusCode = 500;
-    
-    if (error instanceof Error) {
-      errorMessage = error.message;
-      
-      // Handle specific OpenAI errors
-      if (error.message.includes('model_not_found')) {
-        errorMessage = 'AI model not available. Please try again later.';
-        statusCode = 503;
-      } else if (error.message.includes('rate_limit')) {
-        errorMessage = 'Rate limit exceeded. Please wait a moment and try again.';
-        statusCode = 429;
-      } else if (error.message.includes('insufficient_quota')) {
-        errorMessage = 'API quota exceeded. Please check your OpenAI account.';
-        statusCode = 402;
-      } else if (error.message.includes('content_policy')) {
-        errorMessage = 'Content policy violation. Please try different answers.';
-        statusCode = 400;
-      }
-    }
-    
-    return NextResponse.json({ 
-      success: false, 
-      error: errorMessage,
-      timestamp: new Date().toISOString()
-    }, { status: statusCode });
+    console.error('Route error:', error);
+    return ApiUtils.internalError('Internal server error');
   }
 }
