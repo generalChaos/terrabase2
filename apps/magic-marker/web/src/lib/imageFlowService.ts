@@ -134,13 +134,13 @@ export class ImageFlowService {
       const result = await PromptExecutor.executeWithSchemaEnforcement('image_analysis', {
         image: base64Image,
         prompt: promptData.prompt_text
-      }) as { response: string };
+      }) as unknown as string;
 
       // 5. Update the flow with the analysis result
       const { error: updateError } = await supabase
         .from('analysis_flows')
         .update({
-          analysis_result: result.response,
+          analysis_result: result,
           updated_at: new Date().toISOString()
         })
         .eq('id', flowId);
@@ -152,7 +152,7 @@ export class ImageFlowService {
 
       return {
         success: true,
-        analysis: result.response
+        analysis: result
       };
 
     } catch (error) {
@@ -273,23 +273,26 @@ export class ImageFlowService {
      const qaContext = await this.compileQandA(flowData.questions, answers);
 
      // 4. Build comprehensive prompt with analysis and Q&A context
-     const comprehensivePrompt = `${promptData.prompt_text}
+     const comprehensivePrompt = `
 
-Analysis of the original image:
-${flowData.analysis_result}
+        Analysis of the original image:
+        ${flowData.analysis_result}
 
-Questions and Answers:
-${qaContext}
+        Questions and Answers:
+        ${qaContext}
 
-Please generate a detailed DALL-E prompt based on this analysis and the user's answers.`;
+        ${promptData.prompt_text}
+
+        Please generate a detailed DALL-E prompt based on this analysis and the user's answers.`;
 
      // 5. Generate the DALL-E prompt using PromptExecutor
-     const promptResult = await PromptExecutor.executeWithSchemaEnforcement('text_processing', {
-       prompt: comprehensivePrompt
-     }) as { response: string };
+     const promptResult = await PromptExecutor.executeWithSchemaEnforcement('image_generation', {
+       prompt: comprehensivePrompt,
+       flow_summary: {}
+     }) as unknown as string;
 
      // 5. Generate the final image using DALL-E
-     const imageBase64 = await OpenAIService.generateImage(promptResult.response);
+     const imageBase64 = await OpenAIService.generateImage(promptResult);
 
      // 6. Convert base64 to buffer and upload to Supabase storage
      const buffer = Buffer.from(imageBase64, 'base64');
@@ -319,7 +322,7 @@ Please generate a detailed DALL-E prompt based on this analysis and the user's a
        .from('analysis_flows')
        .update({
          final_image_path: publicUrl,
-         final_image_prompt: promptResult.response,
+         final_image_prompt: promptResult,
          updated_at: new Date().toISOString()
        })
        .eq('id', flowId);
