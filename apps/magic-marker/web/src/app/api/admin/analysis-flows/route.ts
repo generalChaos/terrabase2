@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server'
-import { AnalysisFlowService } from '@/lib/analysisFlowService'
+import { ImageFlowService } from '@/lib/imageFlowService'
 import { ImageService } from '@/lib/imageService'
 
 // GET /api/admin/analysis-flows - Get all analysis flows with image paths
 export async function GET() {
   try {
-    const analysisFlows = await AnalysisFlowService.getAllAnalysisFlows()
+    const analysisFlows = await ImageFlowService.getAllAnalysisFlows()
 
     // Enhance flows with image paths
     const enhancedFlows = await Promise.all(

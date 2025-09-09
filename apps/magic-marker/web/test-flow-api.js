@@ -11,7 +11,7 @@ const path = require('path');
 const BASE_URL = 'http://localhost:3002';
 
 // Test data
-const TEST_IMAGE_PATH = path.join(__dirname, 'test_image.png');
+const TEST_IMAGE_PATH = path.join(__dirname, 'test_image.jpg');
 
 async function testFlowAPI() {
   console.log('🧪 Testing Flow API Endpoints...\n');
@@ -21,14 +21,14 @@ async function testFlowAPI() {
     console.log('1️⃣ Testing upload endpoint...');
     
     if (!fs.existsSync(TEST_IMAGE_PATH)) {
-      console.log('❌ Test image not found. Please add test_image.png to the web directory.');
+      console.log('❌ Test image not found. Please add test_image.jpg to the web directory.');
       return;
     }
 
     const formData = new FormData();
     const imageBuffer = fs.readFileSync(TEST_IMAGE_PATH);
-    const imageBlob = new Blob([imageBuffer], { type: 'image/png' });
-    formData.append('image', imageBlob, 'test_image.png');
+    const imageBlob = new Blob([imageBuffer], { type: 'image/jpeg' });
+    formData.append('image', imageBlob, 'test_image.jpg');
 
     const uploadResponse = await fetch(`${BASE_URL}/api/flow/upload`, {
       method: 'POST',
