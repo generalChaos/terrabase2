@@ -280,6 +280,20 @@ export default function TestPage() {
                         <p className="text-gray-800"><strong>Flow ID:</strong> {step.data.data.flowId}</p>
                         <p className="text-gray-800"><strong>Image Path:</strong> {step.data.data.imagePath}</p>
                       </div>
+                      
+                      <div className="mt-4">
+                        <h5 className="font-medium text-gray-600 mb-2">Uploaded Image:</h5>
+                        <div className="bg-gray-100 p-3 rounded">
+                          <div className="relative w-64 h-64 mx-auto">
+                            <Image
+                              src={step.data.data.imagePath}
+                              alt="Uploaded image"
+                              fill
+                              className="object-contain rounded"
+                            />
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   )}
 
