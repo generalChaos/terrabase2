@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from 'react-query'
 import axios from 'axios'
 import Image from 'next/image'
 import { ImageAnalysis, QuestionAnswer, Question } from '@/lib/types'
-import { ImageFlowService } from '@/lib/imageFlowService'
+// ImageFlowService is only used server-side, client uses API endpoints
 import ImageUpload from '@/components/ImageUpload'
 import QuestionFlow from '@/components/QuestionFlow'
 import LoadingSpinner from '@/components/LoadingSpinner'
@@ -266,7 +266,7 @@ export default function HomePage() {
         if (currentImageAnalysis?.flowId) {
           try {
             console.log('🔚 [GENERATION] Deactivating analysis flow:', currentImageAnalysis.flowId)
-            await ImageFlowService.deactivateAnalysisFlow(currentImageAnalysis.flowId)
+            await axios.post(`${API_BASE}/flow/${currentImageAnalysis.flowId}/deactivate`)
             console.log('✅ [GENERATION] Analysis flow deactivated successfully')
           } catch (error) {
             console.error('❌ [GENERATION] Failed to deactivate analysis flow:', error)
