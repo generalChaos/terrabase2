@@ -241,7 +241,7 @@ export default function AnimatedHomepage({ onStartUpload }: AnimatedHomepageProp
         </div>
 
         {/* Call to action */}
-        <div className="text-center mt-16">
+        <div className="text-center mt-16 space-y-4">
           <button
             onClick={onStartUpload}
             className="group relative bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white px-12 py-4 rounded-full font-bold text-xl shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-105 flex items-center justify-center mx-auto"
@@ -260,6 +260,19 @@ export default function AnimatedHomepage({ onStartUpload }: AnimatedHomepageProp
             {/* Pulse animation */}
             <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-400 to-purple-400 animate-ping opacity-20"></div>
           </button>
+          
+          {/* Test Page Link */}
+          <div>
+            <a
+              href="/test"
+              className="inline-flex items-center space-x-2 text-white/80 hover:text-white transition-colors duration-200 text-sm"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/>
+              </svg>
+              <span>Test Flow (Auto-Answer)</span>
+            </a>
+          </div>
         </div>
       </div>
     </div>
