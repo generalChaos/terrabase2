@@ -54,12 +54,35 @@ export class ImageFlowService {
         .from('images')
         .getPublicUrl(fileName);
 
+      // Create images record first
+      const imageId = uuidv4();
+      const { data: imageData, error: imageError } = await supabase
+        .from('images')
+        .insert({
+          id: imageId,
+          file_path: publicUrl,
+          image_type: 'original',
+          file_size: file.size,
+          mime_type: file.type,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (imageError) {
+        console.error('Database error creating image:', imageError);
+        return { success: false, error: 'Failed to create image record' };
+      }
+
       // Create analysis flow record
       const { data: flowData, error: flowError } = await supabase
         .from('analysis_flows')
         .insert({
           id: flowId,
-          original_image_path: publicUrl,
+          session_id: uuidv4(), // Generate a session ID
+          original_image_id: imageId,
+          current_step: 'upload',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })
@@ -106,12 +129,23 @@ export class ImageFlowService {
         return { success: false, error: 'Flow not found' };
       }
 
-      if (!flowData.original_image_path) {
+      if (!flowData.original_image_id) {
         return { success: false, error: 'No image found in flow' };
       }
 
-      // 2. Download the image and convert to base64
-      const imageResponse = await fetch(flowData.original_image_path);
+      // 2. Get the image data from the images table
+      const { data: imageData, error: imageError } = await supabase
+        .from('images')
+        .select('file_path')
+        .eq('id', flowData.original_image_id)
+        .single();
+
+      if (imageError || !imageData) {
+        return { success: false, error: 'Image not found in database' };
+      }
+
+      // 3. Download the image and convert to base64
+      const imageResponse = await fetch(imageData.file_path);
       if (!imageResponse.ok) {
         return { success: false, error: 'Failed to download image' };
       }
@@ -119,9 +153,9 @@ export class ImageFlowService {
       const imageBuffer = await imageResponse.arrayBuffer();
       const base64Image = Buffer.from(imageBuffer).toString('base64');
 
-      // 3. Get the prompt from the database
+      // 4. Get the prompt from the database
       const { data: promptData, error: promptError } = await supabase
-        .from('prompts')
+        .from('prompt_definitions')
         .select('prompt_text')
         .eq('name', 'image_analysis')
         .single();
@@ -190,7 +224,7 @@ export class ImageFlowService {
 
        // 2. Get the prompt from the database
       const { data: promptData, error: promptError } = await supabase
-        .from('prompts')
+        .from('prompt_definitions')
         .select('prompt_text')
         .eq('name', 'questions_generation')
         .single();
@@ -260,9 +294,9 @@ export class ImageFlowService {
 
      // 2. Get the image prompt generation prompt from the database
      const { data: promptData, error: promptError } = await supabase
-       .from('prompts')
+       .from('prompt_definitions')
        .select('prompt_text')
-       .eq('name', 'image_prompt_generation')
+       .eq('name', 'image_generation')
        .single();
 
      if (promptError || !promptData) {
@@ -289,10 +323,17 @@ export class ImageFlowService {
      const promptResult = await PromptExecutor.executeWithSchemaEnforcement('image_generation', {
        prompt: comprehensivePrompt,
        flow_summary: {}
-     }) as unknown as string;
+     });
 
-     // 5. Generate the final image using DALL-E
-     const imageBase64 = await OpenAIService.generateImage(promptResult);
+     console.log('Generated DALL-E prompt result:', promptResult);
+     console.log('Prompt result type:', typeof promptResult);
+
+     // Extract the actual prompt text from the result
+     // Since response_format is "text", the result should be the prompt string directly
+     const promptText = typeof promptResult === 'string' ? promptResult : JSON.stringify(promptResult);
+
+     // 6. Generate the final image using DALL-E with the generated prompt
+     const imageBase64 = await OpenAIService.generateImage(promptText);
 
      // 6. Convert base64 to buffer and upload to Supabase storage
      const buffer = Buffer.from(imageBase64, 'base64');

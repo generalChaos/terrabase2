@@ -1,7 +1,11 @@
 import { PromptExecutor } from './promptExecutor';
 import { ImageAnalysis, Question } from './types';
-import { StepService } from './stepService';
 import { StepContext } from './contextManager';
+import OpenAI from 'openai';
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 export class OpenAIService {
   /**
@@ -119,55 +123,32 @@ export class OpenAIService {
     const startTime = Date.now();
 
     try {
-      // Use PromptExecutor for image generation
-      const result = await PromptExecutor.executeWithSchemaEnforcement('image_generation', { 
-        prompt,
-        flow_summary: {}
+      // Call DALL-E API directly
+      const response = await openai.images.generate({
+        model: "dall-e-3",
+        prompt: prompt,
+        n: 1,
+        size: "1024x1024",
+        quality: "standard",
+        response_format: "b64_json"
       });
-      
-      // Type guard to ensure we have the image_base64 property
-      if (!('image_base64' in result)) {
+
+      const imageData = response.data[0];
+      if (!imageData || !imageData.b64_json) {
         throw new Error('Image generation failed: No image data returned');
       }
-      
-      const imageBase64 = result.image_base64;
+
+      const imageBase64 = imageData.b64_json;
 
       const responseTime = Date.now() - startTime;
       console.log(`✅ [${requestId}] Image generated (base64 length: ${imageBase64.length})`);
-
-      // Log the step if imageId is provided
-      if (imageId) {
-        await StepService.logStep({
-          flow_id: imageId,
-          step_type: 'image_generation',
-          step_order: 4,
-          input_data: { prompt },
-          output_data: { image_base64: imageBase64 },
-          response_time_ms: responseTime,
-          model_used: 'dall-e-3',
-          success: true
-        });
-      }
 
       return imageBase64;
     } catch (error: unknown) {
       const responseTime = Date.now() - startTime;
       console.error(`❌ [${requestId}] DALL-E image generation failed:`, error);
       
-      // Log the error step if imageId is provided
-      if (imageId) {
-        await StepService.logStep({
-          flow_id: imageId,
-          step_type: 'image_generation',
-          step_order: 4,
-          input_data: { prompt },
-          output_data: { error: (error as Error).message },
-          response_time_ms: responseTime,
-          model_used: 'dall-e-3',
-          success: false,
-          error_message: (error as Error).message
-        });
-      }
+      // Note: Step logging removed as StepService was deleted
       
       throw error;
     }
