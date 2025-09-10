@@ -359,12 +359,27 @@ export default function TestPage() {
                     <div>
                       {prompts && (
                         <div className="mb-4">
-                          <h5 className="font-medium text-gray-600 mb-2">Used Prompt (image_generation):</h5>
+                          <h5 className="font-medium text-gray-600 mb-2">Template Prompt (image_generation):</h5>
                           <div className="bg-blue-50 p-3 rounded text-sm max-h-32 overflow-y-auto">
                             <pre className="whitespace-pre-wrap text-gray-700">{prompts.find((p: any) => p.name === 'image_generation')?.prompt_text || 'Prompt not found'}</pre>
                           </div>
                         </div>
                       )}
+                      
+                      {step.data.data.finalComposedPrompt && (
+                        <div className="mb-4">
+                          <details className="group">
+                            <summary className="cursor-pointer font-medium text-gray-600 mb-2 hover:text-gray-800">
+                              <span className="group-open:hidden">▶ Final Composed Prompt (click to expand)</span>
+                              <span className="hidden group-open:inline">▼ Final Composed Prompt (click to collapse)</span>
+                            </summary>
+                            <div className="bg-yellow-50 p-3 rounded text-sm max-h-40 overflow-y-auto mt-2">
+                              <pre className="whitespace-pre-wrap text-gray-700">{step.data.data.finalComposedPrompt}</pre>
+                            </div>
+                          </details>
+                        </div>
+                      )}
+                      
                       
                       <h4 className="font-medium text-gray-700 mb-2">Generated Image:</h4>
                       <div className="bg-gray-100 p-3 rounded">

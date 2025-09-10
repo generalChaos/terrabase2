@@ -250,6 +250,7 @@ export class ImageFlowService {
    success: boolean; 
    finalImagePath?: string; 
    flowId?: string; 
+   finalComposedPrompt?: string;
    error?: string 
  }> {
    try {
@@ -280,7 +281,8 @@ export class ImageFlowService {
         ${qaContext}`;
 
      // 4. Generate DALL-E prompt using OpenAI
-     const promptText = await SimplePromptService.generateImagePrompt(context);
+     const promptResult = await SimplePromptService.generateImagePrompt(context);
+     const promptText = promptResult.dallEPrompt;
 
      // 6. Generate the final image using DALL-E with the generated prompt
      const response = await openai.images.generate({
@@ -328,6 +330,7 @@ export class ImageFlowService {
        .update({
          final_image_path: publicUrl,
          final_image_prompt: promptText,
+         final_composed_prompt: promptResult.finalComposedPrompt,
          updated_at: new Date().toISOString()
        })
        .eq('id', flowId);
@@ -337,10 +340,18 @@ export class ImageFlowService {
        return { success: false, error: 'Failed to save final image' };
      }
 
+     // 9. Fetch the updated flow data to get the stored prompt
+     const { data: updatedFlow } = await supabase
+       .from('analysis_flows')
+       .select('final_composed_prompt')
+       .eq('id', flowId)
+       .single();
+
      return {
        success: true,
        finalImagePath: publicUrl,
-       flowId: flowId
+       flowId: flowId,
+       finalComposedPrompt: updatedFlow?.final_composed_prompt
      };
 
    } catch (error) {

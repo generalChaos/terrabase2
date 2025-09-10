@@ -39,6 +39,7 @@ export async function POST(
       success: true,
       finalImagePath: result.finalImagePath,
       flowId: result.flowId,
+      finalComposedPrompt: result.finalComposedPrompt,
       message: 'Final image generated successfully'
     });
 
