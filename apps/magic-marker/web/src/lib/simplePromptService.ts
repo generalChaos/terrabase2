@@ -143,7 +143,7 @@ export class SimplePromptService {
   /**
    * Generate DALL-E prompt for image generation
    */
-  static async generateImagePrompt(context: string): Promise<string> {
+  static async generateImagePrompt(context: string): Promise<{ templatePrompt: string; finalComposedPrompt: string; dallEPrompt: string }> {
     // Get the prompt from the database
     const { data: promptData, error: promptError } = await supabase
       .from('prompt_definitions')
@@ -155,19 +155,27 @@ export class SimplePromptService {
       throw new Error('Image generation prompt not found in database');
     }
 
-    const prompt = promptData.prompt_text;
+    const templatePrompt = promptData.prompt_text;
+    const finalComposedPrompt = `${context}\n\n${templatePrompt}`;
+    
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
         {
           role: "user",
-          content: `${context} \n\n ${prompt}`
+          content: finalComposedPrompt
         }
       ],
       response_format: { type: "text" },
       max_tokens: 2000,
     });
 
-    return response.choices[0].message.content || '';
+    const dallEPrompt = response.choices[0].message.content || '';
+
+    return {
+      templatePrompt,
+      finalComposedPrompt,
+      dallEPrompt
+    };
   }
 }
