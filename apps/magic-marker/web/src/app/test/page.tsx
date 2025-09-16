@@ -9,13 +9,45 @@ import { ArrowRight, Upload, Brain, MessageSquare, Image as ImageIcon, CheckCirc
 
 const API_BASE = '/api'
 
+interface FlowStepData {
+  flowId?: string
+  imagePath?: string
+  analysis?: string
+  questions?: Array<{
+    id: string
+    text: string
+    options: string[]
+    type: string
+    required: boolean
+  }>
+  answers?: Array<{
+    questionId: string
+    answer: string
+  }>
+  autoAnswers?: Array<{
+    questionId: string
+    answer: string
+  }>
+  finalImagePath?: string
+  finalComposedPrompt?: string
+  error?: string
+}
+
 interface FlowStep {
   id: string
   name: string
   status: 'pending' | 'in_progress' | 'completed' | 'error'
-  data?: any
+  data?: FlowStepData
   error?: string
   timestamp?: string
+}
+
+interface PromptDefinition {
+  id: string
+  name: string
+  prompt_text: string
+  created_at: string
+  updated_at: string
 }
 
 export default function TestPage() {
@@ -29,11 +61,11 @@ export default function TestPage() {
     { id: 'deactivate', name: 'Deactivate Flow', status: 'pending' }
   ])
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [flowData, setFlowData] = useState<any>(null)
-  const [prompts, setPrompts] = useState<any>(null)
+  const [flowData, setFlowData] = useState<FlowStepData | null>(null)
+  const [prompts, setPrompts] = useState<PromptDefinition[] | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const updateStepStatus = (stepId: string, status: FlowStep['status'], data?: any, error?: string) => {
+  const updateStepStatus = (stepId: string, status: FlowStep['status'], data?: FlowStepData, error?: string) => {
     setFlowSteps(prev => prev.map(step => 
       step.id === stepId 
         ? { ...step, status, data, error, timestamp: new Date().toISOString() }
@@ -52,7 +84,7 @@ export default function TestPage() {
 
   const completeFlowMutation = useMutation(
     async ({ file }: { file: File }) => {
-      const results: any = {}
+      const results: Record<string, unknown> = {}
       
       try {
         // Fetch prompts first
@@ -125,10 +157,16 @@ export default function TestPage() {
         
         return results
         
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('Flow error:', error)
-        const errorMessage = error.response?.data?.error || error.message
-        updateStepStatus(flowSteps[currentStep]?.id || 'unknown', 'error', null, errorMessage)
+        let errorMessage = 'Unknown error'
+        if (error && typeof error === 'object' && 'response' in error) {
+          const axiosError = error as { response?: { data?: { error?: string } } }
+          errorMessage = axiosError.response?.data?.error || 'Request failed'
+        } else if (error && typeof error === 'object' && 'message' in error) {
+          errorMessage = (error as { message: string }).message
+        }
+        updateStepStatus(flowSteps[currentStep]?.id || 'unknown', 'error', undefined, errorMessage)
         throw error
       }
     }
@@ -238,7 +276,7 @@ export default function TestPage() {
             <div className="mb-8">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Available Prompts:</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {prompts.map((prompt: any) => (
+                {prompts.map((prompt: PromptDefinition) => (
                   <div key={prompt.id} className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                     <h4 className="font-medium text-blue-900 mb-2">{prompt.name}</h4>
                     <div className="text-sm text-blue-700 max-h-24 overflow-y-auto">
@@ -277,20 +315,22 @@ export default function TestPage() {
                     <div>
                       <h4 className="font-medium text-gray-700 mb-2">Upload Result:</h4>
                       <div className="bg-gray-100 p-3 rounded text-sm">
-                        <p className="text-gray-800"><strong>Flow ID:</strong> {step.data.data.flowId}</p>
-                        <p className="text-gray-800"><strong>Image Path:</strong> {step.data.data.imagePath}</p>
+                        <p className="text-gray-800"><strong>Flow ID:</strong> {step.data.flowId}</p>
+                        <p className="text-gray-800"><strong>Image Path:</strong> {step.data.imagePath}</p>
                       </div>
                       
                       <div className="mt-4">
                         <h5 className="font-medium text-gray-600 mb-2">Uploaded Image:</h5>
                         <div className="bg-gray-100 p-3 rounded">
                           <div className="relative w-64 h-64 mx-auto">
-                            <Image
-                              src={step.data.data.imagePath}
-                              alt="Uploaded image"
-                              fill
-                              className="object-contain rounded"
-                            />
+                            {step.data.imagePath && (
+                              <Image
+                                src={step.data.imagePath}
+                                alt="Uploaded image"
+                                fill
+                                className="object-contain rounded"
+                              />
+                            )}
                           </div>
                         </div>
                       </div>
@@ -303,14 +343,14 @@ export default function TestPage() {
                         <div className="mb-4">
                           <h5 className="font-medium text-gray-600 mb-2">Used Prompt (image_analysis):</h5>
                           <div className="bg-blue-50 p-3 rounded text-sm max-h-32 overflow-y-auto">
-                            <pre className="whitespace-pre-wrap text-gray-700">{prompts.find((p: any) => p.name === 'image_analysis')?.prompt_text || 'Prompt not found'}</pre>
+                            <pre className="whitespace-pre-wrap text-gray-700">{prompts.find((p: PromptDefinition) => p.name === 'image_analysis')?.prompt_text || 'Prompt not found'}</pre>
                           </div>
                         </div>
                       )}
                       
                       <h4 className="font-medium text-gray-700 mb-2">Analysis Result:</h4>
                       <div className="bg-gray-100 p-3 rounded text-sm max-h-40 overflow-y-auto">
-                        <pre className="whitespace-pre-wrap text-gray-800">{step.data.data.analysis}</pre>
+                        <pre className="whitespace-pre-wrap text-gray-800">{step.data.analysis}</pre>
                       </div>
                     </div>
                   )}
@@ -321,14 +361,14 @@ export default function TestPage() {
                         <div className="mb-4">
                           <h5 className="font-medium text-gray-600 mb-2">Used Prompt (questions_generation):</h5>
                           <div className="bg-blue-50 p-3 rounded text-sm max-h-32 overflow-y-auto">
-                            <pre className="whitespace-pre-wrap text-gray-700">{prompts.find((p: any) => p.name === 'questions_generation')?.prompt_text || 'Prompt not found'}</pre>
+                            <pre className="whitespace-pre-wrap text-gray-700">{prompts.find((p: PromptDefinition) => p.name === 'questions_generation')?.prompt_text || 'Prompt not found'}</pre>
                           </div>
                         </div>
                       )}
                       
-                      <h4 className="font-medium text-gray-700 mb-2">Generated Questions ({step.data.data.questions.length}):</h4>
+                      <h4 className="font-medium text-gray-700 mb-2">Generated Questions ({step.data.questions?.length || 0}):</h4>
                       <div className="space-y-2">
-                        {step.data.data.questions.map((q: Question, i: number) => (
+                        {step.data.questions?.map((q, i: number) => (
                           <div key={q.id} className="bg-gray-100 p-3 rounded text-sm">
                             <p className="text-gray-800"><strong>Q{i + 1}:</strong> {q.text}</p>
                             <p className="text-gray-800"><strong>Options:</strong> {q.options.join(', ')}</p>
@@ -342,8 +382,8 @@ export default function TestPage() {
                     <div>
                       <h4 className="font-medium text-gray-700 mb-2">Auto-Selected Answers:</h4>
                       <div className="space-y-2">
-                        {step.data.autoAnswers.map((answer: QuestionAnswer, i: number) => {
-                          const question = step.data.questions.find((q: Question) => q.id === answer.questionId)
+                        {step.data?.autoAnswers?.map((answer: QuestionAnswer, i: number) => {
+                          const question = step.data?.questions?.find((q) => q.id === answer.questionId)
                           return (
                             <div key={answer.questionId} className="bg-gray-100 p-3 rounded text-sm">
                               <p className="text-gray-800"><strong>Q{i + 1}:</strong> {question?.text || 'Unknown question'}</p>
@@ -361,12 +401,12 @@ export default function TestPage() {
                         <div className="mb-4">
                           <h5 className="font-medium text-gray-600 mb-2">Template Prompt (image_generation):</h5>
                           <div className="bg-blue-50 p-3 rounded text-sm max-h-32 overflow-y-auto">
-                            <pre className="whitespace-pre-wrap text-gray-700">{prompts.find((p: any) => p.name === 'image_generation')?.prompt_text || 'Prompt not found'}</pre>
+                            <pre className="whitespace-pre-wrap text-gray-700">{prompts.find((p: PromptDefinition) => p.name === 'image_generation')?.prompt_text || 'Prompt not found'}</pre>
                           </div>
                         </div>
                       )}
                       
-                      {step.data.data.finalComposedPrompt && (
+                      {step.data.finalComposedPrompt && (
                         <div className="mb-4">
                           <details className="group">
                             <summary className="cursor-pointer font-medium text-gray-600 mb-2 hover:text-gray-800">
@@ -374,7 +414,7 @@ export default function TestPage() {
                               <span className="hidden group-open:inline">▼ Final Composed Prompt (click to collapse)</span>
                             </summary>
                             <div className="bg-yellow-50 p-3 rounded text-sm max-h-40 overflow-y-auto mt-2">
-                              <pre className="whitespace-pre-wrap text-gray-700">{step.data.data.finalComposedPrompt}</pre>
+                              <pre className="whitespace-pre-wrap text-gray-700">{step.data.finalComposedPrompt}</pre>
                             </div>
                           </details>
                         </div>
@@ -383,14 +423,16 @@ export default function TestPage() {
                       
                       <h4 className="font-medium text-gray-700 mb-2">Generated Image:</h4>
                       <div className="bg-gray-100 p-3 rounded">
-                        <p className="text-sm mb-2 text-gray-800"><strong>Image Path:</strong> {step.data.data.finalImagePath}</p>
+                        <p className="text-sm mb-2 text-gray-800"><strong>Image Path:</strong> {step.data.finalImagePath}</p>
                         <div className="relative w-64 h-64">
-                          <Image
-                            src={step.data.data.finalImagePath}
-                            alt="Generated image"
-                            fill
-                            className="object-contain rounded"
-                          />
+                          {step.data.finalImagePath && (
+                            <Image
+                              src={step.data.finalImagePath}
+                              alt="Generated image"
+                              fill
+                              className="object-contain rounded"
+                            />
+                          )}
                         </div>
                       </div>
                     </div>
@@ -400,7 +442,7 @@ export default function TestPage() {
                     <div>
                       <h4 className="font-medium text-gray-700 mb-2">Deactivation Result:</h4>
                       <div className="bg-gray-100 p-3 rounded text-sm">
-                        <p className="text-gray-800"><strong>Status:</strong> {step.data.data.message}</p>
+                        <p className="text-gray-800"><strong>Status:</strong> {step.data.error || 'Completed'}</p>
                       </div>
                     </div>
                   )}

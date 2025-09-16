@@ -69,15 +69,15 @@ export async function GET(
       total_questions: analysisFlow.total_questions,
       total_answers: analysisFlow.total_answers,
       total_tokens: analysisFlow.total_tokens,
-      questions_count: analysisFlow.questions?.length || 0,
-      answers_count: analysisFlow.answers?.length || 0
+      questions_count: Array.isArray(analysisFlow.questions) ? analysisFlow.questions.length : 0,
+      answers_count: Array.isArray(analysisFlow.answers) ? analysisFlow.answers.length : 0
     });
 
     // Enhance flow with image paths
     const enhancedFlow = { ...analysisFlow }
     
     // Get original image path
-    if (analysisFlow.original_image_id) {
+    if (analysisFlow.original_image_id && typeof analysisFlow.original_image_id === 'string') {
       try {
         const originalImage = await ImageService.getImage(analysisFlow.original_image_id)
         if (originalImage) {
@@ -89,7 +89,7 @@ export async function GET(
     }
     
     // Get final image path
-    if (analysisFlow.final_image_id) {
+    if (analysisFlow.final_image_id && typeof analysisFlow.final_image_id === 'string') {
       try {
         const finalImage = await ImageService.getImage(analysisFlow.final_image_id)
         if (finalImage) {

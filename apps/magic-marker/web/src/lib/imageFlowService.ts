@@ -1,4 +1,3 @@
-import { SimpleImageService } from './simpleImageService';
 import { Question, QuestionAnswer } from './types';
 import { supabase } from './supabase';
 import { SimplePromptService } from './simplePromptService';
@@ -294,7 +293,7 @@ export class ImageFlowService {
        prompt: promptText,
        n: 1,
        size: "1024x1024",
-       quality: IMAGE_GENERATION_MODEL === "gpt-image-1" ? "high" : "standard",
+        quality: "standard",
        ...(IMAGE_GENERATION_MODEL === "dall-e-3" && { response_format: "b64_json" })
      });
 
@@ -444,7 +443,7 @@ export class ImageFlowService {
   /**
    * Get all analysis flows (for admin)
    */
-  static async getAllAnalysisFlows(): Promise<any[]> {
+  static async getAllAnalysisFlows(): Promise<Record<string, unknown>[]> {
     const { data, error } = await supabase
       .from('analysis_flows')
       .select(`
@@ -465,7 +464,7 @@ export class ImageFlowService {
   /**
    * Get specific analysis flow by ID (for admin)
    */
-  static async getAnalysisFlow(flowId: string): Promise<any | null> {
+  static async getAnalysisFlow(flowId: string): Promise<Record<string, unknown> | null> {
     const { data, error } = await supabase
       .from('analysis_flows')
       .select(`
@@ -487,7 +486,7 @@ export class ImageFlowService {
   /**
    * Update analysis flow (for admin)
    */
-  static async updateAnalysisFlow(flowId: string, updates: any): Promise<any> {
+  static async updateAnalysisFlow(flowId: string, updates: Record<string, unknown>): Promise<{ success: boolean; data?: unknown; error?: string }> {
     const { data, error } = await supabase
       .from('analysis_flows')
       .update({
