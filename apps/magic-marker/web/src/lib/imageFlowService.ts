@@ -9,6 +9,10 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+// Image generation model configuration
+// Options: "dall-e-3" (available now) or "gpt-image-1" (requires organization verification)
+const IMAGE_GENERATION_MODEL = "dall-e-3";
+
 export class ImageFlowService {
   /**
    * Upload an image file and create a new flow
@@ -274,35 +278,51 @@ export class ImageFlowService {
 
      // 3. Build comprehensive context for image generation
      const context = `
-        Analysis of the original image:
+        Step 1 (analysis output):
         ${flowData.analysis_result}
 
-        Questions and Answers:
+        Step 2 (clarifications):
         ${qaContext}`;
 
-     // 4. Generate DALL-E prompt using OpenAI
+     // 4. Generate image prompt using OpenAI
      const promptResult = await SimplePromptService.generateImagePrompt(context);
-     const promptText = promptResult.dallEPrompt;
+     const promptText = promptResult.dallEPrompt; // This is the image generation prompt
 
-     // 6. Generate the final image using DALL-E with the generated prompt
+     // 6. Generate the final image using the configured model
      const response = await openai.images.generate({
-       model: "dall-e-3",
+       model: IMAGE_GENERATION_MODEL,
        prompt: promptText,
        n: 1,
        size: "1024x1024",
-       quality: "standard",
-       response_format: "b64_json"
+       quality: IMAGE_GENERATION_MODEL === "gpt-image-1" ? "high" : "standard",
+       ...(IMAGE_GENERATION_MODEL === "dall-e-3" && { response_format: "b64_json" })
      });
 
      const imageData = response.data?.[0];
-     if (!imageData || !imageData.b64_json) {
+     if (!imageData) {
        throw new Error('Image generation failed: No image data returned');
      }
 
-     const imageBase64 = imageData.b64_json;
+     let buffer: Buffer;
 
-     // 6. Convert base64 to buffer and upload to Supabase storage
-     const buffer = Buffer.from(imageBase64, 'base64');
+     if (IMAGE_GENERATION_MODEL === "dall-e-3") {
+       // DALL-E returns base64 data
+       if (!imageData.b64_json) {
+         throw new Error('Image generation failed: No base64 data returned');
+       }
+       buffer = Buffer.from(imageData.b64_json, 'base64');
+     } else {
+       // gpt-image-1 returns URL, need to download
+       if (!imageData.url) {
+         throw new Error('Image generation failed: No URL returned');
+       }
+       const imageResponse = await fetch(imageData.url);
+       if (!imageResponse.ok) {
+         throw new Error('Failed to download generated image');
+       }
+       const imageBuffer = await imageResponse.arrayBuffer();
+       buffer = Buffer.from(imageBuffer);
+     }
 
      const filename = `generated-${flowId}-${Date.now()}.png`;
      
