@@ -13,7 +13,7 @@ export async function GET() {
         const enhancedFlow = { ...flow }
         
         // Get original image path
-        if (flow.original_image_id) {
+        if (flow.original_image_id && typeof flow.original_image_id === 'string') {
           try {
             const originalImage = await ImageService.getImage(flow.original_image_id)
             if (originalImage) {
@@ -25,7 +25,7 @@ export async function GET() {
         }
         
         // Get final image path
-        if (flow.final_image_id) {
+        if (flow.final_image_id && typeof flow.final_image_id === 'string') {
           try {
             const finalImage = await ImageService.getImage(flow.final_image_id)
             if (finalImage) {
