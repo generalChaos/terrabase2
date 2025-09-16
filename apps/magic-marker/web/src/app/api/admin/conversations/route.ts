@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server'
-import { AnalysisFlowService } from '@/lib/analysisFlowService'
+import { ImageFlowService } from '@/lib/imageFlowService'
 
 export async function GET() {
   try {
-    const analysisFlows = await AnalysisFlowService.getAllAnalysisFlows()
+    const analysisFlows = await ImageFlowService.getAllAnalysisFlows()
 
     return NextResponse.json(analysisFlows)
   } catch (error) {
