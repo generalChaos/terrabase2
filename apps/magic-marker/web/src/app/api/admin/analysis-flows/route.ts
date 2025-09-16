@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server'
-import { AnalysisFlowService } from '@/lib/analysisFlowService'
+import { ImageFlowService } from '@/lib/imageFlowService'
 import { ImageService } from '@/lib/imageService'
 
 // GET /api/admin/analysis-flows - Get all analysis flows with image paths
 export async function GET() {
   try {
-    const analysisFlows = await AnalysisFlowService.getAllAnalysisFlows()
+    const analysisFlows = await ImageFlowService.getAllAnalysisFlows()
 
     // Enhance flows with image paths
     const enhancedFlows = await Promise.all(
@@ -13,7 +13,7 @@ export async function GET() {
         const enhancedFlow = { ...flow }
         
         // Get original image path
-        if (flow.original_image_id) {
+        if (flow.original_image_id && typeof flow.original_image_id === 'string') {
           try {
             const originalImage = await ImageService.getImage(flow.original_image_id)
             if (originalImage) {
@@ -25,7 +25,7 @@ export async function GET() {
         }
         
         // Get final image path
-        if (flow.final_image_id) {
+        if (flow.final_image_id && typeof flow.final_image_id === 'string') {
           try {
             const finalImage = await ImageService.getImage(flow.final_image_id)
             if (finalImage) {

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import NextImage from 'next/image'
-import { AnalysisFlow, Question, QuestionAnswer } from '@/lib/analysisFlowService'
+import { AnalysisFlow, Question, QuestionAnswer } from '@/lib/types'
 import { Image, ImageType, ImageService } from '@/lib/imageService'
 import { ProcessingStep } from '@/lib/newTypes'
 import { PromptDefinition } from '@/lib/promptTypes'

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { AnalysisFlowService } from '@/lib/analysisFlowService'
+import { ImageFlowService } from '@/lib/imageFlowService'
 import { ImageService } from '@/lib/imageService'
 
 // PATCH /api/admin/analysis-flows/[id] - Update analysis flow
@@ -20,7 +20,7 @@ export async function PATCH(
     }
 
     // Get the current flow
-    const currentFlow = await AnalysisFlowService.getAnalysisFlow(id)
+    const currentFlow = await ImageFlowService.getAnalysisFlow(id)
     if (!currentFlow) {
       return NextResponse.json({ 
         success: false, 
@@ -29,14 +29,9 @@ export async function PATCH(
     }
 
     // Update the flow
-    const updatedFlow = await AnalysisFlowService.updateAnalysisFlow(id, {
-      // Only update is_active status
+    const updatedFlow = await ImageFlowService.updateAnalysisFlow(id, {
+      is_active: is_active
     })
-
-    // Deactivate if needed
-    if (!is_active) {
-      await AnalysisFlowService.deactivateAnalysisFlow(id)
-    }
 
     return NextResponse.json({
       success: true,
@@ -60,7 +55,7 @@ export async function GET(
   try {
     const { id } = await context.params
 
-    const analysisFlow = await AnalysisFlowService.getAnalysisFlow(id)
+    const analysisFlow = await ImageFlowService.getAnalysisFlow(id)
     if (!analysisFlow) {
       return NextResponse.json({ 
         success: false, 
@@ -74,15 +69,15 @@ export async function GET(
       total_questions: analysisFlow.total_questions,
       total_answers: analysisFlow.total_answers,
       total_tokens: analysisFlow.total_tokens,
-      questions_count: analysisFlow.questions?.length || 0,
-      answers_count: analysisFlow.answers?.length || 0
+      questions_count: Array.isArray(analysisFlow.questions) ? analysisFlow.questions.length : 0,
+      answers_count: Array.isArray(analysisFlow.answers) ? analysisFlow.answers.length : 0
     });
 
     // Enhance flow with image paths
     const enhancedFlow = { ...analysisFlow }
     
     // Get original image path
-    if (analysisFlow.original_image_id) {
+    if (analysisFlow.original_image_id && typeof analysisFlow.original_image_id === 'string') {
       try {
         const originalImage = await ImageService.getImage(analysisFlow.original_image_id)
         if (originalImage) {
@@ -94,7 +89,7 @@ export async function GET(
     }
     
     // Get final image path
-    if (analysisFlow.final_image_id) {
+    if (analysisFlow.final_image_id && typeof analysisFlow.final_image_id === 'string') {
       try {
         const finalImage = await ImageService.getImage(analysisFlow.final_image_id)
         if (finalImage) {

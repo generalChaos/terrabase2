@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from 'react-query'
 import axios from 'axios'
 import Image from 'next/image'
 import { ImageAnalysis, QuestionAnswer, Question } from '@/lib/types'
-import { AnalysisFlowService } from '@/lib/analysisFlowService'
+// ImageFlowService is only used server-side, client uses API endpoints
 import ImageUpload from '@/components/ImageUpload'
 import QuestionFlow from '@/components/QuestionFlow'
 import LoadingSpinner from '@/components/LoadingSpinner'
@@ -132,26 +132,42 @@ export default function HomePage() {
       const formData = new FormData()
       formData.append('image', file)
       
-      const response = await axios.post(`${API_BASE}/upload`, formData, {
+      // Step 1: Upload image and get flowId
+      const uploadResponse = await axios.post(`${API_BASE}/flow/upload`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       })
-      addLog('Upload successful, received response from server')
-      return response.data
+      addLog('Upload successful, received flowId')
+      
+      const flowId = uploadResponse.data.data.flowId
+      const imagePath = uploadResponse.data.data.imagePath
+      
+      // Step 2: Analyze image
+      addLog('Starting image analysis...')
+      const analyzeResponse = await axios.post(`${API_BASE}/flow/${flowId}/analyze`)
+      addLog('Image analysis completed')
+      
+      // Step 3: Generate questions
+      addLog('Generating questions...')
+      const questionsResponse = await axios.post(`${API_BASE}/flow/${flowId}/questions`)
+      addLog('Questions generated successfully')
+      
+      return {
+        flowId,
+        imagePath,
+        analysis: analyzeResponse.data.data.analysis,
+        questions: questionsResponse.data.data.questions,
+        imageAnalysisId: flowId // Use flowId as the analysis ID
+      }
     },
     {
       onSuccess: (data) => {
-        console.log('📤 [UPLOAD] Upload success - data:', data)
-        
-        // Store context data for debugging (without stopping the flow)
-        if (data.contextData) {
-          addLog(`🐛 Context data available for debugging`)
-        }
+        console.log('📤 [UPLOAD] Complete flow success - data:', data)
         
         // Handle case where questions might be undefined or empty
         const questions = data.questions || []
         const questionCount = questions.length
         
-        addLog(`Image analysis completed. Generated ${questionCount} questions`)
+        addLog(`Complete flow finished. Generated ${questionCount} questions`)
         
         // Show success toast
         success(
@@ -161,21 +177,20 @@ export default function HomePage() {
         
         setCurrentImageAnalysis({
           id: data.imageAnalysisId,
-          originalImagePath: data.originalImagePath,
+          originalImagePath: data.imagePath,
           analysisResult: data.analysis || '',
           questions: questions,
           createdAt: new Date(),
           updatedAt: new Date(),
           // New fields from analysis flows
-          sessionId: data.sessionId,
-          flowId: data.flowId, // Store the analysis flow ID
+          sessionId: data.flowId, // Use flowId as sessionId
+          flowId: data.flowId,
           totalQuestions: questionCount,
           totalAnswers: 0,
           currentStep: 'questions',
           totalCostUsd: 0,
           totalTokens: 0,
-          isActive: true,
-          contextData: data.contextData // Store the context data for debugging
+          isActive: true
         })
         console.log('🔄 [UPLOAD] Setting currentStep to dynamic and currentStepIndex to 1 (questions_generation step)')
         console.log('🔄 [UPLOAD] Questions data:', questions)
@@ -232,8 +247,7 @@ export default function HomePage() {
   const generateMutation = useMutation(
     async (answers: QuestionAnswer[]) => {
       addLog(`Starting image generation with ${answers.length} answers`)
-      const response = await axios.post(`${API_BASE}/images/generate`, {
-        imageAnalysisId: currentImageAnalysis?.id,
+      const response = await axios.post(`${API_BASE}/flow/${currentImageAnalysis?.flowId}/generate`, {
         answers
       })
       addLog('Image generation request sent successfully')
@@ -252,7 +266,7 @@ export default function HomePage() {
         if (currentImageAnalysis?.flowId) {
           try {
             console.log('🔚 [GENERATION] Deactivating analysis flow:', currentImageAnalysis.flowId)
-            await AnalysisFlowService.deactivateAnalysisFlow(currentImageAnalysis.flowId)
+            await axios.post(`${API_BASE}/flow/${currentImageAnalysis.flowId}/deactivate`)
             console.log('✅ [GENERATION] Analysis flow deactivated successfully')
           } catch (error) {
             console.error('❌ [GENERATION] Failed to deactivate analysis flow:', error)
