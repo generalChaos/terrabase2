@@ -2,6 +2,8 @@ import OpenAI from 'openai';
 import { Question } from './types';
 import { supabase } from './supabase';
 
+import { imageAnalysisSystemPrompt, questionsGenerationSystemPrompt, imageGenerationSystemPrompt } from './prompts/system_prompts';
+
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
@@ -26,6 +28,10 @@ export class SimplePromptService {
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
+        {
+            role: "system",
+            content: imageAnalysisSystemPrompt,
+          },
         {
           role: "user",
           content: [
@@ -70,8 +76,12 @@ export class SimplePromptService {
       model: "gpt-4o",
       messages: [
         {
+          role: "system",
+          content: questionsGenerationSystemPrompt,
+        },
+        {
           role: "user",
-          content: `${prompt}\n\nAnalysis: ${analysis}`
+          content: `${prompt}\n\nStep 1: ${analysis}`
         }
       ],
       tools: [
@@ -129,6 +139,8 @@ export class SimplePromptService {
       ],
       tool_choice: { type: "function", function: { name: "generate_questions" } },
       max_tokens: 4000,
+      temperature: 0.3,
+      top_p: 1,
     });
 
     const toolCall = response.choices[0].message.tool_calls?.[0];
@@ -156,18 +168,22 @@ export class SimplePromptService {
     }
 
     const templatePrompt = promptData.prompt_text;
-    const finalComposedPrompt = `${context}\n\n${templatePrompt}`;
-    
+    const finalComposedPrompt = `${templatePrompt}\n\n${context}`;
+
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
+        {
+          role: "system",
+          content: imageGenerationSystemPrompt,
+        },
         {
           role: "user",
           content: finalComposedPrompt
         }
       ],
       response_format: { type: "text" },
-      max_tokens: 2000,
+      max_tokens: 6000,
     });
 
     const dallEPrompt = response.choices[0].message.content || '';
