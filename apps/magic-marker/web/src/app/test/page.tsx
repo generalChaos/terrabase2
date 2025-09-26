@@ -111,6 +111,8 @@ export default function TestPage() {
         setCurrentStep(2)
         
         const analyzeResponse = await axios.post(`${API_BASE}/flow/${flowId}/analyze`)
+        console.log('🔍 [ANALYZE] Full response:', analyzeResponse.data)
+        console.log('🔍 [ANALYZE] Analysis data:', analyzeResponse.data.data)
         results.analyze = analyzeResponse.data
         updateStepStatus('analyze', 'completed', analyzeResponse.data)
         
@@ -315,17 +317,17 @@ export default function TestPage() {
                     <div>
                       <h4 className="font-medium text-gray-700 mb-2">Upload Result:</h4>
                       <div className="bg-gray-100 p-3 rounded text-sm">
-                        <p className="text-gray-800"><strong>Flow ID:</strong> {step.data.flowId}</p>
-                        <p className="text-gray-800"><strong>Image Path:</strong> {step.data.imagePath}</p>
+                        <p className="text-gray-800"><strong>Flow ID:</strong> {step.data.data?.flowId || 'Not available'}</p>
+                        <p className="text-gray-800"><strong>Image Path:</strong> {step.data.data?.imagePath || 'Not available'}</p>
                       </div>
                       
                       <div className="mt-4">
                         <h5 className="font-medium text-gray-600 mb-2">Uploaded Image:</h5>
                         <div className="bg-gray-100 p-3 rounded">
                           <div className="relative w-64 h-64 mx-auto">
-                            {step.data.imagePath && (
+                            {step.data.data?.imagePath && (
                               <Image
-                                src={step.data.imagePath}
+                                src={step.data.data.imagePath}
                                 alt="Uploaded image"
                                 fill
                                 className="object-contain rounded"
@@ -350,7 +352,14 @@ export default function TestPage() {
                       
                       <h4 className="font-medium text-gray-700 mb-2">Analysis Result:</h4>
                       <div className="bg-gray-100 p-3 rounded text-sm max-h-40 overflow-y-auto">
-                        <pre className="whitespace-pre-wrap text-gray-800">{step.data.analysis}</pre>
+                        <pre className="whitespace-pre-wrap text-gray-800">
+                          {(() => {
+                            console.log('🔍 [DISPLAY] Step data:', step.data)
+                            console.log('🔍 [DISPLAY] Step data.data:', step.data?.data)
+                            console.log('🔍 [DISPLAY] Analysis:', step.data?.data?.analysis)
+                            return step.data?.data?.analysis || 'No analysis available'
+                          })()}
+                        </pre>
                       </div>
                     </div>
                   )}
@@ -366,9 +375,9 @@ export default function TestPage() {
                         </div>
                       )}
                       
-                      <h4 className="font-medium text-gray-700 mb-2">Generated Questions ({step.data.questions?.length || 0}):</h4>
+                      <h4 className="font-medium text-gray-700 mb-2">Generated Questions ({step.data.data?.questions?.length || 0}):</h4>
                       <div className="space-y-2">
-                        {step.data.questions?.map((q, i: number) => (
+                        {step.data.data?.questions?.map((q, i: number) => (
                           <div key={q.id} className="bg-gray-100 p-3 rounded text-sm">
                             <p className="text-gray-800"><strong>Q{i + 1}:</strong> {q.text}</p>
                             <p className="text-gray-800"><strong>Options:</strong> {q.options.join(', ')}</p>
@@ -406,7 +415,7 @@ export default function TestPage() {
                         </div>
                       )}
                       
-                      {step.data.finalComposedPrompt && (
+                      {step.data.data?.finalComposedPrompt && (
                         <div className="mb-4">
                           <details className="group">
                             <summary className="cursor-pointer font-medium text-gray-600 mb-2 hover:text-gray-800">
@@ -414,7 +423,7 @@ export default function TestPage() {
                               <span className="hidden group-open:inline">▼ Final Composed Prompt (click to collapse)</span>
                             </summary>
                             <div className="bg-yellow-50 p-3 rounded text-sm max-h-40 overflow-y-auto mt-2">
-                              <pre className="whitespace-pre-wrap text-gray-700">{step.data.finalComposedPrompt}</pre>
+                              <pre className="whitespace-pre-wrap text-gray-700">{step.data.data.finalComposedPrompt}</pre>
                             </div>
                           </details>
                         </div>
@@ -423,11 +432,11 @@ export default function TestPage() {
                       
                       <h4 className="font-medium text-gray-700 mb-2">Generated Image:</h4>
                       <div className="bg-gray-100 p-3 rounded">
-                        <p className="text-sm mb-2 text-gray-800"><strong>Image Path:</strong> {step.data.finalImagePath}</p>
+                        <p className="text-sm mb-2 text-gray-800"><strong>Image Path:</strong> {step.data.data?.finalImagePath}</p>
                         <div className="relative w-64 h-64">
-                          {step.data.finalImagePath && (
+                          {step.data.data?.finalImagePath && (
                             <Image
-                              src={step.data.finalImagePath}
+                              src={step.data.data.finalImagePath}
                               alt="Generated image"
                               fill
                               className="object-contain rounded"
