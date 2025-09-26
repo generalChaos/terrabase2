@@ -11,6 +11,7 @@ Main table tracking each team logo generation session.
 ```sql
 CREATE TABLE team_design_flows (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_session_id UUID NOT NULL, -- Anonymous session tracking
   team_name VARCHAR NOT NULL,
   sport VARCHAR NOT NULL,
   age_group VARCHAR NOT NULL,
@@ -47,8 +48,8 @@ CREATE TABLE team_logos (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   flow_id UUID NOT NULL REFERENCES team_design_flows(id),
   
-  -- Image data
-  file_path TEXT NOT NULL,
+  -- Image data (Supabase Storage paths)
+  file_path TEXT NOT NULL, -- Path in Supabase Storage
   file_size INTEGER,
   mime_type VARCHAR,
   storage_bucket VARCHAR DEFAULT 'team-logos',
@@ -59,7 +60,7 @@ CREATE TABLE team_logos (
   generation_prompt TEXT, -- Specific prompt used for this variant
   
   -- AI generation data
-  model_used VARCHAR, -- 'dall-e-3', 'gpt-image-1', etc.
+  model_used VARCHAR, -- 'gpt-image-1', etc.
   generation_time_ms INTEGER,
   generation_cost_usd NUMERIC(10,6),
   
@@ -67,6 +68,9 @@ CREATE TABLE team_logos (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- TODO: Future optimization - add thumbnail_path for faster loading
+-- TODO: Future optimization - add download_count for analytics
 ```
 
 ### `question_sets`
@@ -96,6 +100,9 @@ CREATE TABLE question_sets (
   -- Constraints
   UNIQUE(sport, age_group, name)
 );
+
+-- TODO: Future optimization - add usage_count to track popular sets
+-- TODO: Future optimization - add last_used_at for cache management
 ```
 
 ### `logo_prompts`
@@ -108,7 +115,7 @@ CREATE TABLE logo_prompts (
   
   -- Prompt data
   prompt_text TEXT NOT NULL,
-  model VARCHAR DEFAULT 'dall-e-3',
+  model VARCHAR DEFAULT 'gpt-image-1', -- Updated to use gpt-image-1
   response_format VARCHAR DEFAULT 'b64_json',
   max_tokens INTEGER,
   temperature NUMERIC(2,1) DEFAULT 0.7,
@@ -124,25 +131,26 @@ CREATE TABLE logo_prompts (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- TODO: Future optimization - add success_rate tracking
+-- TODO: Future optimization - add last_updated_by for audit trail
 ```
 
 ## Question Set Data Structure
 
-### Question Object Schema
+### Question Object Schema (Simplified)
 ```json
 {
-  "id": "style_question",
+  "id": "style",
   "text": "What best fits your team?",
   "type": "multiple_choice",
-  "options": [
-    {"value": "fun", "label": "Fun", "selected": true},
-    {"value": "serious", "label": "Serious", "selected": false},
-    {"value": "tough", "label": "Tough", "selected": false},
-    {"value": "friendly", "label": "Friendly", "selected": false}
-  ],
+  "options": ["Fun", "Serious", "Tough", "Friendly"],
+  "selected": 0,
   "required": true
 }
 ```
+
+**Simplified for better performance and easier handling.**
 
 ### Question Types
 - **multiple_choice**: Radio buttons with predefined options
@@ -151,81 +159,61 @@ CREATE TABLE logo_prompts (
 
 ## Sample Question Sets
 
-### Youth Sports (U6-U16)
+### Youth Sports (U6-U16) - Simplified
 ```json
 [
   {
-    "id": "style_question",
+    "id": "style",
     "text": "What best fits your team?",
     "type": "multiple_choice",
-    "options": [
-      {"value": "fun", "label": "Fun", "selected": true},
-      {"value": "serious", "label": "Serious", "selected": false},
-      {"value": "tough", "label": "Tough", "selected": false},
-      {"value": "friendly", "label": "Friendly", "selected": false}
-    ],
+    "options": ["Fun", "Serious", "Tough", "Friendly"],
+    "selected": 0,
     "required": true
   },
   {
-    "id": "colors_question",
+    "id": "colors",
     "text": "What colors work for your team?",
     "type": "multiple_choice",
-    "options": [
-      {"value": "team_colors", "label": "Team colors", "selected": true},
-      {"value": "school_colors", "label": "School colors", "selected": false},
-      {"value": "custom", "label": "Custom colors", "selected": false}
-    ],
+    "options": ["Team colors", "School colors", "Custom colors"],
+    "selected": 0,
     "required": true
   },
   {
-    "id": "mascot_question",
+    "id": "mascot",
     "text": "Should your logo include a mascot?",
     "type": "multiple_choice",
-    "options": [
-      {"value": "yes", "label": "Yes", "selected": true},
-      {"value": "no", "label": "No", "selected": false},
-      {"value": "text_only", "label": "Text only", "selected": false}
-    ],
+    "options": ["Yes", "No", "Text only"],
+    "selected": 0,
     "required": true
   }
 ]
 ```
 
-### Adult Recreational
+### Adult Recreational - Simplified
 ```json
 [
   {
-    "id": "style_question",
+    "id": "style",
     "text": "What best fits your team?",
     "type": "multiple_choice",
-    "options": [
-      {"value": "fun", "label": "Fun", "selected": true},
-      {"value": "professional", "label": "Professional", "selected": false},
-      {"value": "tough", "label": "Tough", "selected": false},
-      {"value": "casual", "label": "Casual", "selected": false}
-    ],
+    "options": ["Fun", "Professional", "Tough", "Casual"],
+    "selected": 0,
     "required": true
   },
   {
-    "id": "colors_question",
+    "id": "colors",
     "text": "What colors work for your team?",
     "type": "multiple_choice",
-    "options": [
-      {"value": "team_colors", "label": "Team colors", "selected": true},
-      {"value": "custom", "label": "Custom colors", "selected": false},
-      {"value": "classic", "label": "Classic colors", "selected": false}
-    ],
+    "options": ["Team colors", "Custom colors", "Classic colors"],
+    "selected": 0,
     "required": true
   },
   {
-    "id": "mascot_question",
+    "id": "mascot",
     "text": "Should your logo include a mascot?",
     "type": "multiple_choice",
-    "options": [
-      {"value": "yes", "label": "Yes", "selected": true},
-      {"value": "no", "label": "No", "selected": false},
-      {"value": "text_only", "label": "Text only", "selected": false}
-    ],
+    "options": ["Yes", "No", "Text only"],
+    "selected": 0,
     "required": true
   }
 ]
@@ -356,3 +344,38 @@ CREATE POLICY "Anyone can update team design flows" ON team_design_flows
 1. Connect to Supabase Storage
 2. Test logo generation flow
 3. Add monitoring and logging
+
+## Future Optimizations (Noted for Later)
+
+### Performance Optimizations
+- **Thumbnail Generation**: Add `thumbnail_path` for faster image loading
+- **CDN Integration**: Optimize image delivery with CDN
+- **Caching Strategy**: Implement Redis for question set caching
+- **Database Partitioning**: Partition logs by date for better performance
+
+### Analytics & Business Intelligence
+- **Usage Tracking**: Add `usage_count` and `last_used_at` to question sets
+- **Download Analytics**: Track `download_count` for logos
+- **User Behavior**: Add session analytics and flow completion rates
+- **Cost Monitoring**: Real-time cost tracking and budget alerts
+
+### Advanced Features
+- **Logo Quality Optimization**: 
+  - Generate mobile versions first (faster, cheaper)
+  - Regenerate selected logo in high quality
+  - Multiple resolution variants (mobile, desktop, print)
+- **A/B Testing**: Test different question sets and prompts
+- **Personalization**: Learn from user preferences
+- **Bulk Operations**: Team management and batch processing
+
+### Security & Compliance
+- **Data Retention**: Automatic cleanup of old flows and logs
+- **GDPR Compliance**: User data export and deletion
+- **Audit Trails**: Track all admin actions and changes
+- **Rate Limiting**: Prevent abuse and manage costs
+
+### Monitoring & Alerting
+- **Error Pattern Detection**: Automatic error categorization
+- **Performance Monitoring**: Track generation times and success rates
+- **Cost Alerts**: Notify when approaching budget limits
+- **Health Checks**: System status monitoring and alerts

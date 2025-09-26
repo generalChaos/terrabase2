@@ -1,6 +1,7 @@
 // Team Design Flow Types
 export interface TeamDesignFlow {
   id: string
+  user_session_id: string // Anonymous session tracking
   team_name: string
   sport: string
   age_group: string
@@ -20,13 +21,13 @@ export interface TeamDesignFlow {
 
 export type FlowStep = 'round1' | 'round2' | 'generating' | 'completed' | 'failed'
 
-// Question Types
+// Question Types (Simplified)
 export interface Question {
   id: string
   text: string
   type: 'multiple_choice' | 'text'
-  options: string[]
-  selected?: number
+  options: string[] // Simplified: just array of strings
+  selected: number // Index of selected option (0-based)
   required: boolean
 }
 
