@@ -17,11 +17,14 @@ export async function logDebug(
   message: string,
   context?: DebugContext
 ): Promise<string | null> {
+  // Use a system UUID for non-flow specific logs
+  const systemFlowId = '00000000-0000-0000-0000-000000000000';
+  const actualFlowId = flowId === 'system' ? systemFlowId : flowId;
   try {
     const { data, error } = await supabase
       .from('debug_logs')
       .insert({
-        flow_id: flowId,
+        flow_id: actualFlowId,
         log_level: level,
         category,
         message,
@@ -52,7 +55,11 @@ export async function logError(
   error: Error,
   context?: DebugContext
 ): Promise<string | null> {
-  return logDebug(flowId, 'error', category, message, {
+  // Use a system UUID for non-flow specific logs
+  const systemFlowId = '00000000-0000-0000-0000-000000000000';
+  const actualFlowId = flowId === 'system' ? systemFlowId : flowId;
+  
+  return logDebug(actualFlowId, 'error', category, message, {
     ...context,
     stack_trace: error.stack,
     error_name: error.name,
