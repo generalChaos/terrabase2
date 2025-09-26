@@ -53,7 +53,6 @@ export class ImageGenerationService {
       const promptText = prompt.prompt_text
         .replace('{team}', options.teamName)
         .replace('{sport}', options.sport)
-        .replace('{age}', options.ageGroup)
         .replace('{style}', options.style)
         .replace('{colors}', options.colors)
         .replace('{mascot}', options.mascot);

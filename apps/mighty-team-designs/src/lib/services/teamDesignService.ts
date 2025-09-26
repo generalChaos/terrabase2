@@ -310,7 +310,6 @@ export class TeamDesignService {
       const promptText = prompt.prompt_text
         .replace('{team}', teamName)
         .replace('{sport}', sport)
-        .replace('{age}', ageGroup)
         .replace('{style}', styleOptions[style])
         .replace('{colors}', colorOptions[colors])
         .replace('{mascot}', mascotOptions[mascot]);

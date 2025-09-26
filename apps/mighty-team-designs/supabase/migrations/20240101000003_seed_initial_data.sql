@@ -111,7 +111,7 @@ INSERT INTO question_sets (name, sport, age_group, questions, is_generated, acti
 -- Seed initial logo prompts
 INSERT INTO logo_prompts (name, prompt_text, model, description, active, version) VALUES (
   'team_logo_generation',
-  'Create a {style} {sport} team logo for {team} ({age}).
+  'Create a {style} {sport} team logo for {team}.
 
 Style: {style}
 Colors: {colors}
@@ -121,7 +121,6 @@ Requirements:
 - High contrast for uniforms
 - Single color capable
 - Scalable design
-- Age-appropriate
 - Professional quality
 - Sport-specific elements
 
