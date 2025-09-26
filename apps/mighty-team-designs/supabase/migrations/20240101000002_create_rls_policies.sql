@@ -38,6 +38,10 @@ CREATE POLICY "Anyone can read team logos" ON team_logos
 CREATE POLICY "Question sets are publicly readable" ON question_sets
   FOR SELECT USING (active = true);
 
+-- Anyone can create question sets
+CREATE POLICY "Anyone can create question sets" ON question_sets
+  FOR INSERT WITH CHECK (true);
+
 -- Logo prompts policies
 -- Public read access for active logo prompts
 CREATE POLICY "Logo prompts are publicly readable" ON logo_prompts

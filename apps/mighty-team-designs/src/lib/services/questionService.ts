@@ -161,6 +161,7 @@ export class QuestionService extends BaseService {
 
       // Save the generated question set
       const questionSet = await this.create({
+        name: `${sport}_${ageGroup}_questions`,
         sport,
         age_group: ageGroup,
         questions,

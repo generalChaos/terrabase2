@@ -197,7 +197,7 @@ export function QuestionnaireProvider({ children }: { children: React.ReactNode 
       if (result.data && result.data.questions) {
         dispatch({ type: 'SET_ROUND2_QUESTIONS', payload: result.data.questions });
       } else {
-        // No questions found, set empty array
+        // No questions found, set empty array to show "Generate Questions" button
         dispatch({ type: 'SET_ROUND2_QUESTIONS', payload: [] });
       }
     } catch (error) {

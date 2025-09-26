@@ -20,11 +20,12 @@ export function Round2Form() {
     }
   }, [getQuestions, state.round1Answers.sport, state.round1Answers.age_group]);
 
-  useEffect(() => {
-    if (state.round2Questions.length === 0 && state.round1Answers.sport && state.round1Answers.age_group) {
-      loadQuestions();
-    }
-  }, [state.round1Answers.sport, state.round1Answers.age_group, loadQuestions, state.round2Questions.length]);
+  // Remove automatic loading - let user choose to load or generate questions
+  // useEffect(() => {
+  //   if (state.round2Questions.length === 0 && state.round1Answers.sport && state.round1Answers.age_group) {
+  //     loadQuestions();
+  //   }
+  // }, [state.round1Answers.sport, state.round1Answers.age_group, loadQuestions, state.round2Questions.length]);
 
   const handleGenerateQuestions = async () => {
     try {
