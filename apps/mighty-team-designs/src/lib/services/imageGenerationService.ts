@@ -118,21 +118,37 @@ export class ImageGenerationService {
         model: 'gpt-image-1',
         prompt: promptText,
         n: 1,
-        size: '1024x1024', // Use supported size
-        quality: 'hd',
-        response_format: 'b64_json'
+        size: '1024x1024',
+        quality: 'high'
+        // Note: gpt-image-1 doesn't support response_format parameter
       });
 
       const imageData = imageResponse.data?.[0];
-      if (!imageData?.b64_json) {
+      if (!imageData) {
         throw new Error('No image data received from OpenAI');
+      }
+
+      // gpt-image-1 returns URL format, not base64
+      let imageBuffer: Buffer;
+      if (imageData.url) {
+        // If URL format, fetch the image
+        const imageResponse = await fetch(imageData.url);
+        if (!imageResponse.ok) {
+          throw new Error('Failed to fetch generated image');
+        }
+        imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+      } else if (imageData.b64_json) {
+        // If base64 format (fallback)
+        imageBuffer = Buffer.from(imageData.b64_json, 'base64');
+      } else {
+        throw new Error('No valid image data received from OpenAI');
       }
 
       // Upload to Supabase Storage
       const fileName = `${flowId}/variant_${variantNumber}_${Date.now()}.png`;
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('team-logos')
-        .upload(fileName, Buffer.from(imageData.b64_json, 'base64'), {
+        .upload(fileName, imageBuffer, {
           contentType: 'image/png',
           cacheControl: '3600'
         });
