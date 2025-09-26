@@ -2,6 +2,8 @@ import { EnhancedTeamDesignService } from './enhancedTeamDesignService';
 import { QuestionService } from './questionService';
 import { LogoService } from './logoService';
 import { ImageGenerationService } from './imageGenerationService';
+import { DebugService } from './debugService';
+import { MetricsService } from './metricsService';
 import { logDebug, logError } from '@/lib/debug';
 
 /**
@@ -15,12 +17,16 @@ export class ServiceManager {
   public readonly questions: QuestionService;
   public readonly logos: LogoService;
   public readonly imageGeneration: typeof ImageGenerationService;
+  public readonly debug: DebugService;
+  public readonly metrics: MetricsService;
 
   private constructor() {
     this.flows = new EnhancedTeamDesignService();
     this.questions = new QuestionService();
     this.logos = new LogoService();
     this.imageGeneration = ImageGenerationService;
+    this.debug = new DebugService();
+    this.metrics = new MetricsService();
   }
 
   /**
