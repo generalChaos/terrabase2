@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    await logError('API_FLOW_CREATE_ERROR', 'Failed to create flow', error as Error);
+    await logError('system', 'api', 'Failed to create flow', error as Error);
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(

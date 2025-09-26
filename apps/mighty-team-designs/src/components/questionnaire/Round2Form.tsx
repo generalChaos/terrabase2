@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useQuestionnaire } from '@/contexts/QuestionnaireContext';
 import { Button } from '@/components/ui/Button';
 import { QuestionCard } from './QuestionCard';
@@ -9,13 +9,7 @@ export function Round2Form() {
   const { state, dispatch, updateFlow, getQuestions, generateQuestions } = useQuestionnaire();
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
 
-  useEffect(() => {
-    if (state.round2Questions.length === 0 && state.round1Answers.sport && state.round1Answers.age_group) {
-      loadQuestions();
-    }
-  }, [state.round1Answers.sport, state.round1Answers.age_group]);
-
-  const loadQuestions = async () => {
+  const loadQuestions = useCallback(async () => {
     try {
       setIsGeneratingQuestions(true);
       await getQuestions(state.round1Answers.sport, state.round1Answers.age_group);
@@ -24,7 +18,13 @@ export function Round2Form() {
     } finally {
       setIsGeneratingQuestions(false);
     }
-  };
+  }, [getQuestions, state.round1Answers.sport, state.round1Answers.age_group]);
+
+  useEffect(() => {
+    if (state.round2Questions.length === 0 && state.round1Answers.sport && state.round1Answers.age_group) {
+      loadQuestions();
+    }
+  }, [state.round1Answers.sport, state.round1Answers.age_group, loadQuestions, state.round2Questions.length]);
 
   const handleGenerateQuestions = async () => {
     try {
@@ -47,7 +47,10 @@ export function Round2Form() {
     try {
       await updateFlow({
         round2_questions: state.round2Questions,
-        round2_answers: state.round2Answers,
+        round2_answers: state.round2Answers.map(q => ({
+          question_id: q.id,
+          answer: q.options[q.selected || 0] || ''
+        })),
         current_step: 'generating'
       });
     } catch (error) {
@@ -80,7 +83,7 @@ export function Round2Form() {
           Ready for Round 2
         </h2>
         <p className="text-lg text-gray-600 mb-8">
-          Let's get some more details about your team's style and preferences
+          Let&apos;s get some more details about your team&apos;s style and preferences
         </p>
         
         <div className="space-y-4">
@@ -110,7 +113,7 @@ export function Round2Form() {
     <div className="max-w-2xl mx-auto">
       <div className="text-center mb-8">
         <h2 className="text-3xl font-bold text-gray-900 mb-4">
-          Tell us about your team's style
+          Tell us about your team&apos;s style
         </h2>
         <p className="text-lg text-gray-600">
           Help us understand what kind of logo would best represent your team

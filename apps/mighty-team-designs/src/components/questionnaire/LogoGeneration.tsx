@@ -10,7 +10,7 @@ export function LogoGeneration() {
     if (state.currentStep === 'generating' && state.round2Answers.length > 0) {
       generateLogos();
     }
-  }, [state.currentStep, state.round2Answers.length]);
+  }, [state.currentStep, state.round2Answers.length, generateLogos]);
 
   return (
     <div className="max-w-2xl mx-auto text-center">
@@ -26,7 +26,7 @@ export function LogoGeneration() {
 
       <div className="bg-blue-50 rounded-lg p-6 mb-8">
         <h3 className="text-lg font-semibold text-blue-900 mb-4">
-          What we're creating:
+          What we&apos;re creating:
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-blue-800">
           <div className="flex items-center">

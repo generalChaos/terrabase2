@@ -36,7 +36,7 @@ export class QuestionService extends BaseService {
       const existingSet = await this.findExistingQuestionSet(sport, ageGroup);
       
       if (existingSet) {
-        await logDebug('QUESTION_CACHE_HIT', `Found existing question set for ${sport} ${ageGroup}`, {
+        await logDebug('system', 'info', 'question_generation', `Found existing question set for ${sport} ${ageGroup}`, {
           question_set_id: existingSet.id,
           question_count: existingSet.questions.length
         });
@@ -46,14 +46,14 @@ export class QuestionService extends BaseService {
       // If no existing set, generate new questions
       const generatedSet = await this.generateQuestions(flowId, sport, ageGroup);
       
-      await logDebug('QUESTION_GENERATION', `Generated new question set for ${sport} ${ageGroup}`, {
+      await logDebug('system', 'info', 'question_generation', `Generated new question set for ${sport} ${ageGroup}`, {
         question_set_id: generatedSet.id,
         question_count: generatedSet.questions.length
       });
 
       return generatedSet;
     } catch (error) {
-      await logError('QUESTION_SERVICE_ERROR', 'Failed to get questions for flow', error as Error);
+      await logError('system', 'question_generation', 'Failed to get questions for flow', error as Error);
       throw error;
     }
   }
@@ -111,7 +111,7 @@ export class QuestionService extends BaseService {
 
       return questionSet as QuestionSet;
     } catch (error) {
-      await logError('QUESTION_GENERATION_ERROR', 'Failed to generate questions', error as Error);
+      await logError('system', 'question_generation', 'Failed to generate questions', error as Error);
       throw error;
     }
   }
@@ -217,7 +217,7 @@ export class QuestionService extends BaseService {
    */
   async getQuestionSetById(id: string): Promise<QuestionSet | null> {
     try {
-      return await this.findById(id) as QuestionSet;
+      return await this.findById(id) as unknown as QuestionSet;
     } catch (error) {
       return null;
     }
@@ -267,7 +267,7 @@ export class QuestionService extends BaseService {
         sport_distribution: sportCounts
       };
     } catch (error) {
-      await logError('QUESTION_STATS_ERROR', 'Failed to get question statistics', error as Error);
+      await logError('system', 'question_generation', 'Failed to get question statistics', error as Error);
       throw error;
     }
   }

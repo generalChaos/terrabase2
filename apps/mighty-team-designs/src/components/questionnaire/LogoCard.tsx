@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import { LogoVariant } from '@/types';
 import { Button } from '@/components/ui/Button';
 
@@ -29,9 +30,11 @@ export function LogoCard({ logo, isSelected, onSelect, onDownload, variantNumber
       {/* Logo Preview */}
       <div className="aspect-square bg-gray-100 rounded-t-lg flex items-center justify-center p-4">
         {logo.public_url ? (
-          <img
+          <Image
             src={logo.public_url}
             alt={`Logo variant ${variantNumber}`}
+            width={200}
+            height={200}
             className="max-w-full max-h-full object-contain"
           />
         ) : (

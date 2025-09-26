@@ -43,7 +43,7 @@ export class LogoService extends BaseService {
       
       // Add public URLs for each logo
       const logosWithUrls = await Promise.all(
-        logos.map(async (logo) => {
+        (logos as unknown as LogoVariant[]).map(async (logo) => {
           const { data: urlData } = supabase.storage
             .from(logo.storage_bucket)
             .getPublicUrl(logo.file_path);
@@ -57,7 +57,7 @@ export class LogoService extends BaseService {
 
       return logosWithUrls as LogoVariant[];
     } catch (error) {
-      await logError('LOGO_SERVICE_ERROR', 'Failed to get logos by flow ID', error as Error);
+      await logError('system', 'database', 'Failed to get logos by flow ID', error as Error);
       throw error;
     }
   }
@@ -88,7 +88,7 @@ export class LogoService extends BaseService {
         public_url: urlData.publicUrl
       } as LogoVariant;
     } catch (error) {
-      await logError('LOGO_SERVICE_ERROR', 'Failed to get selected logo', error as Error);
+      await logError('system', 'database', 'Failed to get selected logo', error as Error);
       return null;
     }
   }
@@ -113,14 +113,14 @@ export class LogoService extends BaseService {
         .update({ selected_logo_id: logoId })
         .eq('id', flowId);
 
-      await logDebug('LOGO_SELECTION', `Selected logo ${logoId} for flow ${flowId}`, {
+      await logDebug('system', 'info', 'database', `Selected logo ${logoId} for flow ${flowId}`, {
         flow_id: flowId,
         logo_id: logoId
       });
 
       return selectedLogo as LogoVariant;
     } catch (error) {
-      await logError('LOGO_SERVICE_ERROR', 'Failed to select logo', error as Error);
+      await logError('system', 'database', 'Failed to select logo', error as Error);
       throw error;
     }
   }
@@ -135,8 +135,8 @@ export class LogoService extends BaseService {
       
       // Delete from storage
       const { error: storageError } = await supabase.storage
-        .from(logo.storage_bucket)
-        .remove([logo.file_path]);
+        .from((logo as unknown as LogoVariant).storage_bucket)
+        .remove([(logo as unknown as LogoVariant).file_path]);
 
       if (storageError) {
         console.warn('Failed to delete logo from storage:', storageError);
@@ -148,12 +148,12 @@ export class LogoService extends BaseService {
         .delete()
         .eq('id', logoId);
 
-      await logDebug('LOGO_DELETION', `Deleted logo ${logoId}`, {
+      await logDebug('system', 'info', 'database', `Deleted logo ${logoId}`, {
         logo_id: logoId,
-        file_path: logo.file_path
+        file_path: (logo as unknown as LogoVariant).file_path
       });
     } catch (error) {
-      await logError('LOGO_SERVICE_ERROR', 'Failed to delete logo', error as Error);
+      await logError('system', 'database', 'Failed to delete logo', error as Error);
       throw error;
     }
   }
@@ -199,7 +199,7 @@ export class LogoService extends BaseService {
         total_generation_cost_usd: Math.round(totalCost * 100) / 100
       };
     } catch (error) {
-      await logError('LOGO_STATS_ERROR', 'Failed to get logo statistics', error as Error);
+      await logError('system', 'database', 'Failed to get logo statistics', error as Error);
       throw error;
     }
   }
@@ -221,7 +221,7 @@ export class LogoService extends BaseService {
 
       return data as LogoPrompt[];
     } catch (error) {
-      await logError('LOGO_SERVICE_ERROR', 'Failed to get logo prompts', error as Error);
+      await logError('system', 'database', 'Failed to get logo prompts', error as Error);
       throw error;
     }
   }
@@ -269,7 +269,7 @@ export class LogoService extends BaseService {
 
       return prompt.data as LogoPrompt;
     } catch (error) {
-      await logError('LOGO_SERVICE_ERROR', 'Failed to create logo prompt', error as Error);
+      await logError('system', 'database', 'Failed to create logo prompt', error as Error);
       throw error;
     }
   }
@@ -295,7 +295,7 @@ export class LogoService extends BaseService {
 
       return prompt.data as LogoPrompt;
     } catch (error) {
-      await logError('LOGO_SERVICE_ERROR', 'Failed to update logo prompt', error as Error);
+      await logError('system', 'database', 'Failed to update logo prompt', error as Error);
       throw error;
     }
   }
@@ -336,14 +336,14 @@ export class LogoService extends BaseService {
         .update({ is_active: false, deleted_at: new Date().toISOString() })
         .in('id', logoIds);
 
-      await logDebug('LOGO_CLEANUP', `Cleaned up ${oldLogos.length} old logos`, {
+      await logDebug('system', 'info', 'database', `Cleaned up ${oldLogos.length} old logos`, {
         count: oldLogos.length,
         cutoff_date: cutoffDate.toISOString()
       });
 
       return oldLogos.length;
     } catch (error) {
-      await logError('LOGO_SERVICE_ERROR', 'Failed to cleanup old logos', error as Error);
+      await logError('system', 'database', 'Failed to cleanup old logos', error as Error);
       throw error;
     }
   }

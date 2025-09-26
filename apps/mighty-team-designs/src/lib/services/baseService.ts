@@ -25,7 +25,7 @@ export abstract class BaseService {
 
       return data;
     } catch (error) {
-      await logError('DATABASE_ERROR', `Error finding ${this.tableName} by id`, error as Error);
+      await logError('system', 'database', `Error finding ${this.tableName} by id`, error as Error);
       throw error;
     }
   }
@@ -57,7 +57,7 @@ export abstract class BaseService {
 
       return data || [];
     } catch (error) {
-      await logError('DATABASE_ERROR', `Error finding ${this.tableName}`, error as Error);
+      await logError('system', 'database', `Error finding ${this.tableName}`, error as Error);
       throw error;
     }
   }
@@ -77,10 +77,10 @@ export abstract class BaseService {
         throw new Error(`Failed to create ${this.tableName}: ${error.message}`);
       }
 
-      await logDebug('DATABASE_CREATE', `Created ${this.tableName}`, { id: result.id });
+      await logDebug('system', 'info', 'database', `Created ${this.tableName}`, { id: result.id });
       return result;
     } catch (error) {
-      await logError('DATABASE_ERROR', `Error creating ${this.tableName}`, error as Error);
+      await logError('system', 'database', `Error creating ${this.tableName}`, error as Error);
       throw error;
     }
   }
@@ -101,10 +101,10 @@ export abstract class BaseService {
         throw new Error(`Failed to update ${this.tableName} with id ${id}: ${error.message}`);
       }
 
-      await logDebug('DATABASE_UPDATE', `Updated ${this.tableName}`, { id });
+      await logDebug('system', 'info', 'database', `Updated ${this.tableName}`, { id });
       return result;
     } catch (error) {
-      await logError('DATABASE_ERROR', `Error updating ${this.tableName}`, error as Error);
+      await logError('system', 'database', `Error updating ${this.tableName}`, error as Error);
       throw error;
     }
   }
@@ -125,10 +125,10 @@ export abstract class BaseService {
         throw new Error(`Failed to soft delete ${this.tableName} with id ${id}: ${error.message}`);
       }
 
-      await logDebug('DATABASE_DELETE', `Soft deleted ${this.tableName}`, { id });
+      await logDebug('system', 'info', 'database', `Soft deleted ${this.tableName}`, { id });
       return result;
     } catch (error) {
-      await logError('DATABASE_ERROR', `Error soft deleting ${this.tableName}`, error as Error);
+      await logError('system', 'database', `Error soft deleting ${this.tableName}`, error as Error);
       throw error;
     }
   }
@@ -136,7 +136,7 @@ export abstract class BaseService {
   /**
    * Generic method to count records
    */
-  protected async count(filters: Record<string, any> = {}) {
+  public async count(filters: Record<string, any> = {}) {
     try {
       let query = supabase.from(this.tableName).select('*', { count: 'exact', head: true });
 
@@ -155,7 +155,7 @@ export abstract class BaseService {
 
       return count || 0;
     } catch (error) {
-      await logError('DATABASE_ERROR', `Error counting ${this.tableName}`, error as Error);
+      await logError('system', 'database', `Error counting ${this.tableName}`, error as Error);
       throw error;
     }
   }

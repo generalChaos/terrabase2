@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    await logError('API_ADMIN_GET_ERROR', 'Failed to get admin data', error as Error);
+    await logError('system', 'api', 'Failed to get admin data', error as Error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    await logError('API_ADMIN_MAINTENANCE_ERROR', 'Failed to run maintenance', error as Error);
+    await logError('system', 'api', 'Failed to run maintenance', error as Error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

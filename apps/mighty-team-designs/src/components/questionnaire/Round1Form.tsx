@@ -95,7 +95,7 @@ export function Round1Form() {
           Tell us about your team
         </h2>
         <p className="text-lg text-gray-600">
-          We'll use this information to create the perfect logo for your team
+          We&apos;ll use this information to create the perfect logo for your team
         </p>
       </div>
 

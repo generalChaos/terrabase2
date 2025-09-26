@@ -60,11 +60,11 @@ function questionnaireReducer(state: QuestionnaireState, action: QuestionnaireAc
         ...state,
         flow: action.payload,
         currentStep: action.payload.current_step as FlowStep,
-        round1Answers: action.payload.round1_answers || state.round1Answers,
+        round1Answers: (action.payload.round1_answers as { team_name: string; sport: string; age_group: string }) || state.round1Answers,
         round2Questions: action.payload.round2_questions || [],
-        round2Answers: action.payload.round2_answers || [],
+        round2Answers: (action.payload.round2_answers as unknown as Question[]) || [],
         logoVariants: action.payload.logo_variants || [],
-        selectedLogoId: action.payload.selected_logo_id,
+        selectedLogoId: action.payload.selected_logo_id || null,
         isLoading: false,
         error: null
       };

@@ -29,7 +29,7 @@ export function QuestionnaireFlow() {
             Create Your Team Logo
           </h1>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Answer a few questions and we'll generate custom logo options for your team
+            Answer a few questions and we&apos;ll generate custom logo options for your team
           </p>
         </div>
 

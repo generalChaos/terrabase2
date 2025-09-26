@@ -54,7 +54,7 @@ export class ServiceManager {
         }
       };
     } catch (error) {
-      await logError('SYSTEM_STATS_ERROR', 'Failed to get system statistics', error as Error);
+      await logError('system', 'database', 'Failed to get system statistics', error as Error);
       throw error;
     }
   }
@@ -84,10 +84,10 @@ export class ServiceManager {
         results.errors.push(`Logo cleanup failed: ${error}`);
       }
 
-      await logDebug('MAINTENANCE_COMPLETED', 'System maintenance completed', results);
+      await logDebug('system', 'info', 'database', 'System maintenance completed', results);
       return results;
     } catch (error) {
-      await logError('MAINTENANCE_ERROR', 'System maintenance failed', error as Error);
+      await logError('system', 'database', 'System maintenance failed', error as Error);
       throw error;
     }
   }
@@ -114,11 +114,11 @@ export class ServiceManager {
 
       // Test storage connection
       try {
-        const { data, error } = await this.logos.getLogoPrompts();
-        if (!error) {
+        const data = await this.logos.getLogoPrompts();
+        if (data && data.length >= 0) {
           checks.storage = true;
         } else {
-          checks.errors.push(`Storage check failed: ${error.message}`);
+          checks.errors.push('Storage check failed: No data returned');
         }
       } catch (error) {
         checks.errors.push(`Storage check failed: ${error}`);
@@ -129,7 +129,7 @@ export class ServiceManager {
 
       const isHealthy = checks.database && checks.storage;
       
-      await logDebug('HEALTH_CHECK', 'System health check completed', {
+      await logDebug('system', 'info', 'database', 'System health check completed', {
         healthy: isHealthy,
         checks
       });
@@ -140,7 +140,7 @@ export class ServiceManager {
         timestamp: new Date().toISOString()
       };
     } catch (error) {
-      await logError('HEALTH_CHECK_ERROR', 'Health check failed', error as Error);
+      await logError('system', 'database', 'Health check failed', error as Error);
       return {
         healthy: false,
         checks: {
@@ -176,7 +176,7 @@ export class ServiceManager {
         timestamp: new Date().toISOString()
       };
     } catch (error) {
-      await logError('DEBUG_INFO_ERROR', 'Failed to get debug information', error as Error);
+      await logError('system', 'database', 'Failed to get debug information', error as Error);
       throw error;
     }
   }

@@ -353,7 +353,12 @@ export class TeamDesignService {
             variant_number: i + 1,
             file_path: fileName,
             public_url: mockPublicUrl,
-            is_selected: i === 0
+            is_selected: i === 0,
+            generation_prompt: `Mock logo for ${teamName} (${sport}, ${ageGroup})`,
+            model_used: 'mock',
+            generation_time_ms: 0,
+            generation_cost_usd: 0,
+            created_at: new Date().toISOString()
           });
 
         } catch (variantError) {

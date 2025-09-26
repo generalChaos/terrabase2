@@ -47,6 +47,7 @@ export interface LogoVariant {
   generation_time_ms: number
   generation_cost_usd: number
   created_at: string
+  public_url?: string
 }
 
 export interface TeamLogo {

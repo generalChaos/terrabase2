@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    await logError('API_QUESTIONS_GET_ERROR', 'Failed to get questions', error as Error);
+    await logError('system', 'api', 'Failed to get questions', error as Error);
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(
