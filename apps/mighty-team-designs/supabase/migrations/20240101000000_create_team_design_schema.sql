@@ -112,7 +112,7 @@ CREATE TABLE logo_prompts (
 -- Create debug logs table
 CREATE TABLE debug_logs (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  flow_id UUID REFERENCES team_design_flows(id) ON DELETE CASCADE,
+  flow_id UUID REFERENCES team_design_flows(id) ON DELETE CASCADE, -- Nullable for system logs
   log_level VARCHAR NOT NULL, -- 'debug', 'info', 'warn', 'error'
   category VARCHAR NOT NULL, -- 'question_generation', 'logo_generation', 'api', 'database'
   message TEXT NOT NULL,

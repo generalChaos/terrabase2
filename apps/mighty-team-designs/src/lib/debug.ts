@@ -17,9 +17,8 @@ export async function logDebug(
   message: string,
   context?: DebugContext
 ): Promise<string | null> {
-  // Use a system UUID for non-flow specific logs
-  const systemFlowId = '00000000-0000-0000-0000-000000000000';
-  const actualFlowId = flowId === 'system' ? systemFlowId : flowId;
+  // Use NULL for system-level logs (flow_id is now nullable)
+  const actualFlowId = flowId === 'system' ? null : flowId;
   try {
     const { data, error } = await supabase
       .from('debug_logs')
@@ -55,9 +54,8 @@ export async function logError(
   error: Error,
   context?: DebugContext
 ): Promise<string | null> {
-  // Use a system UUID for non-flow specific logs
-  const systemFlowId = '00000000-0000-0000-0000-000000000000';
-  const actualFlowId = flowId === 'system' ? systemFlowId : flowId;
+  // Use NULL for system-level logs (flow_id is now nullable)
+  const actualFlowId = flowId === 'system' ? null : flowId;
   
   return logDebug(actualFlowId, 'error', category, message, {
     ...context,
