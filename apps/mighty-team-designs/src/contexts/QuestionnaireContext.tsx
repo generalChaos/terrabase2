@@ -262,11 +262,15 @@ export function QuestionnaireProvider({ children }: { children: React.ReactNode 
       }
 
       const result = await response.json();
+      console.log('Logo generation response:', result); // Debug log
       dispatch({ type: 'SET_LOGO_VARIANTS', payload: result.data.logos });
       dispatch({ type: 'SET_CURRENT_STEP', payload: 'completed' });
     } catch (error) {
+      console.error('Logo generation error:', error); // Debug log
       dispatch({ type: 'SET_ERROR', payload: error instanceof Error ? error.message : 'Unknown error' });
       dispatch({ type: 'SET_CURRENT_STEP', payload: 'failed' });
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
     }
   };
 
