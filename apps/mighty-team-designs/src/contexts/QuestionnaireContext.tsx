@@ -151,6 +151,9 @@ export function QuestionnaireProvider({ children }: { children: React.ReactNode 
 
       const result = await response.json();
       dispatch({ type: 'SET_FLOW', payload: result.data });
+      
+      // Advance to round 2 after creating the flow
+      dispatch({ type: 'SET_CURRENT_STEP', payload: 'round2' });
     } catch (error) {
       dispatch({ type: 'SET_ERROR', payload: error instanceof Error ? error.message : 'Unknown error' });
     }
@@ -190,7 +193,13 @@ export function QuestionnaireProvider({ children }: { children: React.ReactNode 
       }
 
       const result = await response.json();
-      dispatch({ type: 'SET_ROUND2_QUESTIONS', payload: result.data.questions });
+      
+      if (result.data && result.data.questions) {
+        dispatch({ type: 'SET_ROUND2_QUESTIONS', payload: result.data.questions });
+      } else {
+        // No questions found, set empty array
+        dispatch({ type: 'SET_ROUND2_QUESTIONS', payload: [] });
+      }
     } catch (error) {
       dispatch({ type: 'SET_ERROR', payload: error instanceof Error ? error.message : 'Unknown error' });
     }

@@ -59,6 +59,66 @@ export class QuestionService extends BaseService {
   }
 
   /**
+   * Get questions by sport and age group (public method)
+   */
+  async getQuestionsBySportAndAge(sport: string, ageGroup: string): Promise<QuestionSet | null> {
+    try {
+      await logDebug('system', 'info', 'question_generation', `Getting questions for ${sport} ${ageGroup}`);
+      
+      const questionSet = await this.findExistingQuestionSet(sport, ageGroup);
+      
+      if (questionSet) {
+        await logDebug('system', 'info', 'question_generation', `Found existing question set`, {
+          question_set_id: questionSet.id,
+          question_count: questionSet.questions.length
+        });
+        return questionSet;
+      }
+      
+      await logDebug('system', 'info', 'question_generation', `No existing question set found for ${sport} ${ageGroup}`);
+      return null;
+    } catch (error) {
+      await logError('system', 'question_generation', 'Failed to get questions by sport and age', error as Error);
+      return null;
+    }
+  }
+
+  /**
+   * Generate questions for a flow (public method)
+   */
+  async generateQuestionsForFlow(flowId: string, sport: string, ageGroup: string): Promise<QuestionSet> {
+    try {
+      await logDebug(flowId, 'info', 'question_generation', `Generating questions for flow ${flowId}`, {
+        sport,
+        ageGroup
+      });
+      
+      // First try to find existing questions
+      const existingSet = await this.findExistingQuestionSet(sport, ageGroup);
+      if (existingSet) {
+        await logDebug(flowId, 'info', 'question_generation', `Using existing question set`, {
+          question_set_id: existingSet.id,
+          question_count: existingSet.questions.length
+        });
+        return existingSet;
+      }
+      
+      // Generate new questions
+      const questionSet = await this.generateQuestions(flowId, sport, ageGroup);
+      
+      await logDebug(flowId, 'info', 'question_generation', `Generated new question set`, {
+        question_set_id: questionSet.id,
+        question_count: questionSet.questions.length
+      });
+      
+      return questionSet;
+    } catch (error) {
+      await logError(flowId, 'question_generation', 'Failed to generate questions for flow', error as Error);
+      throw error;
+    }
+  }
+
+  /**
    * Find existing question set for sport and age group
    */
   private async findExistingQuestionSet(sport: string, ageGroup: string): Promise<QuestionSet | null> {

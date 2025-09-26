@@ -5,7 +5,7 @@ import { logError } from '@/lib/debug';
 
 // Validation schemas
 const GetQuestionsSchema = z.object({
-  flow_id: z.string().uuid(),
+  flow_id: z.string().uuid().nullable().optional(),
   sport: z.string(),
   age_group: z.string()
 });
@@ -20,11 +20,22 @@ export async function GET(request: NextRequest) {
       age_group: searchParams.get('age_group')
     });
 
-    const questionSet = await serviceManager.flows.getQuestionsForFlow(
-      validatedData.flow_id,
-      validatedData.sport,
-      validatedData.age_group
-    );
+    let questionSet;
+    
+    if (validatedData.flow_id) {
+      // Get questions for a specific flow
+      questionSet = await serviceManager.flows.getQuestionsForFlow(
+        validatedData.flow_id,
+        validatedData.sport,
+        validatedData.age_group
+      );
+    } else {
+      // Get questions by sport and age group only
+      questionSet = await serviceManager.questions.getQuestionsBySportAndAge(
+        validatedData.sport,
+        validatedData.age_group
+      );
+    }
 
     return NextResponse.json({
       success: true,
