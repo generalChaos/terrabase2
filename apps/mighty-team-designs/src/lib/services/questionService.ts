@@ -188,18 +188,7 @@ export class QuestionService extends BaseService {
       - Questions should help determine logo style, colors, and mascot preferences
       - Use multiple choice format with 3-4 options each
       - Make questions age-appropriate for ${ageGroup}
-      - Focus on visual design preferences
-      
-      Return as JSON array with this structure:
-      [
-        {
-          "id": "style",
-          "text": "What best fits your team?",
-          "type": "multiple_choice",
-          "options": ["Fun", "Professional", "Tough", "Friendly"],
-          "required": true
-        }
-      ]`;
+      - Focus on visual design preferences`;
 
       const response = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
@@ -213,17 +202,63 @@ export class QuestionService extends BaseService {
             content: prompt
           }
         ],
+        functions: [
+          {
+            name: 'generate_questions',
+            description: 'Generate team logo design questions',
+            parameters: {
+              type: 'object',
+              properties: {
+                questions: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      id: {
+                        type: 'string',
+                        description: 'Unique identifier for the question'
+                      },
+                      text: {
+                        type: 'string',
+                        description: 'The question text'
+                      },
+                      type: {
+                        type: 'string',
+                        enum: ['multiple_choice'],
+                        description: 'Type of question'
+                      },
+                      options: {
+                        type: 'array',
+                        items: {
+                          type: 'string'
+                        },
+                        description: 'Available answer options'
+                      },
+                      required: {
+                        type: 'boolean',
+                        description: 'Whether the question is required'
+                      }
+                    },
+                    required: ['id', 'text', 'type', 'options', 'required']
+                  }
+                }
+              },
+              required: ['questions']
+            }
+          }
+        ],
+        function_call: { name: 'generate_questions' },
         temperature: 0.7,
         max_tokens: 1000
       });
 
-      const content = response.choices[0]?.message?.content;
-      if (!content) {
-        throw new Error('No response from OpenAI');
+      const functionCall = response.choices[0]?.message?.function_call;
+      if (!functionCall || functionCall.name !== 'generate_questions') {
+        throw new Error('No function call response from OpenAI');
       }
 
-      // Parse JSON response
-      const questions = JSON.parse(content);
+      const args = JSON.parse(functionCall.arguments);
+      const questions = args.questions;
       
       // Validate the response structure
       if (!Array.isArray(questions) || questions.length === 0) {
