@@ -9,9 +9,6 @@ export function Round2Form() {
   const { state, dispatch, updateFlow, getQuestions, generateQuestions } = useQuestionnaire();
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
 
-  console.log('Round2Form render - round2Questions length:', state.round2Questions.length);
-  console.log('Round2Form render - round2Questions:', state.round2Questions);
-
   const loadQuestions = useCallback(async () => {
     try {
       setIsGeneratingQuestions(true);
@@ -23,12 +20,11 @@ export function Round2Form() {
     }
   }, [getQuestions, state.round1Answers.sport, state.round1Answers.age_group]);
 
-  // Remove automatic loading - let user choose to load or generate questions
-  // useEffect(() => {
-  //   if (state.round2Questions.length === 0 && state.round1Answers.sport && state.round1Answers.age_group) {
-  //     loadQuestions();
-  //   }
-  // }, [state.round1Answers.sport, state.round1Answers.age_group, loadQuestions, state.round2Questions.length]);
+  useEffect(() => {
+    if (state.round2Questions.length === 0 && state.round1Answers.sport && state.round1Answers.age_group) {
+      loadQuestions();
+    }
+  }, [state.round1Answers.sport, state.round1Answers.age_group, loadQuestions, state.round2Questions.length]);
 
   const handleGenerateQuestions = async () => {
     try {

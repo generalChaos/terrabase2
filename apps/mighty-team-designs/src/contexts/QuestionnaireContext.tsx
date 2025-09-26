@@ -197,8 +197,8 @@ export function QuestionnaireProvider({ children }: { children: React.ReactNode 
       if (result.data && result.data.questions) {
         dispatch({ type: 'SET_ROUND2_QUESTIONS', payload: result.data.questions });
       } else {
-        // No questions found, set empty array to show "Generate Questions" button
-        dispatch({ type: 'SET_ROUND2_QUESTIONS', payload: [] });
+        // No questions found, automatically generate them
+        await generateQuestions();
       }
     } catch (error) {
       dispatch({ type: 'SET_ERROR', payload: error instanceof Error ? error.message : 'Unknown error' });
