@@ -51,13 +51,9 @@ export async function GET(request: NextRequest) {
 async function getFlowsData() {
   try {
     const total = await serviceManager.flows.count();
-    const recent = await serviceManager.flows.findMany(
-      {},
-      'id, team_name, sport, age_group, current_step, created_at',
-      'created_at',
-      'desc',
-      10
-    );
+    const recent = await serviceManager.flows.getAllFlows({
+      limit: 10
+    });
     
     return {
       total,
@@ -75,7 +71,7 @@ async function getQuestionsData() {
     const total = await serviceManager.questions.count();
     
     // Get questions by sport and age group
-    const { data: questions } = await serviceManager.questions.findMany({}, 'sport, age_group');
+    const questions = await serviceManager.questions.getAllQuestionSets();
     
     const bySport: Record<string, number> = {};
     const byAgeGroup: Record<string, number> = {};
@@ -102,13 +98,7 @@ async function getQuestionsData() {
 async function getLogosData() {
   try {
     const total = await serviceManager.logos.count();
-    const recent = await serviceManager.logos.findMany(
-      {},
-      'id, flow_id, variant_number, created_at, model_used',
-      'created_at',
-      'desc',
-      10
-    );
+    const recent = await serviceManager.logos.getRecentLogos(10);
     
     return {
       total,
@@ -124,13 +114,7 @@ async function getLogosData() {
 async function getDebugLogsData() {
   try {
     const total = await serviceManager.debug.count();
-    const recent = await serviceManager.debug.findMany(
-      {},
-      'id, log_level, category, message, created_at',
-      'created_at',
-      'desc',
-      20
-    );
+    const recent = await serviceManager.debug.getRecentLogs(20);
     
     return {
       total,
@@ -145,13 +129,7 @@ async function getDebugLogsData() {
 // Helper function to get system metrics data
 async function getSystemMetricsData() {
   try {
-    const { data: metrics } = await serviceManager.metrics.findMany(
-      {},
-      'metric_name, metric_value, created_at',
-      'created_at',
-      'desc',
-      100
-    );
+    const metrics = await serviceManager.metrics.getRecentMetrics(100);
     
     let questionGenerationTimeAvg = 0;
     let logoGenerationTimeAvg = 0;

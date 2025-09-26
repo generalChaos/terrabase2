@@ -13,7 +13,7 @@ export interface DebugLog {
   created_at: string;
 }
 
-export class DebugService extends BaseService<DebugLog> {
+export class DebugService extends BaseService {
   constructor() {
     super('debug_logs');
   }
@@ -69,6 +69,28 @@ export class DebugService extends BaseService<DebugLog> {
    */
   async getRecentErrors(limit: number = 20) {
     return this.getLogsByLevel('error', limit);
+  }
+
+  /**
+   * Get recent logs (all levels)
+   */
+  async getRecentLogs(limit: number = 20) {
+    try {
+      const { data, error } = await supabase
+        .from('debug_logs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (error) {
+        throw error;
+      }
+
+      return data as DebugLog[];
+    } catch (error) {
+      await logError('system', 'database', 'Failed to get recent logs', error as Error);
+      throw error;
+    }
   }
 
   /**

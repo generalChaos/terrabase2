@@ -205,6 +205,43 @@ export class LogoService extends BaseService {
   }
 
   /**
+   * Get recent logos
+   */
+  async getRecentLogos(limit: number = 10): Promise<LogoVariant[]> {
+    try {
+      const { data, error } = await supabase
+        .from('team_logos')
+        .select('*')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (error) {
+        throw new Error(`Failed to get recent logos: ${error.message}`);
+      }
+
+      // Add public URLs for each logo
+      const logosWithUrls = await Promise.all(
+        (data as LogoVariant[]).map(async (logo) => {
+          const { data: urlData } = supabase.storage
+            .from(logo.storage_bucket)
+            .getPublicUrl(logo.file_path);
+
+          return {
+            ...logo,
+            public_url: urlData.publicUrl
+          };
+        })
+      );
+
+      return logosWithUrls;
+    } catch (error) {
+      await logError('system', 'database', 'Failed to get recent logos', error as Error);
+      throw error;
+    }
+  }
+
+  /**
    * Get logo prompts
    */
   async getLogoPrompts(): Promise<LogoPrompt[]> {

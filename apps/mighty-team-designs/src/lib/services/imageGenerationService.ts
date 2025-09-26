@@ -172,7 +172,7 @@ export class ImageGenerationService {
         .insert({
           flow_id: flowId,
           file_path: fileName,
-          file_size: Buffer.from(imageData.b64_json, 'base64').length,
+          file_size: Buffer.from(imageData.b64_json || '', 'base64').length,
           mime_type: 'image/png',
           storage_bucket: 'team-logos',
           variant_number: variantNumber,

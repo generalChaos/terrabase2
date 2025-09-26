@@ -9,8 +9,9 @@ export const metadata: Metadata = {
   description: 'Create professional team logos in minutes with our AI-powered design tool. Perfect for youth leagues, recreational teams, and seasonal sports.',
   keywords: ['team logos', 'sports logos', 'youth leagues', 'recreational teams', 'AI logo generator'],
   authors: [{ name: 'Mighty Team Designs' }],
-  viewport: 'width=device-width, initial-scale=1',
 }
+
+export const viewport = 'width=device-width, initial-scale=1'
 
 export default function RootLayout({
   children,

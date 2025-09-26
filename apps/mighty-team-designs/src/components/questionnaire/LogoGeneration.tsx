@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import Image from 'next/image';
 import QRCode from 'qrcode';
 import { useQuestionnaire } from '@/contexts/QuestionnaireContext';
 
@@ -86,9 +87,11 @@ export function LogoGeneration() {
           </h3>
           <div className="flex items-center justify-center space-x-6">
             <div className="flex-shrink-0">
-              <img 
+              <Image 
                 src={qrCodeDataUrl} 
                 alt="QR Code for results page" 
+                width={128}
+                height={128}
                 className="w-32 h-32 border-2 border-white rounded-lg shadow-md"
               />
             </div>

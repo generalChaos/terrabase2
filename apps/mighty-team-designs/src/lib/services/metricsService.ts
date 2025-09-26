@@ -8,10 +8,10 @@ export interface SystemMetric {
   metric_value: number;
   metric_unit: string;
   aggregation_period: string;
-  created_at: string;
+  recorded_at: string;
 }
 
-export class MetricsService extends BaseService<SystemMetric> {
+export class MetricsService extends BaseService {
   constructor() {
     super('system_metrics');
   }
@@ -25,7 +25,7 @@ export class MetricsService extends BaseService<SystemMetric> {
         .from('system_metrics')
         .select('*')
         .eq('metric_name', metricName)
-        .order('created_at', { ascending: false })
+        .order('recorded_at', { ascending: false })
         .limit(limit);
 
       if (error) {
@@ -35,6 +35,28 @@ export class MetricsService extends BaseService<SystemMetric> {
       return data as SystemMetric[];
     } catch (error) {
       await logError('system', 'database', 'Failed to get metrics by name', error as Error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get recent metrics
+   */
+  async getRecentMetrics(limit: number = 100) {
+    try {
+      const { data, error } = await supabase
+        .from('system_metrics')
+        .select('*')
+        .order('recorded_at', { ascending: false })
+        .limit(limit);
+
+      if (error) {
+        throw error;
+      }
+
+      return data as SystemMetric[];
+    } catch (error) {
+      await logError('system', 'database', 'Failed to get recent metrics', error as Error);
       throw error;
     }
   }

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import { Button } from '@/components/ui/Button';
@@ -34,13 +34,7 @@ export default function ResultsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (flowId) {
-      loadFlowData();
-    }
-  }, [flowId]);
-
-  const loadFlowData = async () => {
+  const loadFlowData = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(`/api/flows/${flowId}`);
@@ -61,7 +55,13 @@ export default function ResultsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [flowId]);
+
+  useEffect(() => {
+    if (flowId) {
+      loadFlowData();
+    }
+  }, [flowId, loadFlowData]);
 
   const handleDownload = async (logo: any) => {
     if (!logo.public_url) {

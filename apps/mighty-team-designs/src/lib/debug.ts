@@ -11,7 +11,7 @@ export type LogCategory = 'flow_creation' | 'flow_update' | 'question_generation
  * Log debug information to the database
  */
 export async function logDebug(
-  flowId: string,
+  flowId: string | null,
   level: LogLevel,
   category: LogCategory,
   message: string,

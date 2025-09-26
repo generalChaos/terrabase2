@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/Button';
 
@@ -35,13 +35,7 @@ export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalPr
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (isOpen && flowId) {
-      loadFlowDetails();
-    }
-  }, [isOpen, flowId]);
-
-  const loadFlowDetails = async () => {
+  const loadFlowDetails = useCallback(async () => {
     if (!flowId) return;
 
     try {
@@ -60,7 +54,13 @@ export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalPr
     } finally {
       setLoading(false);
     }
-  };
+  }, [flowId]);
+
+  useEffect(() => {
+    if (isOpen && flowId) {
+      loadFlowDetails();
+    }
+  }, [isOpen, flowId, loadFlowDetails]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString();
