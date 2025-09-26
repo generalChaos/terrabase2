@@ -141,8 +141,10 @@ export class QuestionService extends BaseService {
       }
 
       // Save the generated question set (generic for sport + age group)
+      // Use timestamp to ensure uniqueness since we generate fresh questions each time
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       const questionSet = await this.create({
-        name: `${sport}_${ageGroup}_questions`,
+        name: `${sport}_${ageGroup}_questions_${timestamp}`,
         sport,
         age_group: ageGroup,
         questions,
