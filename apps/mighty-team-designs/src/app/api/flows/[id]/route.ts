@@ -5,10 +5,10 @@ import { logDebug } from '@/lib/debug';
 // GET /api/flows/[id] - Get a specific flow
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const flowId = params.id;
+    const { id: flowId } = await params;
 
     if (!flowId) {
       return NextResponse.json(
@@ -19,7 +19,10 @@ export async function GET(
 
     const { data: flow, error } = await supabase
       .from('team_design_flows')
-      .select('*')
+      .select(`
+        *,
+        team_logos!team_logos_flow_id_fkey (*)
+      `)
       .eq('id', flowId)
       .eq('is_active', true)
       .single();
@@ -49,10 +52,10 @@ export async function GET(
 // PUT /api/flows/[id] - Update a flow
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const flowId = params.id;
+    const { id: flowId } = await params;
     const body = await request.json();
 
     if (!flowId) {
@@ -106,10 +109,10 @@ export async function PUT(
 // DELETE /api/flows/[id] - Soft delete a flow
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const flowId = params.id;
+    const { id: flowId } = await params;
 
     if (!flowId) {
       return NextResponse.json(
