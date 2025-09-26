@@ -20,9 +20,39 @@ export function LogoSelection() {
     reset();
   };
 
-  const handleDownload = (logoId: string) => {
-    // TODO: Implement download functionality
-    console.log('Download logo:', logoId);
+  const handleDownload = async (logoId: string) => {
+    const logo = state.logoVariants.find(l => l.id === logoId);
+    if (!logo?.public_url) {
+      console.error('No download URL available for logo:', logoId);
+      return;
+    }
+
+    try {
+      // Fetch the image
+      const response = await fetch(logo.public_url);
+      if (!response.ok) {
+        throw new Error('Failed to fetch image');
+      }
+      
+      const blob = await response.blob();
+      
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${state.round1Answers.team_name}-logo-variant-${logo.variant_number}.png`;
+      
+      // Trigger download
+      document.body.appendChild(link);
+      link.click();
+      
+      // Cleanup
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Download failed:', error);
+      // You could add a toast notification here
+    }
   };
 
   if (state.logoVariants.length === 0) {
@@ -83,6 +113,12 @@ export function LogoSelection() {
               className="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
             >
               Download Selected Logo
+            </Button>
+            <Button
+              onClick={() => window.location.href = `/results/${state.flow?.id}`}
+              className="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
+            >
+              View Results Page
             </Button>
             <Button
               onClick={() => console.log('Share logo:', state.selectedLogoId)}
