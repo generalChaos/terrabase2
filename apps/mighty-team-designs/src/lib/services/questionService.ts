@@ -161,88 +161,43 @@ export class QuestionService extends BaseService {
   }
 
   /**
-   * Generate questions using OpenAI GPT-4o-mini
+   * Generate questions using OpenAI GPT-4o-mini (optimized for speed)
    */
   private async generateQuestionsWithAI(teamName: string, sport: string, ageGroup: string): Promise<Question[]> {
     try {
-      const prompt = `Generate 3 creative team logo design questions for the "${teamName}" ${ageGroup} ${sport} team. 
-      
-      Requirements:
-      - Questions should help determine logo style, colors, and mascot preferences
-      - Use multiple choice format with 3-4 options each
-      - Make questions age-appropriate for ${ageGroup}
-      - Focus on visual design preferences
-      - Make questions feel personalized for the team name "${teamName}"`;
+      const prompt = `Generate 3 team logo questions for "${teamName}" ${sport} team (${ageGroup}).
+
+Return JSON:
+{
+  "questions": [
+    {"id": "style", "text": "What best fits ${teamName}?", "type": "multiple_choice", "options": ["Fun", "Professional", "Tough", "Friendly"], "required": true},
+    {"id": "colors", "text": "What colors work for ${teamName}?", "type": "multiple_choice", "options": ["Team colors", "Custom colors", "Classic colors"], "required": true},
+    {"id": "mascot", "text": "Should ${teamName} logo include a mascot?", "type": "multiple_choice", "options": ["Yes", "No", "Text only"], "required": true}
+  ]
+}
+
+Make questions age-appropriate for ${ageGroup}. JSON only.`;
 
       const response = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
         messages: [
           {
-            role: 'system',
-            content: 'You are a creative team logo design expert. Generate helpful questions for team logo preferences.'
-          },
-          {
             role: 'user',
             content: prompt
           }
         ],
-        functions: [
-          {
-            name: 'generate_questions',
-            description: 'Generate team logo design questions',
-            parameters: {
-              type: 'object',
-              properties: {
-                questions: {
-                  type: 'array',
-                  items: {
-                    type: 'object',
-                    properties: {
-                      id: {
-                        type: 'string',
-                        description: 'Unique identifier for the question'
-                      },
-                      text: {
-                        type: 'string',
-                        description: 'The question text'
-                      },
-                      type: {
-                        type: 'string',
-                        enum: ['multiple_choice'],
-                        description: 'Type of question'
-                      },
-                      options: {
-                        type: 'array',
-                        items: {
-                          type: 'string'
-                        },
-                        description: 'Available answer options'
-                      },
-                      required: {
-                        type: 'boolean',
-                        description: 'Whether the question is required'
-                      }
-                    },
-                    required: ['id', 'text', 'type', 'options', 'required']
-                  }
-                }
-              },
-              required: ['questions']
-            }
-          }
-        ],
-        function_call: { name: 'generate_questions' },
+        response_format: { type: "json_object" },
         temperature: 0.7,
-        max_tokens: 1000
+        max_tokens: 500
       });
 
-      const functionCall = response.choices[0]?.message?.function_call;
-      if (!functionCall || functionCall.name !== 'generate_questions') {
-        throw new Error('No function call response from OpenAI');
+      const content = response.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error('No response from OpenAI');
       }
 
-      const args = JSON.parse(functionCall.arguments);
-      const questions = args.questions;
+      const result = JSON.parse(content);
+      const questions = result.questions;
       
       // Validate the response structure
       if (!Array.isArray(questions) || questions.length === 0) {
