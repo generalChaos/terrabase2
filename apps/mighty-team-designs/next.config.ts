@@ -10,7 +10,7 @@ const nextConfig: NextConfig = {
     },
   },
   images: {
-    domains: ['localhost', 'supabase.co'],
+    domains: ['localhost', 'supabase.co', '127.0.0.1'],
     formats: ['image/webp', 'image/avif'],
   },
   env: {
