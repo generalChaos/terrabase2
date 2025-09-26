@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useQuestionnaire } from '@/contexts/QuestionnaireContext';
 import { Button } from '@/components/ui/Button';
 import { QuestionCard } from './QuestionCard';
@@ -8,23 +8,35 @@ import { QuestionCard } from './QuestionCard';
 export function Round2Form() {
   const { state, dispatch, updateFlow, getQuestions, generateQuestions } = useQuestionnaire();
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
+  const hasLoadedQuestions = useRef(false);
 
   const loadQuestions = useCallback(async () => {
+    if (hasLoadedQuestions.current || isGeneratingQuestions) return;
+    
     try {
       setIsGeneratingQuestions(true);
+      hasLoadedQuestions.current = true;
       await getQuestions(state.round1Answers.sport, state.round1Answers.age_group);
     } catch (error) {
       console.error('Error loading questions:', error);
+      hasLoadedQuestions.current = false; // Reset on error
     } finally {
       setIsGeneratingQuestions(false);
     }
-  }, [getQuestions, state.round1Answers.sport, state.round1Answers.age_group]);
+  }, [getQuestions, state.round1Answers.sport, state.round1Answers.age_group, isGeneratingQuestions]);
 
   useEffect(() => {
-    if (state.round2Questions.length === 0 && state.round1Answers.sport && state.round1Answers.age_group) {
+    if (state.round2Questions.length === 0 && state.round1Answers.sport && state.round1Answers.age_group && !hasLoadedQuestions.current) {
       loadQuestions();
     }
   }, [state.round1Answers.sport, state.round1Answers.age_group, loadQuestions, state.round2Questions.length]);
+
+  // Reset the flag when questions are loaded
+  useEffect(() => {
+    if (state.round2Questions.length > 0) {
+      hasLoadedQuestions.current = false;
+    }
+  }, [state.round2Questions.length]);
 
   const handleGenerateQuestions = async () => {
     try {
@@ -126,7 +138,7 @@ export function Round2Form() {
             key={question.id}
             question={question}
             answer={state.round2Answers.find(a => a.id === question.id)}
-            onChange={(selected) => handleAnswerChange(question.id, selected)}
+            onChange={(selected: number) => handleAnswerChange(question.id, selected)}
             questionNumber={index + 1}
           />
         ))}
