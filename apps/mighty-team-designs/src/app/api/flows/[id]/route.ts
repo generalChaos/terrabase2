@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
-import { logDebug } from '@/lib/debug';
+import { serviceManager } from '@/lib/services/serviceManager';
+import { logError } from '@/lib/debug';
 
 // GET /api/flows/[id] - Get a specific flow
 export async function GET(
@@ -17,18 +17,9 @@ export async function GET(
       );
     }
 
-    const { data: flow, error } = await supabase
-      .from('team_design_flows')
-      .select(`
-        *,
-        team_logos!team_logos_flow_id_fkey (*)
-      `)
-      .eq('id', flowId)
-      .eq('is_active', true)
-      .single();
+    const flow = await serviceManager.flows.getFlowById(flowId);
 
-    if (error) {
-      console.error('Error fetching flow:', error);
+    if (!flow) {
       return NextResponse.json(
         { error: 'Flow not found' },
         { status: 404 }
@@ -65,36 +56,11 @@ export async function PUT(
       );
     }
 
-    const { data: flow, error } = await supabase
-      .from('team_design_flows')
-      .update({
-        ...body,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', flowId)
-      .eq('is_active', true)
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error updating flow:', error);
-      return NextResponse.json(
-        { error: 'Failed to update flow' },
-        { status: 500 }
-      );
-    }
-
-    // Log debug information if enabled
-    if (flow.debug_mode) {
-      await logDebug(flow.id, 'info', 'flow_update', 'Flow updated', {
-        updated_fields: Object.keys(body),
-        current_step: flow.current_step
-      });
-    }
+    const updatedFlow = await serviceManager.flows.updateTeamDesignFlow(flowId, body);
 
     return NextResponse.json({
       success: true,
-      data: flow
+      data: updatedFlow
     });
 
   } catch (error) {
@@ -121,23 +87,7 @@ export async function DELETE(
       );
     }
 
-    const { data: flow, error } = await supabase
-      .from('team_design_flows')
-      .update({
-        is_active: false,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', flowId)
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error deleting flow:', error);
-      return NextResponse.json(
-        { error: 'Failed to delete flow' },
-        { status: 500 }
-      );
-    }
+    await serviceManager.flows.softDeleteTeamDesignFlow(flowId);
 
     return NextResponse.json({
       success: true,

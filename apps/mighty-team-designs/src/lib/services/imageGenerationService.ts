@@ -20,6 +20,9 @@ export interface GeneratedLogo {
   is_selected: boolean;
   generation_time_ms: number;
   generation_cost_usd: number;
+  generation_prompt: string;
+  model_used: string;
+  created_at: string;
 }
 
 export class ImageGenerationService {
@@ -179,7 +182,10 @@ export class ImageGenerationService {
         public_url: urlData.publicUrl,
         is_selected: variantNumber === 1,
         generation_time_ms: generationTime,
-        generation_cost_usd: generationCost
+        generation_cost_usd: generationCost,
+        generation_prompt: promptText,
+        model_used: 'gpt-image-1',
+        created_at: logo.created_at
       };
 
     } catch (error) {
@@ -235,7 +241,10 @@ export class ImageGenerationService {
           public_url: mockPublicUrl,
           is_selected: i === 0,
           generation_time_ms: Date.now() - startTime,
-          generation_cost_usd: 0.00
+          generation_cost_usd: 0.00,
+          generation_prompt: `Mock logo for ${options.teamName} (${options.sport}, ${options.ageGroup})`,
+          model_used: 'mock',
+          created_at: logo.created_at
         });
       }
 

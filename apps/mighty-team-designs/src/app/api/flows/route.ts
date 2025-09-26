@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { supabase } from '@/lib/supabase';
-import { v4 as uuidv4 } from 'uuid';
-import { logDebug } from '@/lib/debug';
+import { serviceManager } from '@/lib/services/serviceManager';
+import { logError } from '@/lib/debug';
 
 // Validation schemas
 const CreateFlowSchema = z.object({
@@ -19,49 +18,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedData = CreateFlowSchema.parse(body);
 
-    // Generate a new session ID for anonymous tracking
-    const userSessionId = uuidv4();
-
-    const flowData = {
-      user_session_id: userSessionId,
-      team_name: validatedData.team_name,
-      sport: validatedData.sport,
-      age_group: validatedData.age_group,
-      round1_answers: {
-        team_name: validatedData.team_name,
-        sport: validatedData.sport,
-        age_group: validatedData.age_group
-      },
-      round2_questions: [],
-      round2_answers: [],
-      logo_variants: [],
-      current_step: 'round1' as const,
-      debug_mode: validatedData.debug_mode,
-      is_active: true
-    };
-
-    const { data: flow, error } = await supabase
-      .from('team_design_flows')
-      .insert(flowData)
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error creating flow:', error);
-      return NextResponse.json(
-        { error: 'Failed to create team design flow' },
-        { status: 500 }
-      );
-    }
-
-    // Log debug information if enabled
-    if (validatedData.debug_mode) {
-      await logDebug(flow.id, 'info', 'flow_creation', 'Team design flow created', {
-        team_name: validatedData.team_name,
-        sport: validatedData.sport,
-        age_group: validatedData.age_group
-      });
-    }
+    const flow = await serviceManager.flows.createTeamDesignFlow(validatedData);
 
     return NextResponse.json({
       success: true,
@@ -69,7 +26,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error in POST /api/flows:', error);
+    await logError('API_FLOW_CREATE_ERROR', 'Failed to create flow', error as Error);
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(
