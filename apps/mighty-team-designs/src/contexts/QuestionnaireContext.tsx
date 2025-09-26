@@ -231,6 +231,8 @@ export function QuestionnaireProvider({ children }: { children: React.ReactNode 
       dispatch({ type: 'SET_ROUND2_QUESTIONS', payload: result.data.questions });
     } catch (error) {
       dispatch({ type: 'SET_ERROR', payload: error instanceof Error ? error.message : 'Unknown error' });
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
     }
   };
 

@@ -9,6 +9,9 @@ export function Round2Form() {
   const { state, dispatch, updateFlow, getQuestions, generateQuestions } = useQuestionnaire();
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
 
+  console.log('Round2Form render - round2Questions length:', state.round2Questions.length);
+  console.log('Round2Form render - round2Questions:', state.round2Questions);
+
   const loadQuestions = useCallback(async () => {
     try {
       setIsGeneratingQuestions(true);
