@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { Button } from '@/components/ui/Button';
 
 interface FlowDetails {
@@ -133,6 +134,65 @@ export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalPr
 
           {flowDetails && (
             <div className="space-y-6">
+              {/* Selected Logo Preview */}
+              {flowDetails.logo_variants && flowDetails.logo_variants.length > 0 && (
+                <div className="bg-gradient-to-r from-purple-50 to-blue-50 p-6 rounded-lg border-2 border-purple-200">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">Selected Logo</h3>
+                  <div className="flex items-center space-x-6">
+                    {(() => {
+                      const selectedLogo = flowDetails.logo_variants.find((logo: any) => logo.is_selected);
+                      if (selectedLogo && selectedLogo.public_url) {
+                        return (
+                          <>
+                            <div className="flex-shrink-0">
+                              <div className="w-24 h-24 bg-white rounded-lg shadow-md flex items-center justify-center p-2">
+                                <Image
+                                  src={selectedLogo.public_url}
+                                  alt="Selected logo"
+                                  width={80}
+                                  height={80}
+                                  className="max-w-full max-h-full object-contain"
+                                  unoptimized
+                                />
+                              </div>
+                            </div>
+                            <div className="flex-1">
+                              <h4 className="text-lg font-semibold text-gray-900">
+                                {flowDetails.team_name} Logo
+                              </h4>
+                              <p className="text-sm text-gray-600 mb-2">
+                                Variant {selectedLogo.variant_number} • {selectedLogo.model_used}
+                              </p>
+                              <div className="flex space-x-4 text-xs text-gray-500">
+                                <span>Generated in {selectedLogo.generation_time_ms}ms</span>
+                                <span>Cost: ${selectedLogo.generation_cost_usd?.toFixed(4)}</span>
+                              </div>
+                            </div>
+                            <div className="flex-shrink-0">
+                              <a
+                                href={selectedLogo.public_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold py-2 px-4 rounded-lg transition-colors"
+                              >
+                                View Full Size
+                              </a>
+                            </div>
+                          </>
+                        );
+                      } else {
+                        return (
+                          <div className="text-center text-gray-500 py-8">
+                            <div className="text-4xl mb-2">🎨</div>
+                            <p>No logo selected yet</p>
+                          </div>
+                        );
+                      }
+                    })()}
+                  </div>
+                </div>
+              )}
+
               {/* Basic Info */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="bg-gray-50 p-4 rounded-lg">
@@ -247,32 +307,81 @@ export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalPr
               {flowDetails.logo_variants && flowDetails.logo_variants.length > 0 && (
                 <div className="bg-purple-50 p-4 rounded-lg">
                   <h3 className="text-lg font-medium text-gray-900 mb-3">Generated Logos</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {flowDetails.logo_variants.map((logo: any, index: number) => (
-                      <div key={logo.id} className="border border-purple-200 rounded-md p-3">
-                        <div className="flex justify-between items-start mb-2">
-                          <h4 className="text-sm font-medium text-gray-900">
-                            Variant {logo.variant_number}
-                          </h4>
-                          {logo.is_selected && (
-                            <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded-full">
-                              Selected
-                            </span>
-                          )}
+                      <div 
+                        key={logo.id} 
+                        className={`relative border-2 rounded-lg p-4 transition-all duration-200 ${
+                          logo.is_selected 
+                            ? 'border-purple-500 bg-purple-100 shadow-lg ring-2 ring-purple-200' 
+                            : 'border-purple-200 bg-white hover:border-purple-300 hover:shadow-md'
+                        }`}
+                      >
+                        {/* Selection Badge */}
+                        {logo.is_selected && (
+                          <div className="absolute -top-2 -right-2 bg-purple-500 text-white text-xs font-bold px-2 py-1 rounded-full z-10">
+                            SELECTED
+                          </div>
+                        )}
+                        
+                        {/* Logo Image */}
+                        <div className="relative mb-4">
+                          <div className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center p-4">
+                            {logo.public_url ? (
+                              <Image
+                                src={logo.public_url}
+                                alt={`Logo variant ${logo.variant_number}`}
+                                width={200}
+                                height={200}
+                                className="max-w-full max-h-full object-contain"
+                                unoptimized
+                              />
+                            ) : (
+                              <div className="text-gray-400 text-center">
+                                <div className="text-4xl mb-2">🖼️</div>
+                                <div className="text-sm">No image available</div>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                        <div className="space-y-1 text-xs text-gray-600">
-                          <div>Model: {logo.model_used}</div>
-                          <div>Time: {logo.generation_time_ms}ms</div>
-                          <div>Cost: ${logo.generation_cost_usd?.toFixed(4)}</div>
+
+                        {/* Logo Info */}
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center">
+                            <h4 className="text-sm font-medium text-gray-900">
+                              Variant {logo.variant_number}
+                            </h4>
+                            {logo.is_selected && (
+                              <span className="text-xs bg-purple-500 text-white px-2 py-1 rounded-full">
+                                Selected
+                              </span>
+                            )}
+                          </div>
+                          
+                          <div className="space-y-1 text-xs text-gray-600">
+                            <div className="flex justify-between">
+                              <span>Model:</span>
+                              <span className="font-mono">{logo.model_used}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Time:</span>
+                              <span>{logo.generation_time_ms}ms</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Cost:</span>
+                              <span>${logo.generation_cost_usd?.toFixed(4)}</span>
+                            </div>
+                          </div>
+
                           {logo.public_url && (
-                            <div className="mt-2">
+                            <div className="mt-3 pt-2 border-t border-gray-200">
                               <a
                                 href={logo.public_url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-blue-600 hover:text-blue-800 underline"
+                                className="text-blue-600 hover:text-blue-800 underline text-xs"
                               >
-                                View Image
+                                View Full Size →
                               </a>
                             </div>
                           )}

@@ -202,11 +202,13 @@ export function QuestionnaireProvider({ children }: { children: React.ReactNode 
       }
     } catch (error) {
       dispatch({ type: 'SET_ERROR', payload: error instanceof Error ? error.message : 'Unknown error' });
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
     }
   };
 
   const generateQuestions = async () => {
-    if (!state.flow) return;
+    if (!state.flow || state.isLoading) return; // Prevent duplicate calls
 
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
@@ -237,7 +239,7 @@ export function QuestionnaireProvider({ children }: { children: React.ReactNode 
   };
 
   const generateLogos = async () => {
-    if (!state.flow) return;
+    if (!state.flow || state.isLoading) return; // Prevent duplicate calls
 
     try {
       dispatch({ type: 'SET_LOADING', payload: true });

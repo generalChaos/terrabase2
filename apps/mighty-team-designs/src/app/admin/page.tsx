@@ -291,31 +291,6 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Question Sets by Sport/Age */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Questions by Sport</h2>
-            <div className="space-y-2">
-              {Object.entries(data?.questions.by_sport || {}).map(([sport, count]) => (
-                <div key={sport} className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-gray-700">{sport}</span>
-                  <span className="text-sm text-gray-500">{count}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Questions by Age Group</h2>
-            <div className="space-y-2">
-              {Object.entries(data?.questions.by_age_group || {}).map(([ageGroup, count]) => (
-                <div key={ageGroup} className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-gray-700">{ageGroup}</span>
-                  <span className="text-sm text-gray-500">{count}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
 
         {/* Recent Debug Logs */}
         <div className="bg-white p-6 rounded-lg shadow">

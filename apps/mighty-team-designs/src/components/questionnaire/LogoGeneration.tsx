@@ -1,16 +1,25 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useQuestionnaire } from '@/contexts/QuestionnaireContext';
 
 export function LogoGeneration() {
   const { state, generateLogos } = useQuestionnaire();
+  const hasGenerated = useRef(false);
 
   useEffect(() => {
-    if (state.currentStep === 'generating' && state.round2Answers.length > 0) {
+    if (state.currentStep === 'generating' && state.round2Answers.length > 0 && !hasGenerated.current) {
+      hasGenerated.current = true;
       generateLogos();
     }
   }, [state.currentStep, state.round2Answers.length, generateLogos]);
+
+  // Reset the flag when step changes away from generating
+  useEffect(() => {
+    if (state.currentStep !== 'generating') {
+      hasGenerated.current = false;
+    }
+  }, [state.currentStep]);
 
   return (
     <div className="max-w-2xl mx-auto text-center">
