@@ -32,21 +32,11 @@ export class QuestionService extends BaseService {
    */
   async getQuestionsForFlow(flowId: string, sport: string, ageGroup: string): Promise<QuestionSet> {
     try {
-      // First, try to find an existing question set
-      const existingSet = await this.findExistingQuestionSet(sport, ageGroup);
+      // Always generate fresh questions for personalization
+      // Note: This method is deprecated in favor of generateQuestionsForFlow with team name
+      const generatedSet = await this.generateQuestions(flowId, 'Team', sport, ageGroup);
       
-      if (existingSet) {
-        await logDebug('system', 'info', 'question_generation', `Found existing question set for ${sport} ${ageGroup}`, {
-          question_set_id: existingSet.id,
-          question_count: existingSet.questions.length
-        });
-        return existingSet;
-      }
-
-      // If no existing set, generate new questions
-      const generatedSet = await this.generateQuestions(flowId, sport, ageGroup);
-      
-      await logDebug('system', 'info', 'question_generation', `Generated new question set for ${sport} ${ageGroup}`, {
+      await logDebug('system', 'info', 'question_generation', `Generated fresh question set for ${sport} ${ageGroup}`, {
         question_set_id: generatedSet.id,
         question_count: generatedSet.questions.length
       });
@@ -86,27 +76,18 @@ export class QuestionService extends BaseService {
   /**
    * Generate questions for a flow (public method)
    */
-  async generateQuestionsForFlow(flowId: string, sport: string, ageGroup: string): Promise<QuestionSet> {
+  async generateQuestionsForFlow(flowId: string, teamName: string, sport: string, ageGroup: string): Promise<QuestionSet> {
     try {
-      await logDebug(flowId, 'info', 'question_generation', `Generating questions for flow ${flowId}`, {
+      await logDebug(flowId, 'info', 'question_generation', `Generating fresh questions for flow ${flowId}`, {
+        teamName,
         sport,
         ageGroup
       });
       
-      // First try to find existing questions
-      const existingSet = await this.findExistingQuestionSet(sport, ageGroup);
-      if (existingSet) {
-        await logDebug(flowId, 'info', 'question_generation', `Using existing question set`, {
-          question_set_id: existingSet.id,
-          question_count: existingSet.questions.length
-        });
-        return existingSet;
-      }
+      // Always generate fresh questions for personalization
+      const questionSet = await this.generateQuestions(flowId, teamName, sport, ageGroup);
       
-      // Generate new questions
-      const questionSet = await this.generateQuestions(flowId, sport, ageGroup);
-      
-      await logDebug(flowId, 'info', 'question_generation', `Generated new question set`, {
+      await logDebug(flowId, 'info', 'question_generation', `Generated fresh question set`, {
         question_set_id: questionSet.id,
         question_count: questionSet.questions.length
       });
@@ -146,7 +127,7 @@ export class QuestionService extends BaseService {
   /**
    * Generate new questions using OpenAI
    */
-  private async generateQuestions(flowId: string, sport: string, ageGroup: string): Promise<QuestionSet> {
+  private async generateQuestions(flowId: string, teamName: string, sport: string, ageGroup: string): Promise<QuestionSet> {
     try {
       // Check if OpenAI is available
       const isOpenAIAvailable = !!(process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'your_openai_api_key_here');
@@ -154,12 +135,12 @@ export class QuestionService extends BaseService {
       let questions: Question[];
 
       if (isOpenAIAvailable) {
-        questions = await this.generateQuestionsWithAI(sport, ageGroup);
+        questions = await this.generateQuestionsWithAI(teamName, sport, ageGroup);
       } else {
-        questions = this.getFallbackQuestions(sport, ageGroup);
+        questions = this.getFallbackQuestions(teamName, sport, ageGroup);
       }
 
-      // Save the generated question set
+      // Save the generated question set (generic for sport + age group)
       const questionSet = await this.create({
         name: `${sport}_${ageGroup}_questions`,
         sport,
@@ -180,15 +161,16 @@ export class QuestionService extends BaseService {
   /**
    * Generate questions using OpenAI GPT-4o-mini
    */
-  private async generateQuestionsWithAI(sport: string, ageGroup: string): Promise<Question[]> {
+  private async generateQuestionsWithAI(teamName: string, sport: string, ageGroup: string): Promise<Question[]> {
     try {
-      const prompt = `Generate 3 creative team logo design questions for a ${ageGroup} ${sport} team. 
+      const prompt = `Generate 3 creative team logo design questions for the "${teamName}" ${ageGroup} ${sport} team. 
       
       Requirements:
       - Questions should help determine logo style, colors, and mascot preferences
       - Use multiple choice format with 3-4 options each
       - Make questions age-appropriate for ${ageGroup}
-      - Focus on visual design preferences`;
+      - Focus on visual design preferences
+      - Make questions feel personalized for the team name "${teamName}"`;
 
       const response = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
@@ -268,32 +250,32 @@ export class QuestionService extends BaseService {
       return questions;
     } catch (error) {
       console.warn('OpenAI question generation failed, using fallback:', error);
-      return this.getFallbackQuestions(sport, ageGroup);
+      return this.getFallbackQuestions(teamName, sport, ageGroup);
     }
   }
 
   /**
    * Get fallback questions when AI is not available
    */
-  private getFallbackQuestions(sport: string, ageGroup: string): Question[] {
+  private getFallbackQuestions(teamName: string, sport: string, ageGroup: string): Question[] {
     return [
       {
         id: 'style',
-        text: 'What best fits your team?',
+        text: `What best fits the ${teamName} team?`,
         type: 'multiple_choice',
         options: ['Fun', 'Professional', 'Tough', 'Friendly'],
         required: true
       },
       {
         id: 'colors',
-        text: 'What colors work for your team?',
+        text: `What colors work for the ${teamName} team?`,
         type: 'multiple_choice',
         options: ['Team colors', 'Custom colors', 'Classic colors'],
         required: true
       },
       {
         id: 'mascot',
-        text: 'Should your logo include a mascot?',
+        text: `Should the ${teamName} logo include a mascot?`,
         type: 'multiple_choice',
         options: ['Yes', 'No', 'Text only'],
         required: true

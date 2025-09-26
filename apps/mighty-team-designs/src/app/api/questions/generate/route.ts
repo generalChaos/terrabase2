@@ -25,6 +25,7 @@ export async function POST(request: NextRequest) {
     // Generate questions using the service
     const questionSet = await serviceManager.questions.generateQuestionsForFlow(
       validatedData.flow_id,
+      validatedData.team_name,
       validatedData.sport,
       validatedData.age_group
     );
