@@ -6,15 +6,19 @@ import { Question } from '@/types';
 interface QuestionCardProps {
   question: Question;
   answer?: Question;
-  onChange: (selected: number) => void;
+  onChange: (selected: number | string) => void;
   questionNumber: number;
 }
 
 export function QuestionCard({ question, answer, onChange, questionNumber }: QuestionCardProps) {
-  const selectedIndex = answer?.selected ?? question.selected ?? 0;
+  const selectedValue = answer?.selected ?? question.selected ?? (question.type === 'text' ? '' : 0);
 
   const handleOptionClick = (index: number) => {
     onChange(index);
+  };
+
+  const handleTextChange = (value: string) => {
+    onChange(value);
   };
 
   return (
@@ -28,32 +32,44 @@ export function QuestionCard({ question, answer, onChange, questionNumber }: Que
         </h3>
       </div>
 
-      <div className="space-y-3">
-        {question.options?.map((option, index) => (
-          <button
-            key={index}
-            onClick={() => handleOptionClick(index)}
-            className={`w-full text-left p-4 rounded-lg border-2 transition-all duration-200 ${
-              selectedIndex === index
-                ? 'border-blue-500 bg-blue-50 text-blue-900'
-                : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50'
-            }`}
-          >
-            <div className="flex items-center">
-              <div className={`w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center ${
-                selectedIndex === index
-                  ? 'border-blue-500 bg-blue-500'
-                  : 'border-gray-300'
-              }`}>
-                {selectedIndex === index && (
-                  <div className="w-2 h-2 bg-white rounded-full"></div>
-                )}
+      {question.type === 'text' ? (
+        <div className="space-y-3">
+          <input
+            type="text"
+            value={selectedValue as string}
+            onChange={(e) => handleTextChange(e.target.value)}
+            placeholder="Enter your answer here..."
+            className="w-full p-4 rounded-lg border-2 border-gray-200 bg-white text-gray-700 focus:border-blue-500 focus:outline-none transition-all duration-200"
+          />
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {question.options?.map((option, index) => (
+            <button
+              key={index}
+              onClick={() => handleOptionClick(index)}
+              className={`w-full text-left p-4 rounded-lg border-2 transition-all duration-200 ${
+                selectedValue === index
+                  ? 'border-blue-500 bg-blue-50 text-blue-900'
+                  : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              <div className="flex items-center">
+                <div className={`w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center ${
+                  selectedValue === index
+                    ? 'border-blue-500 bg-blue-500'
+                    : 'border-gray-300'
+                }`}>
+                  {selectedValue === index && (
+                    <div className="w-2 h-2 bg-white rounded-full"></div>
+                  )}
+                </div>
+                <span className="font-medium">{option}</span>
               </div>
-              <span className="font-medium">{option}</span>
-            </div>
-          </button>
-        ))}
-      </div>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

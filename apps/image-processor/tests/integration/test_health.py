@@ -81,4 +81,4 @@ def test_root_endpoint(client):
     endpoints = data["endpoints"]
     assert "health" in endpoints
     assert "docs" in endpoints
-    assert "upscale" in endpoints
+    assert "upscaling" in endpoints

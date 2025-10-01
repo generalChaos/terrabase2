@@ -8,29 +8,19 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import uvicorn
 import os
-import logging
 from dotenv import load_dotenv
 
-from api.upscale import router as upscale_router
-from api.preprocess import router as preprocess_router
-from api.background_removal import router as background_removal_router
-from api.logo_processor import router as logo_processor_router
-from api.cost_optimized_processor import router as cost_optimized_router
-from api.logo_placement import router as logo_placement_router
-from api.web_assets import router as web_assets_router
-from api.logo_asset_pack import router as logo_asset_pack_router
-from api.banner_generator import router as banner_generator_router
-from models.schemas import HealthResponse
-from middleware.request_id import RequestIDMiddleware
+from src.api.upscaling import router as upscaling_router
+from src.api.asset_pack import router as asset_pack_router
+from src.api.stats import router as stats_router
+from src.models.schemas import HealthResponse
+from src.middleware.request_id import RequestIDMiddleware
+from src.logging import logger
 
 # Load environment variables
 load_dotenv()
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+# Logging is configured in the structured_logger module
 
 # Create FastAPI app
 app = FastAPI(
@@ -54,15 +44,9 @@ app.add_middleware(
 )
 
 # Include routers
-app.include_router(upscale_router, prefix="/api/v1", tags=["upscale"])
-app.include_router(preprocess_router, prefix="/api/v1", tags=["preprocess"])
-app.include_router(background_removal_router, prefix="/api/v1", tags=["background-removal"])
-app.include_router(logo_processor_router, prefix="/api/v1", tags=["logo-processor"])
-app.include_router(cost_optimized_router, prefix="/api/v1", tags=["cost-optimized"])
-app.include_router(logo_placement_router, prefix="/api/v1", tags=["logo-placement"])
-app.include_router(web_assets_router, prefix="/api/v1", tags=["web-assets"])
-app.include_router(logo_asset_pack_router, prefix="/api/v1", tags=["logo-asset-packs"])
-app.include_router(banner_generator_router, prefix="/api/v1", tags=["banner-generator"])
+app.include_router(upscaling_router, prefix="/api/v1", tags=["upscaling"])
+app.include_router(asset_pack_router, prefix="/api/v1", tags=["asset-pack"])
+app.include_router(stats_router, prefix="/api/v1", tags=["stats"])
 
 @app.get("/", response_model=dict)
 async def root():
@@ -71,18 +55,13 @@ async def root():
         "service": "Image Processor",
         "version": "1.0.0",
         "status": "running",
-            "endpoints": {
-                "upscale": "/api/v1/upscale",
-                "preprocess": "/api/v1/preprocess",
-                "background_removal": "/api/v1/remove-background",
-                "logo_processor": "/api/v1/process-logo",
-                "logo_placement": "/api/v1/place-logo",
-                "web_assets": "/api/v1/preprocess-logo",
-                "logo_asset_packs": "/api/v1/generate-asset-pack",
-                "banner_generator": "/api/v1/generate-roster-banner",
-                "health": "/health",
-                "docs": "/docs"
-            }
+        "endpoints": {
+            "upscaling": "/api/v1/upscale",
+            "asset_pack": "/api/v1/asset-pack",
+            "stats": "/api/v1/stats",
+            "health": "/health",
+            "docs": "/docs"
+        }
     }
 
 @app.get("/health", response_model=HealthResponse)

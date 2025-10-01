@@ -212,7 +212,6 @@ export class LogoService extends BaseService {
       const { data, error } = await supabase
         .from('team_logos')
         .select('*')
-        .eq('is_active', true)
         .order('created_at', { ascending: false })
         .limit(limit);
 

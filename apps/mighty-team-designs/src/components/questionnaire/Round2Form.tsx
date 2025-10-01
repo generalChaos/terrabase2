@@ -49,7 +49,7 @@ export function Round2Form() {
     }
   };
 
-  const handleAnswerChange = (questionId: string, selected: number) => {
+  const handleAnswerChange = (questionId: string, selected: number | string) => {
     dispatch({ type: 'UPDATE_ROUND2_ANSWER', payload: { questionId, selected } });
   };
 
@@ -61,7 +61,7 @@ export function Round2Form() {
         round2_questions: state.round2Questions,
         round2_answers: state.round2Answers.map(q => ({
           question_id: q.id,
-          answer: q.options[q.selected || 0] || ''
+          answer: typeof q.selected === 'string' ? q.selected : (q.options?.[q.selected || 0] || '')
         })),
         current_step: 'generating'
       });
@@ -70,9 +70,13 @@ export function Round2Form() {
     }
   };
 
-  const isFormValid = state.round2Answers.every(answer => 
-    answer.selected !== undefined && answer.selected >= 0
-  );
+  const isFormValid = state.round2Answers.every(answer => {
+    if (answer.type === 'text') {
+      return typeof answer.selected === 'string' && answer.selected.trim() !== '';
+    } else {
+      return typeof answer.selected === 'number' && answer.selected >= 0;
+    }
+  });
 
   if (isGeneratingQuestions) {
     return (
@@ -138,7 +142,7 @@ export function Round2Form() {
             key={question.id}
             question={question}
             answer={state.round2Answers.find(a => a.id === question.id)}
-            onChange={(selected: number) => handleAnswerChange(question.id, selected)}
+            onChange={(selected: number | string) => handleAnswerChange(question.id, selected)}
             questionNumber={index + 1}
           />
         ))}

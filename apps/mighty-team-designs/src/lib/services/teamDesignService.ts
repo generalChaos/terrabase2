@@ -310,9 +310,9 @@ export class TeamDesignService {
       const promptText = prompt.prompt_text
         .replace('{team}', teamName)
         .replace('{sport}', sport)
-        .replace('{style}', styleOptions[style])
-        .replace('{colors}', colorOptions[colors])
-        .replace('{mascot}', mascotOptions[mascot]);
+        .replace('{style}', styleOptions[style as number])
+        .replace('{colors}', colorOptions[colors as number])
+        .replace('{mascot}', mascotOptions[mascot as number]);
 
       const startTime = Date.now();
       const generatedLogos: LogoVariant[] = [];

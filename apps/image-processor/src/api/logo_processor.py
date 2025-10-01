@@ -15,9 +15,8 @@ from services.ai_background_remover import AIBackgroundRemover
 from services.upscaler import ImageUpscaler
 from services.preprocessor import ImagePreprocessor
 from utils.filename_utils import generate_pipeline_filename
-from validators import InputValidator, ValidationError
-
-logger = logging.getLogger(__name__)
+from validators import InputValidator, ValidationError, FileValidator
+from logging import logger
 
 router = APIRouter()
 
@@ -38,16 +37,36 @@ class OptimizedLogoProcessor:
     async def process_logo_optimized(self, image_url: str, scale_factor: int = 4) -> dict:
         """
         Optimized logo processing pipeline:
-        1. AI background removal (rembg)
-        2. Python-based cleanup and enhancement
-        3. AI-powered upscaling (Real-ESRGAN if available, fallback to OpenCV)
-        4. Final Python optimization
+        1. File validation (size, format, dimensions)
+        2. AI background removal (rembg)
+        3. Python-based cleanup and enhancement
+        4. AI-powered upscaling (Real-ESRGAN if available, fallback to OpenCV)
+        5. Final Python optimization
         """
         import time
         start_time = time.time()
         processing_steps = []
         
         try:
+            # Step 0: File validation
+            logger.info("Step 0: File validation...")
+            processing_steps.append("file_validation")
+            
+            # Validate remote file size and basic properties
+            is_valid, error_msg, validation_info = FileValidator.validate_remote_file_for_processing(
+                image_url, "logo"
+            )
+            if not is_valid:
+                return {
+                    "success": False, 
+                    "error": f"File validation failed: {error_msg}",
+                    "validation_info": validation_info
+                }
+            
+            logger.info("File validation passed", 
+                       file_size=validation_info["file_size"],
+                       file_type=validation_info["file_type"])
+            processing_steps.append("file_validation_complete")
             # Step 1: AI Background Removal (best quality)
             logger.info("Step 1: AI background removal...")
             processing_steps.append("ai_background_removal")
@@ -58,6 +77,22 @@ class OptimizedLogoProcessor:
             
             bg_removed_path = bg_result["processed_path"]
             processing_steps.append("ai_background_removal_complete")
+            
+            # Validate the processed file locally
+            is_valid, error_msg, local_validation_info = FileValidator.validate_file_for_processing(
+                bg_removed_path, "logo"
+            )
+            if not is_valid:
+                return {
+                    "success": False,
+                    "error": f"Processed file validation failed: {error_msg}",
+                    "validation_info": local_validation_info
+                }
+            
+            logger.info("Processed file validation passed",
+                       file_size=local_validation_info["file_size"],
+                       dimensions=local_validation_info["dimensions"],
+                       format=local_validation_info["format"])
             
             # Step 2: Python-based cleanup and enhancement
             logger.info("Step 2: Python cleanup and enhancement...")
@@ -246,6 +281,13 @@ async def process_logo_optimized(request: LogoProcessRequest):
         LogoProcessResponse with processed logo
     """
     try:
+        # Log processing start
+        logger.info("Starting logo processing", 
+                   image_url=str(request.image_url),
+                   upscale_factor=request.upscale_factor,
+                   background_removal_method=request.background_removal_method,
+                   output_format=request.output_format)
+        
         # Validate input parameters
         InputValidator.validate_image_url(str(request.image_url), "image_url")
         InputValidator.validate_output_format(request.output_format, "output_format")
@@ -258,12 +300,19 @@ async def process_logo_optimized(request: LogoProcessRequest):
         if request.background_removal_method not in ["ai", "hybrid", "auto"]:
             raise ValidationError("background_removal_method must be 'ai', 'hybrid', or 'auto'", "background_removal_method")
         
+        logger.info("Input validation passed")
+        
         result = await optimized_processor.process_logo_optimized(
             image_url=str(request.image_url),
             scale_factor=request.upscale_factor
         )
         
         if result["success"]:
+            logger.info("Logo processing completed successfully",
+                       processing_steps=result["processing_steps"],
+                       total_processing_time_ms=result["total_processing_time_ms"],
+                       file_size_bytes=result["file_size_bytes"])
+            
             return LogoProcessResponse(
                 success=True,
                 original_url=request.image_url,
@@ -275,6 +324,11 @@ async def process_logo_optimized(request: LogoProcessRequest):
                 file_size_bytes=result["file_size_bytes"]
             )
         else:
+            logger.error("Logo processing failed",
+                        error=result["error"],
+                        processing_steps=result.get("processing_steps", []),
+                        total_processing_time_ms=result.get("total_processing_time_ms", 0))
+            
             return LogoProcessResponse(
                 success=False,
                 original_url=request.image_url,
@@ -284,7 +338,11 @@ async def process_logo_optimized(request: LogoProcessRequest):
             )
             
     except ValidationError as e:
-        logger.warning(f"Validation error in process_logo_optimized: {e.message}")
+        logger.log_validation_error(
+            field=e.field or "unknown",
+            message=e.message,
+            value=getattr(request, e.field, None) if e.field else None
+        )
         raise HTTPException(
             status_code=400,
             detail={
@@ -294,7 +352,15 @@ async def process_logo_optimized(request: LogoProcessRequest):
             }
         )
     except Exception as e:
-        logger.error(f"Optimized logo processing failed: {e}")
+        logger.log_error_with_context(
+            error=e,
+            context={
+                "image_url": str(request.image_url),
+                "upscale_factor": request.upscale_factor,
+                "background_removal_method": request.background_removal_method,
+                "output_format": request.output_format
+            }
+        )
         return LogoProcessResponse(
             success=False,
             original_url=request.image_url,

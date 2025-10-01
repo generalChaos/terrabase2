@@ -19,7 +19,7 @@ export interface Question {
   type: 'multiple_choice' | 'text';
   options?: string[];
   required: boolean;
-  selected?: number;
+  selected: number | string;
 }
 
 export class QuestionService extends BaseService {
@@ -165,18 +165,52 @@ export class QuestionService extends BaseService {
    */
   private async generateQuestionsWithAI(teamName: string, sport: string, ageGroup: string): Promise<Question[]> {
     try {
-      const prompt = `Generate 3 team logo questions for "${teamName}" ${sport} team (${ageGroup}).
+      const prompt = `Generate 5 personalized, casual questions for team logo design based on the specific team.
 
-Return JSON:
+TEAM: "${teamName}" (${sport}, ${ageGroup})
+
+PERSONALIZE THE QUESTIONS:
+- Make questions specific to this team name and sport
+- Include mascot suggestions based on the team name
+- Suggest colors that would work well for this team
+- Make the language feel natural and conversational
+- Each question should feel like it was written specifically for this team
+
+QUESTIONS TO GENERATE:
+1. Style question - Ask about the team's vibe/personality with options that fit the sport and age group
+2. Colors question - Ask about colors with smart suggestions based on team name
+3. Custom colors - Text input for specific color preferences
+4. Mascot question - Simple yes/no about using AI's best guess (keep it short and casual)
+5. Mascot description - Simple text input for custom mascot ideas (keep it short)
+
+TONE: Casual, parent-friendly, easy to read to kids - KEEP QUESTIONS SHORT AND SIMPLE
+
+AGE-APPROPRIATE STYLING (CRITICAL):
+- U6-U8: ONLY playful, cute, friendly, fun options (NO fierce, bold, aggressive)
+- U10-U12: Mix of playful and slightly competitive (some bold OK, but keep it kid-friendly)
+- U14+: Can include more competitive, bold, fierce options
+- ALWAYS prioritize kid-friendly over aggressive for younger ages
+
+AI INFERENCE: 
+- Analyze team name for smart mascot suggestions (e.g., "Eagles" → Eagle, "Thunder" → Lightning bolt, "Tigers" → Tiger)
+- Suggest colors that work well with the team name and sport
+- Make style options appropriate for the age group and sport - YOUNGER = MORE PLAYFUL
+- Keep mascot questions concise and natural
+
+Return JSON with personalized questions:
 {
   "questions": [
-    {"id": "style", "text": "What best fits ${teamName}?", "type": "multiple_choice", "options": ["Fun", "Professional", "Tough", "Friendly"], "required": true},
-    {"id": "colors", "text": "What colors work for ${teamName}?", "type": "multiple_choice", "options": ["Team colors", "Custom colors", "Classic colors"], "required": true},
-    {"id": "mascot", "text": "Should ${teamName} logo include a mascot?", "type": "multiple_choice", "options": ["Yes", "No", "Text only"], "required": true}
+    {"id": "style", "text": "PERSONALIZED_STYLE_QUESTION", "type": "multiple_choice", "options": ["PERSONALIZED_OPTION_1", "PERSONALIZED_OPTION_2", "PERSONALIZED_OPTION_3", "PERSONALIZED_OPTION_4"], "selected": 0, "required": true},
+    {"id": "colors", "text": "PERSONALIZED_COLORS_QUESTION", "type": "multiple_choice", "options": ["Use team colors", "Input custom colors"], "selected": 0, "required": true},
+    {"id": "custom_colors", "text": "PERSONALIZED_CUSTOM_COLORS_QUESTION", "type": "text", "selected": "", "required": false},
+    {"id": "mascot", "text": "PERSONALIZED_MASCOT_QUESTION", "type": "multiple_choice", "options": ["Yes", "No, I'll describe it"], "selected": 0, "required": true},
+    {"id": "mascot_description", "text": "PERSONALIZED_MASCOT_DESCRIPTION_QUESTION", "type": "text", "selected": "", "required": false}
   ]
 }
 
-Make questions age-appropriate for ${ageGroup}. JSON only.`;
+IMPORTANT: Replace all PERSONALIZED_* placeholders with actual personalized content based on the team name and sport.
+
+Return JSON only.`;
 
       const response = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
@@ -215,27 +249,55 @@ Make questions age-appropriate for ${ageGroup}. JSON only.`;
    * Get fallback questions when AI is not available
    */
   private getFallbackQuestions(teamName: string, sport: string, ageGroup: string): Question[] {
+    // Age-appropriate style options
+    const getStyleOptions = (ageGroup: string) => {
+      if (ageGroup.startsWith('U6') || ageGroup.startsWith('U8')) {
+        return ['Fun & playful', 'Cute & friendly', 'Happy & bright', 'Kid-friendly'];
+      } else if (ageGroup.startsWith('U10') || ageGroup.startsWith('U12')) {
+        return ['Fun & playful', 'Energetic & bold', 'Friendly & approachable', 'Competitive'];
+      } else {
+        return ['Fun & playful', 'Serious & tough', 'Friendly & approachable', 'Professional'];
+      }
+    };
+
     return [
       {
         id: 'style',
-        text: `What best fits the ${teamName} team?`,
+        text: `What vibe fits the ${teamName} best?`,
         type: 'multiple_choice',
-        options: ['Fun', 'Professional', 'Tough', 'Friendly'],
+        options: getStyleOptions(ageGroup),
+        selected: 0,
         required: true
       },
       {
         id: 'colors',
-        text: `What colors work for the ${teamName} team?`,
+        text: `What colors should we use for the ${teamName}?`,
         type: 'multiple_choice',
-        options: ['Team colors', 'Custom colors', 'Classic colors'],
+        options: ['Use team colors', 'Input custom colors'],
+        selected: 0,
         required: true
       },
       {
+        id: 'custom_colors',
+        text: `What colors do you want for the ${teamName}? (e.g., 'blue and white')`,
+        type: 'text',
+        selected: '',
+        required: false
+      },
+      {
         id: 'mascot',
-        text: `Should the ${teamName} logo include a mascot?`,
+        text: `Use our best guess for your mascot?`,
         type: 'multiple_choice',
-        options: ['Yes', 'No', 'Text only'],
+        options: ['Yes', 'No, I\'ll describe it'],
+        selected: 0,
         required: true
+      },
+      {
+        id: 'mascot_description',
+        text: `What should your mascot be?`,
+        type: 'text',
+        selected: '',
+        required: false
       }
     ];
   }

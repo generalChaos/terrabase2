@@ -167,7 +167,7 @@ export class EnhancedTeamDesignService extends BaseService {
       const flow = await this.updateTeamDesignFlow(flowId, {
         round2_answers: answers.map(q => ({
           question_id: q.id,
-          answer: q.options[q.selected || 0] || ''
+          answer: typeof q.selected === 'string' ? q.selected : (q.options?.[q.selected || 0] || '')
         })),
         current_step: 'generating' as FlowStep
       });
@@ -195,23 +195,44 @@ export class EnhancedTeamDesignService extends BaseService {
       }
 
       // Extract answers for prompt generation from round2_questions
-      const style = flow.round2_questions?.find(a => a.id === 'style')?.selected || 0;
-      const colors = flow.round2_questions?.find(a => a.id === 'colors')?.selected || 0;
-      const mascot = flow.round2_questions?.find(a => a.id === 'mascot')?.selected || 0;
+      const styleQuestion = flow.round2_questions?.find(a => a.id === 'style');
+      const colorsQuestion = flow.round2_questions?.find(a => a.id === 'colors');
+      const customColorsQuestion = flow.round2_questions?.find(a => a.id === 'custom_colors');
+      const mascotQuestion = flow.round2_questions?.find(a => a.id === 'mascot');
+      const mascotDescriptionQuestion = flow.round2_questions?.find(a => a.id === 'mascot_description');
+
+      // Get the selected values
+      const styleSelected = styleQuestion?.selected || 0;
+      const colorsSelected = colorsQuestion?.selected || 0;
+      const customColors = typeof customColorsQuestion?.selected === 'string' ? customColorsQuestion.selected : '';
+      const mascotSelected = mascotQuestion?.selected || 0;
+      const mascotDescription = typeof mascotDescriptionQuestion?.selected === 'string' ? mascotDescriptionQuestion.selected : '';
 
       // Get the options for each answer
-      const styleOptions = flow.round2_questions?.find(a => a.id === 'style')?.options || ['Fun', 'Professional', 'Tough', 'Friendly'];
-      const colorOptions = flow.round2_questions?.find(a => a.id === 'colors')?.options || ['Team colors', 'Custom colors', 'Classic colors'];
-      const mascotOptions = flow.round2_questions?.find(a => a.id === 'mascot')?.options || ['Yes', 'No', 'Text only'];
+      const styleOptions = styleQuestion?.options || ['Fun & playful', 'Serious & tough', 'Friendly & approachable', 'Professional'];
+      const colorOptions = colorsQuestion?.options || ['Use team colors', 'Input custom colors'];
+      const mascotOptions = mascotQuestion?.options || ['Yes, use our guess', 'No, I\'ll describe it myself'];
+
+      // Determine final values
+      const style = styleOptions[styleSelected as number];
+      const colors = colorOptions[colorsSelected as number];
+      const finalCustomColors = colors === 'Input custom colors' ? customColors : '';
+      
+      // Determine mascot based on user choice
+      const useAIGuess = mascotOptions[mascotSelected as number] === 'Yes, use our guess';
+      const mascot = useAIGuess ? 'AI_INFERRED_FROM_TEAM_NAME' : mascotDescription;
+      const mascotType = 'AUTO_DETERMINED'; // AI will determine type based on mascot description
 
       // Generate logos using the image generation service
       const generatedLogos = await ImageGenerationService.generateLogos(flowId, {
         teamName: flow.team_name,
         sport: flow.sport,
         ageGroup: flow.age_group,
-        style: styleOptions[style],
-        colors: colorOptions[colors],
-        mascot: mascotOptions[mascot],
+        style,
+        colors,
+        customColors: finalCustomColors,
+        mascot,
+        mascotType,
         variantCount
       });
 

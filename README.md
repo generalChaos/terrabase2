@@ -33,6 +33,26 @@ Real-time multiplayer party game with WebSocket support, featuring multiple game
 - **Deployment**: Vercel (Frontend) + Railway (Backend)
 - **Status**: 🔄 **In Development**
 
+### 🎨 Mighty Team Designs - AI Team Logo Generator
+AI-powered team logo generation with questionnaire-based customization and multiple design options.
+
+- **Frontend**: Next.js + React + TypeScript
+- **Backend**: Next.js API Routes
+- **Database**: Supabase (PostgreSQL)
+- **AI**: OpenAI GPT-4o + DALL-E 3
+- **Deployment**: Vercel (Full-stack)
+- **Status**: 🔄 **In Development**
+
+### 🔧 Image Processor - Python Microservice
+High-performance image upscaling and SVG vectorization service with Real-ESRGAN and Potrace integration.
+
+- **Backend**: FastAPI + Python 3.11
+- **Image Processing**: Real-ESRGAN, ESRGAN, OpenCV
+- **Vectorization**: Potrace, AutoTrace, Template-based
+- **Storage**: Supabase integration
+- **Deployment**: Docker + Cloud services
+- **Status**: 🔄 **In Development**
+
 ## 🛠️ **Getting Started**
 
 ### Prerequisites
@@ -238,6 +258,8 @@ pnpm dev
 pnpm dev:portal          # Portal only (localhost:3000)
 pnpm dev:party-game      # Party Game (API + Web)
 pnpm dev:magic-marker    # Magic Marker with Supabase (localhost:3002)
+pnpm dev:mighty-team     # Mighty Team Designs (localhost:3003)
+pnpm dev:image-processor # Image Processor Python service (localhost:8001)
 
 # Magic Marker specific commands
 pnpm setup:magic-marker  # Setup Magic Marker with local Supabase
@@ -285,16 +307,30 @@ party-game/
 │   │   └── web/                  # Next.js frontend
 │   │       ├── src/
 │   │       └── vercel.json       # Vercel deployment config
-│   └── magic-marker/
-│       └── web/                  # Next.js full-stack app
-│           ├── src/
-│           │   ├── app/
-│           │   │   ├── api/      # Next.js API routes
-│           │   │   └── page.tsx  # Main page
-│           │   ├── lib/          # Utilities and services
-│           │   └── components/   # React components
-│           ├── e2e/              # Playwright E2E tests
-│           └── vercel.json       # Vercel deployment config
+│   ├── magic-marker/
+│   │   └── web/                  # Next.js full-stack app
+│   │       ├── src/
+│   │       │   ├── app/
+│   │       │   │   ├── api/      # Next.js API routes
+│   │       │   │   └── page.tsx  # Main page
+│   │       │   ├── lib/          # Utilities and services
+│   │       │   └── components/   # React components
+│   │       ├── e2e/              # Playwright E2E tests
+│   │       └── vercel.json       # Vercel deployment config
+│   ├── mighty-team-designs/      # AI Team Logo Generator
+│   │   ├── src/
+│   │   │   ├── app/              # Next.js app directory
+│   │   │   ├── components/       # React components
+│   │   │   └── lib/              # Services and utilities
+│   │   └── supabase/             # Database migrations
+│   └── image-processor/          # Python Image Processing Service
+│       ├── src/
+│       │   ├── api/              # FastAPI endpoints
+│       │   ├── services/         # Business logic
+│       │   └── models/           # Pydantic schemas
+│       ├── requirements.txt      # Python dependencies
+│       ├── Dockerfile           # Docker configuration
+│       └── docker-compose.yml   # Local development
 ├── docs/                         # Project documentation
 └── scripts/                      # Development scripts
 ```

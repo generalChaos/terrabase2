@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import { Button } from '@/components/ui/Button';
+import TShirtMockup from '@/components/TShirtMockup';
 
 interface FlowData {
   id: string;
@@ -206,6 +207,16 @@ export default function ResultsPage() {
                 </Button>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* T-Shirt Mockup */}
+        {selectedLogo && (
+          <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
+            <TShirtMockup 
+              logoUrl={selectedLogo.public_url} 
+              teamName={flowData.team_name} 
+            />
           </div>
         )}
 

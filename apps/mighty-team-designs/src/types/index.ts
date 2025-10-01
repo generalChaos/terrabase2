@@ -26,8 +26,8 @@ export interface Question {
   id: string
   text: string
   type: 'multiple_choice' | 'text'
-  options: string[] // Simplified: just array of strings
-  selected: number // Index of selected option (0-based)
+  options?: string[] // For multiple choice questions
+  selected: number | string // Index of selected option (0-based) or text input value
   required: boolean
 }
 

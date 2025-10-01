@@ -212,6 +212,32 @@ class InputValidator:
         return name
     
     @staticmethod
+    def validate_player_number(number: int, field_name: str = "number") -> int:
+        """Validate player number"""
+        if not isinstance(number, int):
+            raise ValidationError(f"{field_name} must be an integer", field_name)
+        
+        if number < 1 or number > 99:
+            raise ValidationError(f"{field_name} must be between 1 and 99", field_name)
+        
+        return number
+    
+    @staticmethod
+    def validate_player_name(name: str, field_name: str = "name") -> str:
+        """Validate player name"""
+        if not isinstance(name, str):
+            raise ValidationError(f"{field_name} must be a string", field_name)
+        
+        name = name.strip()
+        if not name:
+            raise ValidationError(f"{field_name} cannot be empty", field_name)
+        
+        if len(name) > 50:
+            raise ValidationError(f"{field_name} must be 50 characters or less", field_name)
+        
+        return name
+    
+    @staticmethod
     def validate_banner_style(style: Dict[str, Any], field_name: str = "style") -> Dict[str, Any]:
         """Validate banner style parameters"""
         if not isinstance(style, dict):

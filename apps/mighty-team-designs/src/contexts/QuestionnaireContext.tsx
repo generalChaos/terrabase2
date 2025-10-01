@@ -26,7 +26,7 @@ type QuestionnaireAction =
   | { type: 'SET_CURRENT_STEP'; payload: FlowStep }
   | { type: 'UPDATE_ROUND1_ANSWERS'; payload: Partial<QuestionnaireState['round1Answers']> }
   | { type: 'SET_ROUND2_QUESTIONS'; payload: Question[] }
-  | { type: 'UPDATE_ROUND2_ANSWER'; payload: { questionId: string; selected: number } }
+  | { type: 'UPDATE_ROUND2_ANSWER'; payload: { questionId: string; selected: number | string } }
   | { type: 'SET_LOGO_VARIANTS'; payload: LogoVariant[] }
   | { type: 'SELECT_LOGO'; payload: string }
   | { type: 'RESET' };
@@ -82,7 +82,10 @@ function questionnaireReducer(state: QuestionnaireState, action: QuestionnaireAc
       return {
         ...state,
         round2Questions: action.payload,
-        round2Answers: action.payload.map(q => ({ ...q, selected: q.selected || 0 }))
+        round2Answers: action.payload.map(q => ({ 
+          ...q, 
+          selected: q.selected ?? (q.type === 'text' ? '' : 0) 
+        }))
       };
     
     case 'UPDATE_ROUND2_ANSWER':

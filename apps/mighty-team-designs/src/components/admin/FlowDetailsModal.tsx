@@ -168,7 +168,7 @@ export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalPr
                                 <span>Cost: ${selectedLogo.generation_cost_usd?.toFixed(4)}</span>
                               </div>
                             </div>
-                            <div className="flex-shrink-0">
+                            <div className="flex-shrink-0 space-x-2">
                               <a
                                 href={selectedLogo.public_url}
                                 target="_blank"
@@ -176,6 +176,14 @@ export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalPr
                                 className="bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold py-2 px-4 rounded-lg transition-colors"
                               >
                                 View Full Size
+                              </a>
+                              <a
+                                href={`/results/${flowDetails.id}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-2 px-4 rounded-lg transition-colors"
+                              >
+                                View Results Page
                               </a>
                             </div>
                           </>

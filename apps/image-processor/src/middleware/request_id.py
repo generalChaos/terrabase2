@@ -5,13 +5,10 @@ Adds unique request IDs to all requests for better debugging and tracing
 
 import uuid
 import time
-import logging
 from typing import Callable
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
-
-# Configure logging
-logger = logging.getLogger(__name__)
+from src.logging import logger, set_request_id, clear_request_id
 
 class RequestIDMiddleware(BaseHTTPMiddleware):
     """Middleware to add unique request IDs to all requests"""
@@ -29,19 +26,18 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
         # Add request ID to request state for use in handlers
         request.state.request_id = request_id
         
+        # Set request ID in context for structured logging
+        set_request_id(request_id)
+        
         # Start timing
         start_time = time.time()
         
         # Log request start
-        logger.info(
-            f"Request started",
-            extra={
-                "request_id": request_id,
-                "method": request.method,
-                "url": str(request.url),
-                "client_ip": request.client.host if request.client else "unknown",
-                "user_agent": request.headers.get("user-agent", "unknown")
-            }
+        logger.log_request_start(
+            method=request.method,
+            url=str(request.url),
+            client_ip=request.client.host if request.client else "unknown",
+            user_agent=request.headers.get("user-agent", "unknown")
         )
         
         try:
@@ -55,15 +51,11 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
             response.headers[self.header_name] = request_id
             
             # Log request completion
-            logger.info(
-                f"Request completed",
-                extra={
-                    "request_id": request_id,
-                    "method": request.method,
-                    "url": str(request.url),
-                    "status_code": response.status_code,
-                    "process_time": round(process_time, 3)
-                }
+            logger.log_request_end(
+                method=request.method,
+                url=str(request.url),
+                status_code=response.status_code,
+                process_time=process_time
             )
             
             return response
@@ -73,17 +65,16 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
             process_time = time.time() - start_time
             
             # Log request error
-            logger.error(
-                f"Request failed",
-                extra={
-                    "request_id": request_id,
-                    "method": request.method,
-                    "url": str(request.url),
-                    "error": str(e),
-                    "error_type": type(e).__name__,
-                    "process_time": round(process_time, 3)
-                }
+            logger.log_request_error(
+                method=request.method,
+                url=str(request.url),
+                error=str(e),
+                error_type=type(e).__name__,
+                process_time=process_time
             )
             
             # Re-raise the exception
             raise
+        finally:
+            # Clear request ID from context
+            clear_request_id()

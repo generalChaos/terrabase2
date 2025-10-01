@@ -1,0 +1,17 @@
+{
+  "name": "image-processor-compute-functions",
+  "version": "1.0.0",
+  "description": "Serverless image processing functions",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel --prod",
+    "build": "echo 'No build step needed'"
+  },
+  "dependencies": {
+    "@vercel/python": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=18.x"
+  }
+}
