@@ -25,8 +25,9 @@ class FileValidator:
     MIN_IMAGE_WIDTH = int(os.getenv("MIN_IMAGE_WIDTH", "16"))
     MIN_IMAGE_HEIGHT = int(os.getenv("MIN_IMAGE_HEIGHT", "16"))
     
-    # Supported formats
-    SUPPORTED_FORMATS = {'.jpg', '.jpeg', '.png', '.webp', '.bmp', '.tiff'}
+    # Supported formats (both file extensions and PIL format names)
+    SUPPORTED_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.webp', '.bmp', '.tiff'}
+    SUPPORTED_FORMATS = {'jpg', 'jpeg', 'png', 'webp', 'bmp', 'tiff'}
     
     @staticmethod
     def validate_file_size(file_path: str, max_size: int = None) -> Tuple[bool, str, int]:
@@ -241,6 +242,11 @@ class FileValidator:
         }
         
         try:
+            # Check URL scheme first
+            parsed_url = urlparse(url)
+            if parsed_url.scheme not in ['http', 'https', 'file']:
+                return False, f"Unsupported URL scheme: {parsed_url.scheme}", validation_info
+            
             # Determine max size based on file type
             max_sizes = {
                 "image": FileValidator.MAX_IMAGE_SIZE,
@@ -254,11 +260,6 @@ class FileValidator:
             if not is_valid:
                 return False, error_msg, validation_info
             validation_info["file_size"] = file_size
-            
-            # Check URL scheme
-            parsed_url = urlparse(url)
-            if parsed_url.scheme not in ['http', 'https', 'file']:
-                return False, f"Unsupported URL scheme: {parsed_url.scheme}", validation_info
             
             return True, "", validation_info
             

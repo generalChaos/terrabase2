@@ -217,7 +217,7 @@ class TestFileValidator:
             is_valid, error_msg, validation_info = FileValidator.validate_file_for_processing(temp_file.name, "image")
             
             assert is_valid is False
-            assert "Invalid image content" in error_msg
+            assert "Error validating image format" in error_msg
             assert validation_info["file_type"] == "image"
             
             os.unlink(temp_file.name)
@@ -275,5 +275,8 @@ class TestFileValidator:
     
     def test_supported_formats(self):
         """Test that supported formats are correctly defined"""
-        expected_formats = {'.jpg', '.jpeg', '.png', '.webp', '.bmp', '.tiff'}
+        expected_extensions = {'.jpg', '.jpeg', '.png', '.webp', '.bmp', '.tiff'}
+        expected_formats = {'jpg', 'jpeg', 'png', 'webp', 'bmp', 'tiff'}
+        
+        assert FileValidator.SUPPORTED_EXTENSIONS == expected_extensions
         assert FileValidator.SUPPORTED_FORMATS == expected_formats
