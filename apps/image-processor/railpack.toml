@@ -1,0 +1,13 @@
+[build]
+builder = "railpack"
+
+[build.python]
+version = "3.9"
+requirements = "requirements.txt"
+
+[build.start]
+command = "python -m uvicorn src.main:app --host 0.0.0.0 --port $PORT"
+
+[build.healthcheck]
+path = "/health"
+timeout = 30
