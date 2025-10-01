@@ -1,2 +1,11 @@
+[phases.setup]
+nixPkgs = ["python39"]
+
+[phases.install]
+cmds = ["echo 'No dependencies to install'"]
+
+[phases.build]
+cmds = ["echo 'Build complete'"]
+
 [start]
-cmd = "python3 test_server.py"
+cmd = "python test_server.py"
