@@ -49,10 +49,10 @@ class LogoOverlayService:
         start_time = time.time()
         
         try:
-            logger.info("Starting logo overlay on t-shirt",
-                       logo_url=logo_url,
-                       tshirt_color=tshirt_color,
-                       position=position)
+            # logger.info("Starting logo overlay on t-shirt",
+            #            logo_url=logo_url,
+            #            tshirt_color=tshirt_color,
+            #            position=position)
             
             # Load t-shirt template
             tshirt_template_path = os.path.join(self.assets_dir, f"{tshirt_color}_tshirt_front.png")
@@ -101,7 +101,7 @@ class LogoOverlayService:
             processing_time_ms = int((time.time() - start_time) * 1000)
             file_size_bytes = os.path.getsize(output_path)
             
-            logger.info("Logo overlay on t-shirt completed successfully",
+            # logger.info("Logo overlay on t-shirt completed successfully",
                        processing_time_ms=processing_time_ms,
                        file_size_bytes=file_size_bytes)
             
@@ -114,9 +114,9 @@ class LogoOverlayService:
             
         except Exception as e:
             processing_time_ms = int((time.time() - start_time) * 1000)
-            logger.error("Logo overlay on t-shirt failed",
-                        error=str(e),
-                        processing_time_ms=processing_time_ms)
+            # logger.error("Logo overlay on t-shirt failed",
+            #             error=str(e),
+            #             processing_time_ms=processing_time_ms)
             
             return {
                 "success": False,
@@ -141,7 +141,7 @@ class LogoOverlayService:
         start_time = time.time()
         
         try:
-            logger.info("Starting roster overlay on t-shirt back",
+            # logger.info("Starting roster overlay on t-shirt back",
                        tshirt_color=tshirt_color,
                        player_count=len(players))
             
@@ -206,7 +206,7 @@ class LogoOverlayService:
             processing_time_ms = int((time.time() - start_time) * 1000)
             file_size_bytes = os.path.getsize(output_path)
             
-            logger.info("Roster overlay on t-shirt back completed successfully",
+            # logger.info("Roster overlay on t-shirt back completed successfully",
                        processing_time_ms=processing_time_ms,
                        file_size_bytes=file_size_bytes)
             
@@ -219,9 +219,9 @@ class LogoOverlayService:
             
         except Exception as e:
             processing_time_ms = int((time.time() - start_time) * 1000)
-            logger.error("Roster overlay on t-shirt back failed",
-                        error=str(e),
-                        processing_time_ms=processing_time_ms)
+            # logger.error("Roster overlay on t-shirt back failed",
+            #             error=str(e),
+            #             processing_time_ms=processing_time_ms)
             
             return {
                 "success": False,
@@ -248,7 +248,7 @@ class LogoOverlayService:
         start_time = time.time()
         
         try:
-            logger.info("Starting banner creation",
+            # logger.info("Starting banner creation",
                        team_name=team_name,
                        player_count=len(players))
             
@@ -325,7 +325,7 @@ class LogoOverlayService:
             processing_time_ms = int((time.time() - start_time) * 1000)
             file_size_bytes = os.path.getsize(output_path)
             
-            logger.info("Banner creation completed successfully",
+            # logger.info("Banner creation completed successfully",
                        team_name=team_name,
                        processing_time_ms=processing_time_ms,
                        file_size_bytes=file_size_bytes)
@@ -339,10 +339,10 @@ class LogoOverlayService:
             
         except Exception as e:
             processing_time_ms = int((time.time() - start_time) * 1000)
-            logger.error("Banner creation failed",
-                        team_name=team_name,
-                        error=str(e),
-                        processing_time_ms=processing_time_ms)
+            # logger.error("Banner creation failed",
+            #             team_name=team_name,
+            #             error=str(e),
+            #             processing_time_ms=processing_time_ms)
             
             return {
                 "success": False,
@@ -428,5 +428,5 @@ class LogoOverlayService:
             return temp_path
             
         except Exception as e:
-            logger.error("Failed to download image", url=url, error_message=str(e))
+            # logger.error("Failed to download image", url=url, error_message=str(e))
             return None
