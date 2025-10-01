@@ -299,5 +299,36 @@ class StorageService:
             print(f"Storage availability check failed: {e}")
             return False
 
+    async def get_stats(self, hours: int = 24) -> Dict[str, Any]:
+        """Get processing statistics for the last N hours"""
+        # For now, return basic stats
+        # In a real implementation, this would query a database
+        return {
+            "total_requests": 0,
+            "successful_requests": 0,
+            "failed_requests": 0,
+            "average_processing_time": 0.0,
+            "storage_used_bytes": 0,
+            "period_hours": hours
+        }
+
+    async def get_endpoint_stats(self, endpoint: str, hours: int = 24) -> Dict[str, Any]:
+        """Get statistics for a specific endpoint"""
+        # For now, return basic stats
+        return {
+            "endpoint": endpoint,
+            "total_requests": 0,
+            "successful_requests": 0,
+            "failed_requests": 0,
+            "average_processing_time": 0.0,
+            "period_hours": hours
+        }
+
+    async def cleanup(self, days: int = 30) -> int:
+        """Clean up old records"""
+        # For now, return 0 (no cleanup needed)
+        # In a real implementation, this would delete old records
+        return 0
+
 # Global storage instance
 storage = StorageService()

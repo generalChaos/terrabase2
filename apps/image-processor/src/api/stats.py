@@ -4,7 +4,7 @@ Statistics API endpoints
 
 from fastapi import APIRouter, HTTPException
 from typing import Dict, Any
-from src.storage import storage_service
+from src.storage import storage
 from src.logging import logger
 
 router = APIRouter()
@@ -21,7 +21,7 @@ async def get_processing_stats(hours: int = 24) -> Dict[str, Any]:
         Dictionary with processing statistics
     """
     try:
-        stats = await storage_service.get_stats(hours)
+        stats = await storage.get_stats(hours)
         
         logger.info("Retrieved processing stats", 
                    hours=hours,
@@ -56,7 +56,7 @@ async def get_endpoint_stats(endpoint: str, hours: int = 24) -> Dict[str, Any]:
         Dictionary with endpoint statistics
     """
     try:
-        stats = await storage_service.get_endpoint_stats(endpoint, hours)
+        stats = await storage.get_endpoint_stats(endpoint, hours)
         
         logger.info("Retrieved endpoint stats", 
                    endpoint=endpoint,
@@ -92,7 +92,7 @@ async def cleanup_old_records(days: int = 30) -> Dict[str, Any]:
         Dictionary with cleanup results
     """
     try:
-        deleted_count = await storage_service.cleanup(days)
+        deleted_count = await storage.cleanup(days)
         
         logger.info("Cleaned up old records", 
                    days=days,
