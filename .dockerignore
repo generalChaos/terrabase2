@@ -1,99 +1,52 @@
-# Dependencies
-node_modules
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
+# Ignore everything except what we need for the image-processor
+*
 
-# Production builds
-.next
-dist
-build
-out
+# Include only the image-processor app
+!apps/image-processor/
+!apps/image-processor/**
 
-# Environment files
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# IDE files
-.vscode
-.idea
-*.swp
-*.swo
-
-# OS files
-.DS_Store
-Thumbs.db
-
-# Git
-.git
-.gitignore
-
-# Docker
-Dockerfile*
-docker-compose*
-.dockerignore
-
-# Documentation
-*.md
-docs/
-
-# Test files
-coverage
-.nyc_output
-
-# Logs
-logs
-*.log
-
-# Runtime data
-pids
-*.pid
-*.seed
-*.pid.lock
-
-# Coverage directory used by tools like istanbul
-coverage
-
-# Dependency directories
-jspm_packages/
-
-# Optional npm cache directory
-.npm
-
-# Optional REPL history
-.node_repl_history
-
-# Output of 'npm pack'
-*.tgz
-
-# Yarn Integrity file
-.yarn-integrity
-
-# parcel-bundler cache (https://parceljs.org/)
-.cache
-.parcel-cache
-
-# next.js build output
-.next
-
-# nuxt.js build output
-.nuxt
-
-# vuepress build output
-.vuepress/dist
-
-# Serverless directories
-.serverless
-
-# FuseBox cache
-.fusebox/
-
-# DynamoDB Local files
-.dynamodb/
-
-# TernJS port file
-.tern-port
+# Ignore development files within image-processor
+apps/image-processor/tests/
+apps/image-processor/docs/
+apps/image-processor/venv/
+apps/image-processor/.pytest_cache/
+apps/image-processor/__pycache__/
+apps/image-processor/*.pyc
+apps/image-processor/*.pyo
+apps/image-processor/*.pyd
+apps/image-processor/.Python
+apps/image-processor/env/
+apps/image-processor/pip-log.txt
+apps/image-processor/pip-delete-this-directory.txt
+apps/image-processor/.tox/
+apps/image-processor/.coverage
+apps/image-processor/.coverage.*
+apps/image-processor/.cache
+apps/image-processor/nosetests.xml
+apps/image-processor/coverage.xml
+apps/image-processor/*.cover
+apps/image-processor/.mypy_cache/
+apps/image-processor/.hypothesis/
+apps/image-processor/.env
+apps/image-processor/.env.local
+apps/image-processor/.env.development
+apps/image-processor/.env.test
+apps/image-processor/.env.production
+apps/image-processor/.vscode/
+apps/image-processor/.idea/
+apps/image-processor/*.swp
+apps/image-processor/*.swo
+apps/image-processor/*~
+apps/image-processor/.DS_Store
+apps/image-processor/Thumbs.db
+apps/image-processor/output/
+apps/image-processor/storage/
+apps/image-processor/temp/
+apps/image-processor/test-input/
+apps/image-processor/test_image.png
+apps/image-processor/test_server.py
+apps/image-processor/*.backup
+apps/image-processor/Procfile.backup
+apps/image-processor/docker-compose*.backup
+apps/image-processor/nixpacks.toml.backup
+apps/image-processor/Dockerfile.backup
