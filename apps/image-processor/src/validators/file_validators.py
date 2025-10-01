@@ -255,11 +255,20 @@ class FileValidator:
             }
             max_size = max_sizes.get(file_type, FileValidator.MAX_IMAGE_SIZE)
             
-            # Validate remote file size
-            is_valid, error_msg, file_size = FileValidator.validate_remote_file_size(url, max_size)
-            if not is_valid:
-                return False, error_msg, validation_info
-            validation_info["file_size"] = file_size
+            # Validate file size based on URL scheme
+            if parsed_url.scheme == 'file':
+                # For file URLs, validate local file size
+                file_path = parsed_url.path
+                is_valid, error_msg, file_size = FileValidator.validate_file_size(file_path, max_size)
+                if not is_valid:
+                    return False, error_msg, validation_info
+                validation_info["file_size"] = file_size
+            else:
+                # For HTTP/HTTPS URLs, validate remote file size
+                is_valid, error_msg, file_size = FileValidator.validate_remote_file_size(url, max_size)
+                if not is_valid:
+                    return False, error_msg, validation_info
+                validation_info["file_size"] = file_size
             
             return True, "", validation_info
             

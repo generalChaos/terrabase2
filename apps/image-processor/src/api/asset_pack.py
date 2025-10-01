@@ -12,7 +12,7 @@ import time
 from src.services.asset_cleanup import AssetCleanupService
 from src.services.logo_overlay import LogoOverlayService
 from src.validators import InputValidator, ValidationError, FileValidator
-from src.storage import storage_service
+from src.storage import storage
 from src.logging import logger
 
 router = APIRouter()
@@ -69,7 +69,7 @@ async def create_asset_pack(request: AssetPackRequest):
     
     try:
         # Log the request
-        await storage_service.log_request(
+        await storage.log_request(
             request_id=request_id,
             endpoint="asset-pack",
             image_url=str(request.logo_url),
@@ -170,7 +170,7 @@ async def create_asset_pack(request: AssetPackRequest):
         processing_time_ms = int((time.time() - start_time) * 1000)
         
         # Log success
-        await storage_service.log_success(
+        await storage.log_success(
             request_id=request_id,
             processing_time_ms=processing_time_ms,
             output_url=clean_logo_url,
@@ -201,7 +201,7 @@ async def create_asset_pack(request: AssetPackRequest):
     except ValidationError as e:
         processing_time_ms = int((time.time() - start_time) * 1000)
         
-        await storage_service.log_validation_error(
+        await storage.log_validation_error(
             request_id=request_id,
             field=e.field or "unknown",
             error_message=e.message,
@@ -221,7 +221,7 @@ async def create_asset_pack(request: AssetPackRequest):
     except Exception as e:
         processing_time_ms = int((time.time() - start_time) * 1000)
         
-        await storage_service.log_failure(
+        await storage.log_failure(
             request_id=request_id,
             error_message=str(e),
             processing_time_ms=processing_time_ms,

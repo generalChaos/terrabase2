@@ -330,5 +330,29 @@ class StorageService:
         # In a real implementation, this would delete old records
         return 0
 
+    async def log_request(self, request_id: str, endpoint: str, **kwargs) -> None:
+        """Log a request"""
+        # For now, just print to console
+        # In a real implementation, this would log to a database
+        print(f"Request logged: {request_id} - {endpoint}")
+
+    async def log_success(self, request_id: str, processing_time_ms: int, **kwargs) -> None:
+        """Log a successful request"""
+        # For now, just print to console
+        # In a real implementation, this would log to a database
+        print(f"Success logged: {request_id} - {processing_time_ms}ms")
+
+    async def log_failure(self, request_id: str, error_message: str, processing_time_ms: int, **kwargs) -> None:
+        """Log a failed request"""
+        # For now, just print to console
+        # In a real implementation, this would log to a database
+        print(f"Failure logged: {request_id} - {error_message} - {processing_time_ms}ms")
+
+    async def log_validation_error(self, request_id: str, error_message: str, **kwargs) -> None:
+        """Log a validation error"""
+        # For now, just print to console
+        # In a real implementation, this would log to a database
+        print(f"Validation error logged: {request_id} - {error_message}")
+
 # Global storage instance
 storage = StorageService()
