@@ -1,21 +1,24 @@
-# Basic requirements for testing
+# FastAPI and web framework
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
 pydantic==2.5.0
 python-multipart==0.0.6
 
-# Image processing (simplified)
-opencv-python==4.8.1.78
+# Image processing (lightweight)
 Pillow==10.1.0
 numpy==1.24.3
 
-# HTTP client
+# AI-powered background removal (lightweight)
+rembg==2.0.50
+
+# Database and storage
+supabase==2.0.0
 httpx==0.25.2
 
 # Utilities
 python-dotenv==1.0.0
 aiofiles==23.2.1
 
-# SVG processing (simplified)
-svgwrite==1.4.3
-lxml==4.9.3
+# Development
+pytest==7.4.3
+pytest-asyncio==0.21.1
