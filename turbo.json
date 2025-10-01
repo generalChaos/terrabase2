@@ -21,6 +21,25 @@
       ],
       "outputs": []
     },
+    "deploy:magic-marker": {
+      "cache": false,
+      "dependsOn": ["build"],
+      "inputs": [
+        "apps/magic-marker/**",
+        "!apps/magic-marker/docs/**",
+        "!apps/magic-marker/analysis_flows.sql",
+        "!apps/magic-marker/latest_analysis_flows.sql",
+        "!apps/magic-marker/frontend/uploads/**",
+        "!apps/magic-marker/web/uploads/**",
+        "!apps/magic-marker/web/test-results/**",
+        "!apps/magic-marker/web/playwright-report/**",
+        "!apps/magic-marker/web/test.png",
+        "!apps/magic-marker/web/test_image.*",
+        "!apps/magic-marker/web/production_data.sql",
+        "!apps/magic-marker/web/tsconfig.tsbuildinfo"
+      ],
+      "outputs": []
+    },
     "lint": {
       "dependsOn": ["^build"],
       "outputs": []
