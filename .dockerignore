@@ -7,6 +7,8 @@
 !apps/image-processor/requirements.txt
 !apps/image-processor/src/
 !apps/image-processor/src/**
+!railway-deploy/
+!railway-deploy/**
 
 # Ignore development files within image-processor
 apps/image-processor/tests/

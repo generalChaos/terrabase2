@@ -1,0 +1,33 @@
+[build]
+builder = "dockerfile"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+startCommand = "uvicorn src.main:app --host 0.0.0.0 --port $PORT"
+healthcheckPath = "/health"
+healthcheckTimeout = 300
+restartPolicyType = "always"
+
+[env]
+PYTHONPATH = "/app"
+LOG_LEVEL = "INFO"
+STORAGE_TYPE = "supabase"
+TEMP_DIR = "/app/temp"
+OUTPUT_DIR = "/app/output"
+
+# File validation limits
+MAX_IMAGE_SIZE_BYTES = "10485760"
+MAX_LOGO_SIZE_BYTES = "5242880"
+MAX_BANNER_SIZE_BYTES = "15728640"
+MAX_IMAGE_WIDTH = "8192"
+MAX_IMAGE_HEIGHT = "8192"
+MIN_IMAGE_WIDTH = "16"
+MIN_IMAGE_HEIGHT = "16"
+
+# CORS configuration
+CORS_ORIGINS = "https://mighty-team-designs.vercel.app,https://mighty-team-designs-git-main-ricovelasco.vercel.app"
+
+# Supabase configuration (set via Railway dashboard)
+# SUPABASE_URL = "your_supabase_url"
+# SUPABASE_ANON_KEY = "your_supabase_anon_key"
+# SUPABASE_SERVICE_KEY = "your_supabase_service_key"
