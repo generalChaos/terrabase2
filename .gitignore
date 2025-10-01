@@ -34,6 +34,10 @@ lerna-debug.log*
 **/test-images/
 **/temp-images/
 
+# Image processor output
+**/output/
+**/temp/
+
 # IDEs and editors
 /.idea
 .project
