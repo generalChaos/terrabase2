@@ -34,7 +34,6 @@ RUN groupadd -r appuser && useradd -r -g appuser appuser
 
 # Copy application code
 COPY src/ ./src/
-COPY .env.example .env
 
 # Create necessary directories and set permissions
 RUN mkdir -p /app/models /app/temp /app/output /app/storage \
