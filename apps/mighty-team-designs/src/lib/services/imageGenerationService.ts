@@ -1,5 +1,6 @@
 import { openai } from '@/lib/openai';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase'
+import { storage } from '@/lib/storage';
 import { logDebug, logError, recordMetric } from '@/lib/debug';
 
 export interface LogoGenerationOptions {
@@ -331,24 +332,17 @@ export class ImageGenerationService {
         throw new Error('No valid image data received from OpenAI');
       }
 
-      // Upload to Supabase Storage
-      const fileName = `${flowId}/variant_${variantNumber}_${Date.now()}.png`;
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('team-logos')
-        .upload(fileName, imageBuffer, {
+      // Upload to storage (local or Supabase based on environment)
+      const fileName = `variant_${variantNumber}_${Date.now()}.png`;
+      const storageFile = await storage.uploadFile(
+        imageBuffer,
+        fileName,
+        'team-logos',
+        {
           contentType: 'image/png',
           cacheControl: '3600'
-        });
-
-      if (uploadError) {
-        console.error('Error uploading logo to storage:', uploadError);
-        throw new Error('Failed to upload logo to storage');
-      }
-
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from('team-logos')
-        .getPublicUrl(fileName);
+        }
+      );
 
       // Calculate generation metrics
       const generationTime = Date.now() - startTime;

@@ -13,6 +13,7 @@ from dotenv import load_dotenv
 from src.api.upscaling import router as upscaling_router
 from src.api.asset_pack import router as asset_pack_router
 from src.api.stats import router as stats_router
+from src.api.storage import router as storage_router
 from src.models.schemas import HealthResponse
 from src.middleware.request_id import RequestIDMiddleware
 from src.logging import logger
@@ -47,6 +48,7 @@ app.add_middleware(
 app.include_router(upscaling_router, prefix="/api/v1", tags=["upscaling"])
 app.include_router(asset_pack_router, prefix="/api/v1", tags=["asset-pack"])
 app.include_router(stats_router, prefix="/api/v1", tags=["stats"])
+app.include_router(storage_router, prefix="/api/v1", tags=["storage"])
 
 @app.get("/", response_model=dict)
 async def root():
