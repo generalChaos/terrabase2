@@ -50,6 +50,12 @@ app.include_router(asset_pack_router, prefix="/api/v1", tags=["asset-pack"])
 app.include_router(stats_router, prefix="/api/v1", tags=["stats"])
 app.include_router(storage_router, prefix="/api/v1", tags=["storage"])
 
+# Add health endpoint under /api/v1 for consistency with frontend
+@app.get("/api/v1/health", response_model=HealthResponse)
+async def api_health_check():
+    """API health check endpoint (for frontend compatibility)"""
+    return await health_check()
+
 @app.get("/", response_model=dict)
 async def root():
     """Root endpoint"""
