@@ -10,6 +10,17 @@
       "outputs": ["dist/**", ".next/**", "build/**", "__pycache__/**"],
       "env": ["NODE_ENV", "NEXT_PUBLIC_*", "PYTHONPATH"]
     },
+    "deploy:image-processor": {
+      "cache": false,
+      "dependsOn": ["build"],
+      "inputs": [
+        "apps/image-processor/**",
+        "!apps/image-processor/tests/**",
+        "!apps/image-processor/docs/**",
+        "!apps/image-processor/README.md"
+      ],
+      "outputs": []
+    },
     "lint": {
       "dependsOn": ["^build"],
       "outputs": []
