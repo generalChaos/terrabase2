@@ -53,13 +53,22 @@ class AIBackgroundRemover:
             dict: Result with success status and processed image path
         """
         try:
-            # Download image
-            response = requests.get(image_url, timeout=30)
-            response.raise_for_status()
+            # Handle file URLs vs HTTP URLs
+            from urllib.parse import urlparse
+            parsed_url = urlparse(image_url)
             
-            # Load image
-            image_data = BytesIO(response.content)
-            image = Image.open(image_data)
+            if parsed_url.scheme == 'file':
+                # For file URLs, open directly
+                file_path = parsed_url.path
+                image = Image.open(file_path)
+            else:
+                # For HTTP URLs, download first
+                response = requests.get(image_url, timeout=30)
+                response.raise_for_status()
+                
+                # Load image
+                image_data = BytesIO(response.content)
+                image = Image.open(image_data)
             
             # Convert to RGB if needed
             if image.mode != 'RGB':

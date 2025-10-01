@@ -46,10 +46,10 @@ class AssetCleanupService:
         start_time = time.time()
         
         try:
-            logger.info("Starting logo cleanup", logo_url=logo_url)
+            # logger.info("Starting logo cleanup", logo_url=logo_url)
             
             # Step 1: AI Background Removal
-            logger.info("Step 1: AI background removal")
+            # logger.info("Step 1: AI background removal")
             bg_result = await self.ai_remover.remove_background_hybrid(logo_url)
             if not bg_result["success"]:
                 return {
@@ -60,11 +60,11 @@ class AssetCleanupService:
             bg_removed_path = bg_result["processed_path"]
             
             # Step 2: Python-based Enhancement
-            logger.info("Step 2: Python enhancement")
+            # logger.info("Step 2: Python enhancement")
             enhanced_path = await self._enhance_with_python(bg_removed_path)
             
             # Step 3: Generate final filename and save
-            logger.info("Step 3: Final processing")
+            # logger.info("Step 3: Final processing")
             final_filename = generate_pipeline_filename(
                 logo_url, ["clean-logo"], output_format
             )
@@ -85,9 +85,9 @@ class AssetCleanupService:
             processing_time_ms = int((time.time() - start_time) * 1000)
             file_size_bytes = os.path.getsize(final_path)
             
-            logger.info("Logo cleanup completed successfully",
-                       processing_time_ms=processing_time_ms,
-                       file_size_bytes=file_size_bytes)
+            # logger.info("Logo cleanup completed successfully",
+            #            processing_time_ms=processing_time_ms,
+            #            file_size_bytes=file_size_bytes)
             
             return {
                 "success": True,
@@ -98,9 +98,9 @@ class AssetCleanupService:
             
         except Exception as e:
             processing_time_ms = int((time.time() - start_time) * 1000)
-            logger.error("Logo cleanup failed",
-                        error=str(e),
-                        processing_time_ms=processing_time_ms)
+            # logger.error("Logo cleanup failed",
+            #             error_message=str(e),
+            #             processing_time_ms=processing_time_ms)
             
             return {
                 "success": False,
@@ -148,6 +148,6 @@ class AssetCleanupService:
             return enhanced_path
             
         except Exception as e:
-            logger.error("Python enhancement failed", error=str(e))
+            # logger.error("Python enhancement failed", error_message=str(e))
             # Return original if enhancement fails
             return image_path
