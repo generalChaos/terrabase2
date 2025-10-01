@@ -13,7 +13,7 @@ rembg==2.0.50
 
 # Database and storage
 supabase==2.0.0
-httpx==0.25.2
+httpx==0.24.1
 
 # Utilities
 python-dotenv==1.0.0
