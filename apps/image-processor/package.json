@@ -17,7 +17,9 @@
     "docker:up": "docker-compose up --build",
     "docker:down": "docker-compose down",
     "install:models": "python scripts/download_models.py",
-    "health": "curl -f http://localhost:8001/health || exit 1"
+    "health": "curl -f http://localhost:8001/health || exit 1",
+    "deploy:check": "echo 'Checking if image-processor needs deployment'",
+    "deploy:railway": "echo 'Deploying to Railway'"
   },
   "dependencies": {},
   "devDependencies": {}

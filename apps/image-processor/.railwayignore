@@ -1,5 +1,11 @@
-# Exclude unnecessary files from Railway deployment
-venv/
+# Ignore files that don't affect deployment
+.git/
+.gitignore
+README.md
+*.md
+docs/
+tests/
+.pytest_cache/
 __pycache__/
 *.pyc
 *.pyo
@@ -16,52 +22,29 @@ nosetests.xml
 coverage.xml
 *.cover
 *.log
-.git/
 .mypy_cache/
-.pytest_cache/
 .hypothesis/
 
-# Exclude test files
-tests/
-test-input/
-output/
-temp/
-storage/
-
-# Exclude documentation
-docs/
-*.md
-README.md
-QUICK_START.md
-COST_COMPARISON.md
-ROSTER_SHIRT_FLOW.md
-
-# Exclude Docker files (using Nixpacks)
-Dockerfile
-docker-compose.yml
-docker-compose.prod.yml
-nginx.conf
-
-# Exclude development files
+# Ignore development files
 .env
 .env.local
 .env.development
 .env.test
 .env.production
 
-# Exclude large model files (if any)
-models/
-*.pth
-*.onnx
-*.h5
-
-# Exclude IDE files
+# Ignore IDE files
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
-# Exclude OS files
+# Ignore OS files
 .DS_Store
 Thumbs.db
+
+# Ignore other apps (important for monorepo)
+../mighty-team-designs/
+../magic-marker/
+../party-game/
+../portal/
