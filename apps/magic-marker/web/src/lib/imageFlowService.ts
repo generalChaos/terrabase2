@@ -10,6 +10,7 @@ const openai = new OpenAI({
 
 // Image generation model configuration
 // Options: "dall-e-3" (available now) or "gpt-image-1" (requires organization verification)
+
 const IMAGE_GENERATION_MODEL = "gpt-image-1";
 
 export class ImageFlowService {
@@ -306,11 +307,6 @@ export class ImageFlowService {
      if (!imageData) {
        throw new Error('Image generation failed: No image data returned');
      }
-
-     console.log('🔍 [IMAGE_GEN] Full response:', response);
-     console.log('🔍 [IMAGE_GEN] Image data:', imageData);
-     console.log('🔍 [IMAGE_GEN] Has URL:', !!imageData.url);
-     console.log('🔍 [IMAGE_GEN] Has b64_json:', !!imageData.b64_json);
 
      let buffer: Buffer;
 

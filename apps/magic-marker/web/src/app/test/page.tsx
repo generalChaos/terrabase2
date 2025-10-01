@@ -111,8 +111,7 @@ export default function TestPage() {
         setCurrentStep(2)
         
         const analyzeResponse = await axios.post(`${API_BASE}/flow/${flowId}/analyze`)
-        console.log('🔍 [ANALYZE] Full response:', analyzeResponse.data)
-        console.log('🔍 [ANALYZE] Analysis data:', analyzeResponse.data.data)
+
         results.analyze = analyzeResponse.data
         updateStepStatus('analyze', 'completed', analyzeResponse.data)
         

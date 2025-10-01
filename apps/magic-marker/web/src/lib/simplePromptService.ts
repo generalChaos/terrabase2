@@ -197,7 +197,7 @@ export class SimplePromptService {
           console.error('🔍 [QUESTIONS] Failed to parse content as JSON:', e);
         }
       }
-      
+   
       throw new Error('Failed to generate questions: Invalid response format');
     }
 
