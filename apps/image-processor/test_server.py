@@ -1,21 +1,32 @@
 #!/usr/bin/env python3
 """
-Minimal test server to verify Railway deployment
+Ultra-minimal test server using only Python standard library
 """
 import os
-from fastapi import FastAPI
+import http.server
+import socketserver
+import json
 
-app = FastAPI(title="Image Processor Test", version="1.0.0")
-
-@app.get("/")
-async def root():
-    return {"message": "Image Processor Test Server", "status": "running"}
-
-@app.get("/health")
-async def health():
-    return {"status": "healthy", "message": "Test server is running"}
+class HealthHandler(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == '/health':
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            response = {"status": "healthy", "message": "Test server is running"}
+            self.wfile.write(json.dumps(response).encode())
+        elif self.path == '/':
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            response = {"message": "Image Processor Test Server", "status": "running"}
+            self.wfile.write(json.dumps(response).encode())
+        else:
+            self.send_response(404)
+            self.end_headers()
 
 if __name__ == "__main__":
-    import uvicorn
     port = int(os.getenv("PORT", 8000))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    with socketserver.TCPServer(("", port), HealthHandler) as httpd:
+        print(f"Server running on port {port}")
+        httpd.serve_forever()
