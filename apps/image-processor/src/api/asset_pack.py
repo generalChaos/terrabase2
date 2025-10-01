@@ -177,7 +177,7 @@ async def create_asset_pack(request: AssetPackRequest):
             else:
                 logger.warning("Banner creation failed, continuing without banner",
                              request_id=request_id,
-                             error=banner_result["error"])
+                             error_message=banner_result["error"])
         
         processing_time_ms = int((time.time() - start_time) * 1000)
         
@@ -243,7 +243,7 @@ async def create_asset_pack(request: AssetPackRequest):
         logger.error("Asset pack creation failed",
                     request_id=request_id,
                     team_name=request.team_name,
-                    error=str(e),
+                    error_message=str(e),
                     processing_time_ms=processing_time_ms)
         
         return AssetPackResponse(

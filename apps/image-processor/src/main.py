@@ -11,7 +11,7 @@ import os
 from dotenv import load_dotenv
 
 from src.api.upscaling import router as upscaling_router
-from src.api.asset_pack import router as asset_pack_router
+from src.api.asset_pack_simple import router as asset_pack_router
 from src.api.stats import router as stats_router
 from src.api.storage import router as storage_router
 from src.models.schemas import HealthResponse

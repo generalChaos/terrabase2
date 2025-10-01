@@ -428,5 +428,5 @@ class LogoOverlayService:
             return temp_path
             
         except Exception as e:
-            logger.error("Failed to download image", url=url, error=str(e))
+            logger.error("Failed to download image", url=url, error_message=str(e))
             return None
