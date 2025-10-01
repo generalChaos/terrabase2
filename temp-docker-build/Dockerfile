@@ -11,13 +11,13 @@ ENV PIP_DISABLE_PIP_VERSION_CHECK=1
 WORKDIR /app
 
 # Copy requirements first for better caching
-COPY apps/image-processor/requirements.txt .
+COPY requirements.txt .
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code - use wildcard to copy all files at once
-COPY apps/image-processor/src/ ./src/
+# Copy application code
+COPY src/ ./src/
 
 # Create necessary directories
 RUN mkdir -p /app/temp /app/output /app/storage
