@@ -1,0 +1,10 @@
+[build]
+builder = "railpack"
+
+[build.python]
+version = "3.9"
+requirements = "requirements.txt"
+
+[build.healthcheck]
+path = "/health"
+timeout = 30

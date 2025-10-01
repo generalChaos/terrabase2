@@ -1,0 +1,77 @@
+version: '3.8'
+
+services:
+  image-processor:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONPATH=/app
+      - LOG_LEVEL=INFO
+      - STORAGE_TYPE=supabase
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+      - SUPABASE_ENABLED=true
+      - SUPABASE_REQUESTS_TABLE=processing_requests
+      - SUPABASE_RESULTS_TABLE=processing_results
+      - SUPABASE_ERRORS_TABLE=validation_errors
+      - SUPABASE_METRICS_TABLE=performance_metrics
+      - SUPABASE_CLEANUP_ENABLED=true
+      - SUPABASE_CLEANUP_DAYS=30
+      - MAX_IMAGE_SIZE_BYTES=10485760
+      - MAX_LOGO_SIZE_BYTES=5242880
+      - MAX_BANNER_SIZE_BYTES=15728640
+      - MAX_IMAGE_WIDTH=8192
+      - MAX_IMAGE_HEIGHT=8192
+      - MIN_IMAGE_WIDTH=16
+      - MIN_IMAGE_HEIGHT=16
+      - CORS_ORIGINS=http://localhost:3000,https://mighty-team-designs.vercel.app
+    volumes:
+      - ./models:/app/models
+      - ./temp:/app/temp
+      - ./output:/app/output
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/nginx.conf:/etc/nginx/nginx.conf
+      - ./deploy/ssl:/etc/nginx/ssl
+    depends_on:
+      - image-processor
+    restart: unless-stopped
+
+volumes:
+  redis_data:

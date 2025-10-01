@@ -1,0 +1,28 @@
+{
+  "functions": {
+    "api/process-logo/optimized.js": {
+      "maxDuration": 300,
+      "memory": 3008
+    },
+    "api/process-logo/budget.js": {
+      "maxDuration": 60,
+      "memory": 1024
+    },
+    "api/process-logo/standard.js": {
+      "maxDuration": 120,
+      "memory": 2048
+    },
+    "api/background-removal/ai.js": {
+      "maxDuration": 180,
+      "memory": 3008
+    },
+    "api/upscale/image.js": {
+      "maxDuration": 120,
+      "memory": 2048
+    }
+  },
+  "env": {
+    "TEMP_DIR": "/tmp",
+    "OUTPUT_DIR": "/tmp/output"
+  }
+}

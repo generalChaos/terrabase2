@@ -1,0 +1,26 @@
+{
+  "name": "@tb2/image-processor",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "pnpm@8.15.0",
+  "scripts": {
+    "dev": "python src/main.py",
+    "build": "echo 'Python build - no compilation needed'",
+    "start": "python src/main.py",
+    "test": "pytest",
+    "test:coverage": "pytest --cov=src --cov-report=html",
+    "lint": "black src/ && isort src/",
+    "format": "black src/ && isort src/",
+    "type-check": "echo 'Python type checking not configured yet'",
+    "clean": "rm -rf __pycache__ .pytest_cache htmlcov .coverage",
+    "docker:build": "docker build -t image-processor .",
+    "docker:up": "docker-compose up --build",
+    "docker:down": "docker-compose down",
+    "install:models": "python scripts/download_models.py",
+    "health": "curl -f http://localhost:8001/health || exit 1",
+    "deploy:check": "echo 'Checking if image-processor needs deployment'",
+    "deploy:railway": "echo 'Deploying to Railway'"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

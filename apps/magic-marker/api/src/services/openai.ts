@@ -86,20 +86,33 @@ export class OpenAIService {
   static async generateImage(prompt: string): Promise<string> {
     try {
       const response = await openai.images.generate({
-        model: "dall-e-3",
+        model: "gpt-image-1",
         prompt: prompt,
         n: 1,
         size: "1024x1024",
-        quality: "standard",
-        response_format: "b64_json" // Return base64 instead of URL
+        quality: "high"
+        // gpt-image-1 returns URLs by default, no response_format parameter supported
       });
 
-      const imageBase64 = response.data[0]?.b64_json;
-      if (!imageBase64) {
+      const imageData = response.data[0];
+      if (!imageData) {
         throw new Error('No image generated');
       }
 
-      return imageBase64;
+      // gpt-image-1 returns URLs, so we need to download and convert to base64
+      if (imageData.url) {
+        const imageResponse = await fetch(imageData.url);
+        if (!imageResponse.ok) {
+          throw new Error('Failed to download generated image');
+        }
+        const imageBuffer = await imageResponse.arrayBuffer();
+        return Buffer.from(imageBuffer).toString('base64');
+      } else if (imageData.b64_json) {
+        // Fallback for base64 response (if supported in future)
+        return imageData.b64_json;
+      } else {
+        throw new Error('No image data returned');
+      }
     } catch (error) {
       console.error('OpenAI image generation error:', error);
       throw new Error('Failed to generate image');

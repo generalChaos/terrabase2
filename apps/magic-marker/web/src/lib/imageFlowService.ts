@@ -10,7 +10,8 @@ const openai = new OpenAI({
 
 // Image generation model configuration
 // Options: "dall-e-3" (available now) or "gpt-image-1" (requires organization verification)
-const IMAGE_GENERATION_MODEL = "dall-e-3";
+
+const IMAGE_GENERATION_MODEL = "gpt-image-1";
 
 export class ImageFlowService {
   /**
@@ -161,7 +162,12 @@ export class ImageFlowService {
       const base64Image = Buffer.from(imageBuffer).toString('base64');
 
       // 4. Analyze the image using OpenAI
+      console.log('🔍 [ANALYZE] Starting image analysis with base64 length:', base64Image.length);
       const result = await SimplePromptService.analyzeImage(base64Image);
+      console.log('🔍 [ANALYZE] Analysis result type:', typeof result);
+      console.log('🔍 [ANALYZE] Analysis result length:', result?.length);
+      console.log('🔍 [ANALYZE] Analysis result preview:', result?.substring(0, 200));
+      console.log('🔍 [ANALYZE] Full analysis result:', result);
 
       // 5. Update the flow with the analysis result
       const { error: updateError } = await supabase
@@ -293,7 +299,7 @@ export class ImageFlowService {
        prompt: promptText,
        n: 1,
        size: "1024x1024",
-        quality: "standard",
+       quality: "high",
        ...(IMAGE_GENERATION_MODEL === "dall-e-3" && { response_format: "b64_json" })
      });
 
@@ -310,8 +316,24 @@ export class ImageFlowService {
          throw new Error('Image generation failed: No base64 data returned');
        }
        buffer = Buffer.from(imageData.b64_json, 'base64');
+     } else if (IMAGE_GENERATION_MODEL === "gpt-image-1") {
+       // gpt-image-1 can return either base64 or URL depending on configuration
+       if (imageData.b64_json) {
+         // Base64 response format
+         buffer = Buffer.from(imageData.b64_json, 'base64');
+       } else if (imageData.url) {
+         // URL response format - need to download
+         const imageResponse = await fetch(imageData.url);
+         if (!imageResponse.ok) {
+           throw new Error('Failed to download generated image');
+         }
+         const imageBuffer = await imageResponse.arrayBuffer();
+         buffer = Buffer.from(imageBuffer);
+       } else {
+         throw new Error('Image generation failed: No image data returned from gpt-image-1');
+       }
      } else {
-       // gpt-image-1 returns URL, need to download
+       // Fallback for other models
        if (!imageData.url) {
          throw new Error('Image generation failed: No URL returned');
        }

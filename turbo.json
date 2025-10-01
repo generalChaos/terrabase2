@@ -7,8 +7,38 @@
     },
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".next/**", "build/**"],
-      "env": ["NODE_ENV", "NEXT_PUBLIC_*"]
+      "outputs": ["dist/**", ".next/**", "build/**", "__pycache__/**"],
+      "env": ["NODE_ENV", "NEXT_PUBLIC_*", "PYTHONPATH"]
+    },
+    "deploy:image-processor": {
+      "cache": false,
+      "dependsOn": ["build"],
+      "inputs": [
+        "apps/image-processor/**",
+        "!apps/image-processor/tests/**",
+        "!apps/image-processor/docs/**",
+        "!apps/image-processor/README.md"
+      ],
+      "outputs": []
+    },
+    "deploy:magic-marker": {
+      "cache": false,
+      "dependsOn": ["build"],
+      "inputs": [
+        "apps/magic-marker/**",
+        "!apps/magic-marker/docs/**",
+        "!apps/magic-marker/analysis_flows.sql",
+        "!apps/magic-marker/latest_analysis_flows.sql",
+        "!apps/magic-marker/frontend/uploads/**",
+        "!apps/magic-marker/web/uploads/**",
+        "!apps/magic-marker/web/test-results/**",
+        "!apps/magic-marker/web/playwright-report/**",
+        "!apps/magic-marker/web/test.png",
+        "!apps/magic-marker/web/test_image.*",
+        "!apps/magic-marker/web/production_data.sql",
+        "!apps/magic-marker/web/tsconfig.tsbuildinfo"
+      ],
+      "outputs": []
     },
     "lint": {
       "dependsOn": ["^build"],
@@ -16,8 +46,8 @@
     },
     "test": {
       "dependsOn": ["^build"],
-      "outputs": ["coverage/**", ".vitest/**"],
-      "env": ["NODE_ENV", "CI"]
+      "outputs": ["coverage/**", ".vitest/**", "htmlcov/**"],
+      "env": ["NODE_ENV", "CI", "PYTHONPATH"]
     },
     "type-check": {
       "dependsOn": ["^build"],
@@ -29,6 +59,15 @@
     },
     "format": {
       "cache": false,
+      "outputs": []
+    },
+    "docker:build": {
+      "cache": false,
+      "outputs": []
+    },
+    "docker:up": {
+      "cache": false,
+      "persistent": true,
       "outputs": []
     }
   },
