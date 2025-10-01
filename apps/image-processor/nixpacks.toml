@@ -2,10 +2,10 @@
 nixPkgs = ["python39"]
 
 [phases.install]
-cmds = ["echo 'No dependencies to install'"]
+cmds = ["pip install -r requirements.txt"]
 
 [phases.build]
 cmds = ["echo 'Build complete'"]
 
 [start]
-cmd = "python test_server.py"
+cmd = "python -m uvicorn src.main:app --host 0.0.0.0 --port $PORT"
