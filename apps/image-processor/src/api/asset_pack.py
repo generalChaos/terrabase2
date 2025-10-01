@@ -28,7 +28,7 @@ class Player(BaseModel):
 
 class AssetPackRequest(BaseModel):
     """Request model for asset pack creation"""
-    logo_url: HttpUrl = Field(..., description="URL of the logo to process")
+    logo_url: str = Field(..., description="URL of the logo to process")
     team_name: str = Field(..., min_length=1, max_length=100, description="Team name")
     players: List[Player] = Field(..., min_length=1, max_length=20, description="Team roster")
     tshirt_color: str = Field("black", description="T-shirt color (black, white)")
@@ -92,10 +92,23 @@ async def create_asset_pack(request: AssetPackRequest):
             InputValidator.validate_player_number(player.number, f"players[{i}].number")
             InputValidator.validate_player_name(player.name, f"players[{i}].name")
         
-        # Validate remote file
-        is_valid, error_msg, validation_info = FileValidator.validate_remote_file_for_processing(
-            str(request.logo_url), "logo"
-        )
+        # Validate file based on URL scheme
+        logo_url = str(request.logo_url)
+        from urllib.parse import urlparse
+        parsed_url = urlparse(logo_url)
+        
+        if parsed_url.scheme == 'file':
+            # For file URLs, validate local file
+            file_path = parsed_url.path
+            is_valid, error_msg, validation_info = FileValidator.validate_file_for_processing(
+                file_path, "logo"
+            )
+        else:
+            # For HTTP/HTTPS URLs, validate remote file
+            is_valid, error_msg, validation_info = FileValidator.validate_remote_file_for_processing(
+                logo_url, "logo"
+            )
+        
         if not is_valid:
             raise ValidationError(error_msg, "logo_url")
         
@@ -109,7 +122,6 @@ async def create_asset_pack(request: AssetPackRequest):
         logger.info("Step 1: Cleaning up logo", request_id=request_id)
         cleanup_result = await cleanup_service.cleanup_logo(
             logo_url=str(request.logo_url),
-            team_name=request.team_name,
             output_format=request.output_format,
             quality=request.quality
         )

@@ -30,14 +30,13 @@ class AssetCleanupService:
         os.makedirs(self.temp_dir, exist_ok=True)
         os.makedirs(self.output_dir, exist_ok=True)
     
-    async def cleanup_logo(self, logo_url: str, team_name: str, 
+    async def cleanup_logo(self, logo_url: str, 
                           output_format: str = "png", quality: int = 95) -> Dict[str, Any]:
         """
         Clean up a logo by removing background and enhancing quality
         
         Args:
             logo_url: URL of the logo to clean
-            team_name: Team name for filename generation
             output_format: Output format (png, jpg, webp)
             quality: Output quality (1-100)
             
@@ -47,7 +46,7 @@ class AssetCleanupService:
         start_time = time.time()
         
         try:
-            logger.info("Starting logo cleanup", logo_url=logo_url, team_name=team_name)
+            logger.info("Starting logo cleanup", logo_url=logo_url)
             
             # Step 1: AI Background Removal
             logger.info("Step 1: AI background removal")
@@ -67,7 +66,7 @@ class AssetCleanupService:
             # Step 3: Generate final filename and save
             logger.info("Step 3: Final processing")
             final_filename = generate_pipeline_filename(
-                team_name, "clean-logo", output_format
+                logo_url, ["clean-logo"], output_format
             )
             final_path = os.path.join(self.output_dir, final_filename)
             
@@ -87,7 +86,6 @@ class AssetCleanupService:
             file_size_bytes = os.path.getsize(final_path)
             
             logger.info("Logo cleanup completed successfully",
-                       team_name=team_name,
                        processing_time_ms=processing_time_ms,
                        file_size_bytes=file_size_bytes)
             
@@ -101,7 +99,6 @@ class AssetCleanupService:
         except Exception as e:
             processing_time_ms = int((time.time() - start_time) * 1000)
             logger.error("Logo cleanup failed",
-                        team_name=team_name,
                         error=str(e),
                         processing_time_ms=processing_time_ms)
             

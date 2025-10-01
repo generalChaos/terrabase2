@@ -149,8 +149,11 @@ export default function AdminDashboard() {
             body: JSON.stringify({
               logo_url: testImageUrl,
               team_name: testTeamName,
-              sport: 'Basketball',
-              roster: ['Player 1', 'Player 2', 'Player 3']
+              players: [
+                { number: 1, name: 'Player 1' },
+                { number: 2, name: 'Player 2' },
+                { number: 3, name: 'Player 3' }
+              ]
             })
           });
           break;
