@@ -29,6 +29,13 @@ interface AdminData {
   };
 }
 
+interface ImageProcessorTest {
+  type: 'upscale' | 'asset-pack' | 'health' | 'stats';
+  status: 'idle' | 'loading' | 'success' | 'error';
+  result?: any;
+  error?: string;
+}
+
 export default function AdminDashboard() {
   const [data, setData] = useState<AdminData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -37,6 +44,16 @@ export default function AdminDashboard() {
   const [authenticated, setAuthenticated] = useState(false);
   const [selectedFlowId, setSelectedFlowId] = useState<string | null>(null);
   const [showFlowDetails, setShowFlowDetails] = useState(false);
+  
+  // Image Processor Test State
+  const [imageProcessorTests, setImageProcessorTests] = useState<Record<string, ImageProcessorTest>>({
+    health: { type: 'health', status: 'idle' },
+    stats: { type: 'stats', status: 'idle' },
+    upscale: { type: 'upscale', status: 'idle' },
+    'asset-pack': { type: 'asset-pack', status: 'idle' }
+  });
+  const [testImageUrl, setTestImageUrl] = useState('https://via.placeholder.com/512x512/000000/FFFFFF?text=Test+Logo');
+  const [testTeamName, setTestTeamName] = useState('Test Team');
 
   const authenticate = async () => {
     try {
@@ -91,6 +108,78 @@ export default function AdminDashboard() {
   const handleCloseFlowDetails = () => {
     setShowFlowDetails(false);
     setSelectedFlowId(null);
+  };
+
+  // Image Processor Test Functions
+  const testImageProcessor = async (testType: string) => {
+    setImageProcessorTests(prev => ({
+      ...prev,
+      [testType]: { ...prev[testType], status: 'loading', error: undefined }
+    }));
+
+    try {
+      let response;
+      let endpoint;
+
+      switch (testType) {
+        case 'health':
+          endpoint = '/api/image-processor/health';
+          response = await fetch(endpoint);
+          break;
+        case 'stats':
+          endpoint = '/api/image-processor/stats';
+          response = await fetch(endpoint);
+          break;
+        case 'upscale':
+          endpoint = '/api/image-processor/upscale';
+          response = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              image_url: testImageUrl,
+              scale_factor: 2
+            })
+          });
+          break;
+        case 'asset-pack':
+          endpoint = '/api/image-processor/asset-pack';
+          response = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              logo_url: testImageUrl,
+              team_name: testTeamName,
+              sport: 'Basketball',
+              roster: ['Player 1', 'Player 2', 'Player 3']
+            })
+          });
+          break;
+        default:
+          throw new Error('Unknown test type');
+      }
+
+      const result = await response.json();
+
+      setImageProcessorTests(prev => ({
+        ...prev,
+        [testType]: {
+          ...prev[testType],
+          status: response.ok ? 'success' : 'error',
+          result: result,
+          error: response.ok ? undefined : result.error || 'Unknown error'
+        }
+      }));
+
+    } catch (error) {
+      setImageProcessorTests(prev => ({
+        ...prev,
+        [testType]: {
+          ...prev[testType],
+          status: 'error',
+          error: error instanceof Error ? error.message : 'Unknown error'
+        }
+      }));
+    }
   };
 
   if (!authenticated) {
@@ -318,6 +407,136 @@ export default function AdminDashboard() {
                   </span>
                 </div>
                 <p className="text-sm text-gray-600 mt-1">{log.message}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Image Processor Testing */}
+        <div className="bg-white p-6 rounded-lg shadow">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Image Processor Testing</h2>
+          
+          {/* Test Configuration */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Test Image URL
+              </label>
+              <input
+                type="url"
+                value={testImageUrl}
+                onChange={(e) => setTestImageUrl(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="https://example.com/image.png"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Test Team Name
+              </label>
+              <input
+                type="text"
+                value={testTeamName}
+                onChange={(e) => setTestTeamName(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Test Team"
+              />
+            </div>
+          </div>
+
+          {/* Test Buttons */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <Button
+              onClick={() => testImageProcessor('health')}
+              disabled={imageProcessorTests.health.status === 'loading'}
+              className={`w-full ${
+                imageProcessorTests.health.status === 'success' 
+                  ? 'bg-green-600 hover:bg-green-700' 
+                  : imageProcessorTests.health.status === 'error'
+                  ? 'bg-red-600 hover:bg-red-700'
+                  : 'bg-blue-600 hover:bg-blue-700'
+              } text-white font-semibold py-2 px-4 rounded-md`}
+            >
+              {imageProcessorTests.health.status === 'loading' ? 'Testing...' : 'Health Check'}
+            </Button>
+            
+            <Button
+              onClick={() => testImageProcessor('stats')}
+              disabled={imageProcessorTests.stats.status === 'loading'}
+              className={`w-full ${
+                imageProcessorTests.stats.status === 'success' 
+                  ? 'bg-green-600 hover:bg-green-700' 
+                  : imageProcessorTests.stats.status === 'error'
+                  ? 'bg-red-600 hover:bg-red-700'
+                  : 'bg-blue-600 hover:bg-blue-700'
+              } text-white font-semibold py-2 px-4 rounded-md`}
+            >
+              {imageProcessorTests.stats.status === 'loading' ? 'Testing...' : 'Get Stats'}
+            </Button>
+            
+            <Button
+              onClick={() => testImageProcessor('upscale')}
+              disabled={imageProcessorTests.upscale.status === 'loading'}
+              className={`w-full ${
+                imageProcessorTests.upscale.status === 'success' 
+                  ? 'bg-green-600 hover:bg-green-700' 
+                  : imageProcessorTests.upscale.status === 'error'
+                  ? 'bg-red-600 hover:bg-red-700'
+                  : 'bg-blue-600 hover:bg-blue-700'
+              } text-white font-semibold py-2 px-4 rounded-md`}
+            >
+              {imageProcessorTests.upscale.status === 'loading' ? 'Testing...' : 'Test Upscale'}
+            </Button>
+            
+            <Button
+              onClick={() => testImageProcessor('asset-pack')}
+              disabled={imageProcessorTests['asset-pack'].status === 'loading'}
+              className={`w-full ${
+                imageProcessorTests['asset-pack'].status === 'success' 
+                  ? 'bg-green-600 hover:bg-green-700' 
+                  : imageProcessorTests['asset-pack'].status === 'error'
+                  ? 'bg-red-600 hover:bg-red-700'
+                  : 'bg-blue-600 hover:bg-blue-700'
+              } text-white font-semibold py-2 px-4 rounded-md`}
+            >
+              {imageProcessorTests['asset-pack'].status === 'loading' ? 'Testing...' : 'Test Asset Pack'}
+            </Button>
+          </div>
+
+          {/* Test Results */}
+          <div className="space-y-4">
+            {Object.entries(imageProcessorTests).map(([testType, test]) => (
+              <div key={testType} className="border rounded-lg p-4">
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="text-lg font-medium text-gray-900 capitalize">
+                    {testType.replace('-', ' ')} Test
+                  </h3>
+                  <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                    test.status === 'success' 
+                      ? 'bg-green-100 text-green-800'
+                      : test.status === 'error'
+                      ? 'bg-red-100 text-red-800'
+                      : test.status === 'loading'
+                      ? 'bg-yellow-100 text-yellow-800'
+                      : 'bg-gray-100 text-gray-800'
+                  }`}>
+                    {test.status}
+                  </span>
+                </div>
+                
+                {test.error && (
+                  <div className="text-red-600 text-sm mb-2">
+                    Error: {test.error}
+                  </div>
+                )}
+                
+                {test.result && (
+                  <div className="bg-gray-50 p-3 rounded text-sm">
+                    <pre className="whitespace-pre-wrap overflow-x-auto">
+                      {JSON.stringify(test.result, null, 2)}
+                    </pre>
+                  </div>
+                )}
               </div>
             ))}
           </div>
