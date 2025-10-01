@@ -2,8 +2,11 @@
 *
 
 # Include only the image-processor app
+!apps/
 !apps/image-processor/
-!apps/image-processor/**
+!apps/image-processor/requirements.txt
+!apps/image-processor/src/
+!apps/image-processor/src/**
 
 # Ignore development files within image-processor
 apps/image-processor/tests/
