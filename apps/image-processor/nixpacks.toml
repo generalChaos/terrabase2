@@ -1,2 +1,2 @@
 [start]
-cmd = "python test_server.py"
+cmd = "python3 test_server.py"
