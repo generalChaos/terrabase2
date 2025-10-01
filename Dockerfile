@@ -16,8 +16,17 @@ COPY apps/image-processor/requirements.txt .
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
-COPY apps/image-processor/src/ ./src/
+# Copy application code - copy individual files to avoid directory issues
+COPY apps/image-processor/src/main.py ./src/
+COPY apps/image-processor/src/api/ ./src/api/
+COPY apps/image-processor/src/database/ ./src/database/
+COPY apps/image-processor/src/logging/ ./src/logging/
+COPY apps/image-processor/src/middleware/ ./src/middleware/
+COPY apps/image-processor/src/models/ ./src/models/
+COPY apps/image-processor/src/services/ ./src/services/
+COPY apps/image-processor/src/storage/ ./src/storage/
+COPY apps/image-processor/src/utils/ ./src/utils/
+COPY apps/image-processor/src/validators/ ./src/validators/
 
 # Create necessary directories
 RUN mkdir -p /app/temp /app/output /app/storage
