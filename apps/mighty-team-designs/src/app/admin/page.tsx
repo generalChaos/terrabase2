@@ -52,7 +52,7 @@ export default function AdminDashboard() {
     upscale: { type: 'upscale', status: 'idle' },
     'asset-pack': { type: 'asset-pack', status: 'idle' }
   });
-  const [testImageUrl, setTestImageUrl] = useState('https://via.placeholder.com/512x512/000000/FFFFFF?text=Test+Logo');
+  const [testImageUrl, setTestImageUrl] = useState('file:///Users/ricovelasco/Documents/devprojects/party-game/apps/image-processor/test-input/logos/king-cobra-youth-soccer-logo.png');
   const [testTeamName, setTestTeamName] = useState('Test Team');
 
   const authenticate = async () => {
@@ -427,7 +427,7 @@ export default function AdminDashboard() {
                 value={testImageUrl}
                 onChange={(e) => setTestImageUrl(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="https://example.com/image.png"
+                placeholder="file:///path/to/local/image.png or https://example.com/image.png"
               />
             </div>
             <div>
