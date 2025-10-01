@@ -1,0 +1,67 @@
+# Exclude unnecessary files from Railway deployment
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+.git/
+.mypy_cache/
+.pytest_cache/
+.hypothesis/
+
+# Exclude test files
+tests/
+test-input/
+output/
+temp/
+storage/
+
+# Exclude documentation
+docs/
+*.md
+README.md
+QUICK_START.md
+COST_COMPARISON.md
+ROSTER_SHIRT_FLOW.md
+
+# Exclude Docker files (using Nixpacks)
+Dockerfile
+docker-compose.yml
+docker-compose.prod.yml
+nginx.conf
+
+# Exclude development files
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Exclude large model files (if any)
+models/
+*.pth
+*.onnx
+*.h5
+
+# Exclude IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Exclude OS files
+.DS_Store
+Thumbs.db
