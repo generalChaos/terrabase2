@@ -11,7 +11,7 @@ import time
 from src.services.upscaler import ImageUpscaler
 from src.validators import InputValidator, ValidationError, FileValidator
 from src.storage import storage
-from src.logging import logger
+from src.custom_logging import logger
 
 router = APIRouter()
 

@@ -13,7 +13,7 @@ from src.services.asset_cleanup import AssetCleanupService
 from src.services.logo_overlay import LogoOverlayService
 from src.validators import InputValidator, ValidationError, FileValidator
 from src.storage import storage
-from src.logging import logger
+from src.custom_logging import logger
 
 router = APIRouter()
 
@@ -68,18 +68,18 @@ async def create_asset_pack(request: AssetPackRequest):
     start_time = time.time()
     
     try:
-        # Log the request
-        await storage.log_request(
-            request_id=request_id,
-            endpoint="asset-pack",
-            image_url=str(request.logo_url),
-            parameters={
-                "team_name": request.team_name,
-                "player_count": len(request.players),
-                "tshirt_color": request.tshirt_color,
-                "include_banner": request.include_banner
-            }
-        )
+        # Log the request (temporarily disabled - database tables don't exist)
+        # await storage.log_request(
+        #     request_id=request_id,
+        #     endpoint="asset-pack",
+        #     image_url=str(request.logo_url),
+        #     parameters={
+        #         "team_name": request.team_name,
+        #         "player_count": len(request.players),
+        #         "tshirt_color": request.tshirt_color,
+        #         "include_banner": request.include_banner
+        #     }
+        # )
         
         # Validate input parameters
         InputValidator.validate_image_url(str(request.logo_url), "logo_url")
@@ -181,19 +181,19 @@ async def create_asset_pack(request: AssetPackRequest):
         
         processing_time_ms = int((time.time() - start_time) * 1000)
         
-        # Log success
-        await storage.log_success(
-            request_id=request_id,
-            processing_time_ms=processing_time_ms,
-            output_url=clean_logo_url,
-            processing_steps=[
-                "logo_cleanup",
-                "tshirt_front_creation", 
-                "tshirt_back_creation",
-                "banner_creation" if request.include_banner else None
-            ],
-            endpoint="asset-pack"
-        )
+        # Log success (temporarily disabled - database tables don't exist)
+        # await storage.log_success(
+        #     request_id=request_id,
+        #     processing_time_ms=processing_time_ms,
+        #     output_url=clean_logo_url,
+        #     processing_steps=[
+        #         "logo_cleanup",
+        #         "tshirt_front_creation", 
+        #         "tshirt_back_creation",
+        #         "banner_creation" if request.include_banner else None
+        #     ],
+        #     endpoint="asset-pack"
+        # )
         
         logger.info("Asset pack creation completed successfully",
                    request_id=request_id,
@@ -213,13 +213,13 @@ async def create_asset_pack(request: AssetPackRequest):
     except ValidationError as e:
         processing_time_ms = int((time.time() - start_time) * 1000)
         
-        await storage.log_validation_error(
-            request_id=request_id,
-            field=e.field or "unknown",
-            error_message=e.message,
-            value=getattr(request, e.field, None) if e.field else None,
-            endpoint="asset-pack"
-        )
+        # await storage.log_validation_error(
+        #     request_id=request_id,
+        #     field=e.field or "unknown",
+        #     error_message=e.message,
+        #     value=getattr(request, e.field, None) if e.field else None,
+        #     endpoint="asset-pack"
+        # )
         
         raise HTTPException(
             status_code=400,
@@ -233,12 +233,12 @@ async def create_asset_pack(request: AssetPackRequest):
     except Exception as e:
         processing_time_ms = int((time.time() - start_time) * 1000)
         
-        await storage.log_failure(
-            request_id=request_id,
-            error_message=str(e),
-            processing_time_ms=processing_time_ms,
-            endpoint="asset-pack"
-        )
+        # await storage.log_failure(
+        #     request_id=request_id,
+        #     error_message=str(e),
+        #     processing_time_ms=processing_time_ms,
+        #     endpoint="asset-pack"
+        # )
         
         logger.error("Asset pack creation failed",
                     request_id=request_id,

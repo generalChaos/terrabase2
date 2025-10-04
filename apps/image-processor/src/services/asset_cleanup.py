@@ -14,6 +14,7 @@ import numpy as np
 from src.services.ai_background_remover import AIBackgroundRemover
 from src.services.preprocessor import ImagePreprocessor
 from src.utils.filename_utils import generate_pipeline_filename
+from src.storage.storage_service import StorageService
 import logging
 
 logger = logging.getLogger(__name__)
@@ -26,6 +27,7 @@ class AssetCleanupService:
         self.output_dir = os.getenv("OUTPUT_DIR", "./output")
         self.ai_remover = AIBackgroundRemover()
         self.preprocessor = ImagePreprocessor()
+        self.storage = StorageService()
         
         os.makedirs(self.temp_dir, exist_ok=True)
         os.makedirs(self.output_dir, exist_ok=True)
@@ -50,50 +52,67 @@ class AssetCleanupService:
             
             # Step 1: AI Background Removal
             # logger.info("Step 1: AI background removal")
+            print(f"DEBUG: Starting AI background removal for {logo_url}")
             bg_result = await self.ai_remover.remove_background_hybrid(logo_url)
+            print(f"DEBUG: Background removal result: {bg_result}")
             if not bg_result["success"]:
                 return {
                     "success": False,
                     "error": f"Background removal failed: {bg_result['error']}"
                 }
             
-            bg_removed_path = bg_result["processed_path"]
+            print(f"DEBUG: Accessing output_url from bg_result")
+            bg_removed_path = bg_result["output_url"]
+            print(f"DEBUG: Got bg_removed_path: {bg_removed_path}")
             
             # Step 2: Python-based Enhancement
             # logger.info("Step 2: Python enhancement")
             enhanced_path = await self._enhance_with_python(bg_removed_path)
             
-            # Step 3: Generate final filename and save
+            # Step 3: Generate final filename and save to storage
             # logger.info("Step 3: Final processing")
             final_filename = generate_pipeline_filename(
                 logo_url, ["clean-logo"], output_format
             )
-            final_path = os.path.join(self.output_dir, final_filename)
             
             # Convert to final format and quality
             with Image.open(enhanced_path) as img:
+                # Convert to bytes
+                import io
+                img_bytes = io.BytesIO()
                 if output_format.lower() == "jpg" or output_format.lower() == "jpeg":
                     # Convert RGBA to RGB for JPEG
                     if img.mode == "RGBA":
                         background = Image.new("RGB", img.size, (255, 255, 255))
                         background.paste(img, mask=img.split()[-1])
                         img = background
-                    img.save(final_path, "JPEG", quality=quality, optimize=True)
+                    img.save(img_bytes, "JPEG", quality=quality, optimize=True)
+                    content_type = "image/jpeg"
                 else:
-                    img.save(final_path, output_format.upper(), quality=quality, optimize=True)
+                    # For PNG, preserve transparency
+                    if output_format.lower() == "png" and img.mode == "RGBA":
+                        img.save(img_bytes, "PNG", optimize=True)
+                    else:
+                        img.save(img_bytes, output_format.upper(), quality=quality, optimize=True)
+                    content_type = f"image/{output_format.lower()}"
+                
+                img_bytes.seek(0)
+                
+            # Upload to Supabase storage
+            storage_file = await self.storage.upload_file(
+                file_data=img_bytes.getvalue(),
+                file_name=final_filename,
+                bucket="team-logos",
+                content_type=content_type
+            )
             
             processing_time_ms = int((time.time() - start_time) * 1000)
-            file_size_bytes = os.path.getsize(final_path)
-            
-            # logger.info("Logo cleanup completed successfully",
-            #            processing_time_ms=processing_time_ms,
-            #            file_size_bytes=file_size_bytes)
             
             return {
                 "success": True,
-                "clean_logo_url": f"file://{os.path.abspath(final_path)}",
+                "output_url": storage_file.public_url,
                 "processing_time_ms": processing_time_ms,
-                "file_size_bytes": file_size_bytes
+                "file_size_bytes": storage_file.file_size
             }
             
         except Exception as e:
@@ -122,9 +141,12 @@ class AssetCleanupService:
             # Load image
             img = Image.open(image_path)
             
-            # Convert to RGB if needed
-            if img.mode != "RGB":
-                img = img.convert("RGB")
+            # Convert to RGBA if needed to preserve transparency
+            if img.mode not in ["RGB", "RGBA"]:
+                img = img.convert("RGBA")
+            elif img.mode == "RGB":
+                # Convert RGB to RGBA to preserve any existing alpha
+                img = img.convert("RGBA")
             
             # Enhance contrast
             enhancer = ImageEnhance.Contrast(img)

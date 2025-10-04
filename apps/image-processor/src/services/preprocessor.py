@@ -85,7 +85,7 @@ class ImagePreprocessor:
             
             return {
                 "success": True,
-                "processed_path": output_path,
+                "output_url": output_path,
                 "original_url": image_url,
                 "preprocessing_applied": list(preprocessing_options.keys()),
                 "file_size_bytes": os.path.getsize(output_path),
@@ -96,7 +96,7 @@ class ImagePreprocessor:
             logger.error(f"Preprocessing failed: {str(e)}")
             return {
                 "success": False,
-                "processed_path": None,
+                "output_url": None,
                 "original_url": image_url,
                 "preprocessing_applied": [],
                 "file_size_bytes": None,

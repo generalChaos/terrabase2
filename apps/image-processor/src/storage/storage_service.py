@@ -52,7 +52,8 @@ class StorageService:
             raise ImportError("Supabase client not available. Install with: pip install supabase")
         
         supabase_url = os.getenv('SUPABASE_URL')
-        supabase_key = os.getenv('SUPABASE_ANON_KEY')
+        # Use service role key for uploads to bypass RLS
+        supabase_key = os.getenv('SUPABASE_SERVICE_KEY') or os.getenv('SUPABASE_SERVICE_ROLE_KEY') or os.getenv('SUPABASE_ANON_KEY')
         
         if not supabase_url or not supabase_key:
             raise ValueError("Supabase URL and key must be provided for Supabase storage")
@@ -225,7 +226,17 @@ class StorageService:
             raise ValueError("Supabase client not initialized")
         
         response = self.supabase_client.storage.from_(bucket).get_public_url(file_path)
-        return response
+        
+        # Handle both string and response object cases
+        if isinstance(response, str):
+            # Remove trailing ? if present
+            return response.rstrip('?')
+        elif hasattr(response, 'public_url'):
+            return str(response.public_url).rstrip('?')
+        else:
+            # Fallback: construct URL manually
+            supabase_url = os.getenv('SUPABASE_URL', '').rstrip('/')
+            return f"{supabase_url}/storage/v1/object/public/{bucket}/{file_path}"
     
     async def _delete_supabase_file(self, file_path: str, bucket: str) -> bool:
         """Delete Supabase file"""

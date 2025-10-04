@@ -5,7 +5,7 @@ Statistics API endpoints
 from fastapi import APIRouter, HTTPException
 from typing import Dict, Any
 from src.storage import storage
-from src.logging import logger
+from src.custom_logging import logger
 
 router = APIRouter()
 
@@ -80,36 +80,3 @@ async def get_endpoint_stats(endpoint: str, hours: int = 24) -> Dict[str, Any]:
             }
         )
 
-@router.post("/cleanup")
-async def cleanup_old_records(days: int = 30) -> Dict[str, Any]:
-    """
-    Clean up old records to free up storage space
-    
-    Args:
-        days: Number of days to keep (default: 30)
-        
-    Returns:
-        Dictionary with cleanup results
-    """
-    try:
-        deleted_count = await storage.cleanup(days)
-        
-        logger.info("Cleaned up old records", 
-                   days=days,
-                   deleted_count=deleted_count)
-        
-        return {
-            "success": True,
-            "deleted_records": deleted_count,
-            "retention_days": days
-        }
-        
-    except Exception as e:
-        logger.error(f"Failed to cleanup old records: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail={
-                "error": "Failed to cleanup old records",
-                "message": str(e)
-            }
-        )

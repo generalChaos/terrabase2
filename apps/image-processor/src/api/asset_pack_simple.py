@@ -57,6 +57,7 @@ async def create_asset_pack(request: AssetPackRequest):
     - Banner with logo and roster (optional)
     """
     start_time = time.time()
+    print(f"DEBUG: Asset pack request received: {request}")
     
     try:
         # Validate input
@@ -72,11 +73,13 @@ async def create_asset_pack(request: AssetPackRequest):
             )
         
         # Step 1: Clean the logo (remove background, enhance)
+        print(f"DEBUG: Starting logo cleanup for {request.logo_url}")
         cleanup_result = await cleanup_service.cleanup_logo(
             logo_url=request.logo_url,
             output_format=request.output_format,
             quality=request.quality
         )
+        print(f"DEBUG: Cleanup result: {cleanup_result}")
         
         if not cleanup_result["success"]:
             return AssetPackResponse(
@@ -86,7 +89,8 @@ async def create_asset_pack(request: AssetPackRequest):
                 error=f"Logo cleanup failed: {cleanup_result['error']}"
             )
         
-        clean_logo_url = cleanup_result["clean_logo_url"]
+        clean_logo_url = cleanup_result["output_url"]
+        print(f"DEBUG: Clean logo URL: {clean_logo_url}")
         
         # Step 2: Create t-shirt front with logo
         tshirt_front_result = await overlay_service.overlay_logo_on_tshirt(
@@ -109,10 +113,11 @@ async def create_asset_pack(request: AssetPackRequest):
         
         # Step 3: Create t-shirt back with roster
         players_data = [{"number": p.number, "name": p.name} for p in request.players]
-        tshirt_back_result = await overlay_service.overlay_roster_on_tshirt(
+        tshirt_back_result = await overlay_service.overlay_roster_on_tshirt_back(
             players=players_data,
             tshirt_color=request.tshirt_color,
-            position="center"
+            output_format=request.output_format,
+            quality=request.quality
         )
         
         if not tshirt_back_result["success"]:
@@ -129,14 +134,14 @@ async def create_asset_pack(request: AssetPackRequest):
         banner_url = None
         if request.include_banner:
             roster_text = "\n".join([f"{p.number} {p.name}" for p in request.players])
-            banner_result = await overlay_service.overlay_logo_and_roster_on_banner(
+            banner_result = await overlay_service.create_banner(
                 logo_url=clean_logo_url,
                 team_name=request.team_name,
-                roster_text=roster_text
+                players=players_data
             )
             
             if banner_result["success"]:
-                banner_url = banner_result["banner_url"]
+                banner_url = banner_result["output_url"]
         
         processing_time_ms = int((time.time() - start_time) * 1000)
         
@@ -152,10 +157,13 @@ async def create_asset_pack(request: AssetPackRequest):
         
     except Exception as e:
         processing_time_ms = int((time.time() - start_time) * 1000)
+        print(f"DEBUG: Exception occurred: {type(e).__name__}: {e}")
+        import traceback
+        traceback.print_exc()
         
         return AssetPackResponse(
             success=False,
             team_name=request.team_name,
             processing_time_ms=processing_time_ms,
-            error=str(e)
+            error=f"{type(e).__name__}: {str(e)}"
         )

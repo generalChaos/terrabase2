@@ -14,9 +14,11 @@ from src.api.upscaling import router as upscaling_router
 from src.api.asset_pack_simple import router as asset_pack_router
 from src.api.stats import router as stats_router
 from src.api.storage import router as storage_router
+from src.api.background_removal import router as background_removal_router
+from src.api.tshirt import router as tshirt_router
 from src.models.schemas import HealthResponse
 from src.middleware.request_id import RequestIDMiddleware
-from src.logging import logger
+from src.custom_logging import logger
 
 # Load environment variables
 load_dotenv()
@@ -49,6 +51,8 @@ app.include_router(upscaling_router, prefix="/api/v1", tags=["upscaling"])
 app.include_router(asset_pack_router, prefix="/api/v1", tags=["asset-pack"])
 app.include_router(stats_router, prefix="/api/v1", tags=["stats"])
 app.include_router(storage_router, prefix="/api/v1", tags=["storage"])
+app.include_router(background_removal_router, prefix="/api/v1", tags=["background-removal"])
+app.include_router(tshirt_router, prefix="/api/v1", tags=["tshirt"])
 
 # Add health endpoint under /api/v1 for consistency with frontend
 @app.get("/api/v1/health", response_model=HealthResponse)
@@ -66,6 +70,10 @@ async def root():
         "endpoints": {
             "upscaling": "/api/v1/upscale",
             "asset_pack": "/api/v1/asset-pack",
+            "background_removal": "/api/v1/remove-background",
+            "tshirt_front": "/api/v1/tshirt/front",
+            "tshirt_back": "/api/v1/tshirt/back",
+            "tshirt_both": "/api/v1/tshirt/both",
             "stats": "/api/v1/stats",
             "health": "/health",
             "docs": "/docs"
@@ -84,7 +92,8 @@ async def health_check():
         output_exists = os.path.exists(output_dir)
         
         # Check if models are available (optional)
-        realesrgan_model = os.getenv("REALESRGAN_MODEL_PATH", "/app/models/RealESRGAN_x4plus.pth")
+        models_dir = os.getenv("MODELS_DIR", "./models")
+        realesrgan_model = os.getenv("REALESRGAN_MODEL_PATH", os.path.join(models_dir, "RealESRGAN_x4plus.pth"))
         model_exists = os.path.exists(realesrgan_model)
         
         healthy = temp_exists and output_exists

@@ -89,7 +89,7 @@ class AIBackgroundRemover:
             
             return {
                 "success": True,
-                "processed_path": output_path,
+                "output_url": output_path,
                 "file_size_bytes": file_size,
                 "method": "ai_rembg"
             }
@@ -147,7 +147,7 @@ class AIBackgroundRemover:
                 return ai_result
             
             # Load the AI result
-            ai_image = Image.open(ai_result["processed_path"])
+            ai_image = Image.open(ai_result["output_url"])
             
             # Apply additional cleanup
             cleaned_image = self._cleanup_ai_result(ai_image)
@@ -158,7 +158,7 @@ class AIBackgroundRemover:
             
             return {
                 "success": True,
-                "processed_path": output_path,
+                "output_url": output_path,
                 "file_size_bytes": file_size,
                 "method": "hybrid_ai_manual"
             }
