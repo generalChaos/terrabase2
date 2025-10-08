@@ -6,7 +6,6 @@ import { logDebug, logError, recordMetric } from '@/lib/debug';
 export interface LogoGenerationOptions {
   teamName: string;
   sport: string;
-  ageGroup: string;
   style: string;
   colors: string;
   customColors?: string;
@@ -40,34 +39,49 @@ export class ImageGenerationService {
     const generatedLogos: GeneratedLogo[] = [];
 
     try {
-      // Get the logo generation prompt
-      const { data: prompt, error: promptError } = await supabase
-        .from('logo_prompts')
-        .select('*')
-        .eq('name', 'team_logo_generation')
-        .eq('active', true)
-        .single();
+      // For now, use a simple hardcoded prompt to test AI generation
+      const promptText = `Create a ${options.style} ${options.sport} team logo for "${options.teamName}" that includes both a mascot/icon and the team name text.
 
-      if (promptError || !prompt) {
-        throw new Error('Logo generation prompt not found');
-      }
+STYLE: ${options.style}
+COLORS: ${options.colors}
+MASCOT: ${options.mascot}
 
-      // Prepare the prompt with team data
-      const promptText = prompt.prompt_text
-        .replace('{team}', options.teamName)
-        .replace('{sport}', options.sport)
-        .replace('{age_group}', options.ageGroup)
-        .replace('{style}', options.style)
-        .replace('{colors}', this.optimizeColorsForPrint(options.colors, options.customColors))
-        .replace('{custom_colors}', options.customColors || '')
-        .replace('{mascot}', options.mascot)
-        .replace('{mascot_type}', options.mascotType || '');
+ART STYLE REQUIREMENTS:
+- Use illustrative art style with bold, clean lines
+- Minimize visual artifacts and noise
+- Sharp, crisp edges and defined shapes
+- Clean vector-style appearance
+- Professional illustration quality
+- Avoid blurry or pixelated elements
 
-      // Debug logging
-      console.log('=== PROMPT DEBUG ===');
-      console.log('Original prompt from DB:', prompt.prompt_text.substring(0, 200) + '...');
-      console.log('Final prompt text:', promptText.substring(0, 200) + '...');
-      console.log('===================');
+TEXT REQUIREMENTS:
+- MUST include the team name "${options.teamName}" prominently in the logo
+- Use bold, readable fonts that work at small sizes
+- High-contrast colors for text
+- Text should complement the mascot/icon
+- Clean typography with sharp edges
+
+BACKGROUND GUIDELINES:
+- Always include a solid background color for the logo
+- The logo design should be contained within a solid background shape
+- Only the area outside the logo background should be transparent
+- Clean, solid background with no texture or noise
+
+REQUIREMENTS:
+- High contrast for uniforms and jerseys
+- Single color capable (text and mascot must work in black/white)
+- Scalable design (readable from 1 inch to 12 inches)
+- Professional quality suitable for team uniforms
+- Sport-specific elements appropriate for ${options.sport}
+- Clean, illustrative style with minimal artifacts
+
+Generate detailed prompt for gpt-image-1.`;
+
+      console.log('=== PROMPT GENERATION DEBUG ===');
+      console.log('📝 Generated prompt text:');
+      console.log(promptText);
+      console.log('📏 Prompt length:', promptText.length, 'characters');
+
 
       // Generate the requested number of logo variants
       for (let i = 0; i < (options.variantCount || 1); i++) {
@@ -80,7 +94,9 @@ export class ImageGenerationService {
           );
           generatedLogos.push(logo);
         } catch (variantError) {
-          console.error(`Error generating variant ${i + 1}:`, variantError);
+          console.error(`❌ Error generating variant ${i + 1}:`, variantError);
+          console.error('Error details:', variantError instanceof Error ? variantError.message : 'Unknown error');
+          console.error('Error stack:', variantError instanceof Error ? variantError.stack : 'No stack trace');
           await logError(flowId, 'logo_generation', `Failed to generate variant ${i + 1}`, variantError as Error);
           // Continue with other variants even if one fails
         }
@@ -101,7 +117,7 @@ export class ImageGenerationService {
         generation_time_ms: totalTime,
         team_name: options.teamName,
         sport: options.sport,
-        age_group: options.ageGroup
+        age_group: 'youth'
       });
 
       return generatedLogos;
@@ -301,7 +317,15 @@ export class ImageGenerationService {
       const quality = 'low';
       const n = 1;
 
+      console.log('=== OPENAI API CALL DEBUG ===');
+      console.log('🤖 Model:', 'gpt-image-1');
+      console.log('📝 Prompt:', promptText.substring(0, 200) + '...');
+      console.log('🔢 N (count):', n);
+      console.log('📐 Size:', size);
+      console.log('⭐ Quality:', quality);
+      
       // Generate logo using gpt-image-1 for testing (reduced quality)
+      console.log('🚀 Making OpenAI API call...');
       const imageResponse = await openai.images.generate({
         model: 'gpt-image-1',
         prompt: promptText,
@@ -310,6 +334,10 @@ export class ImageGenerationService {
         quality
         // Note: gpt-image-1 doesn't support response_format parameter
       });
+      
+      console.log('✅ OpenAI API response received');
+      console.log('📊 Response data length:', imageResponse.data?.length || 0);
+      console.log('📊 Full response:', JSON.stringify(imageResponse, null, 2));
 
       const imageData = imageResponse.data?.[0];
       if (!imageData) {
@@ -317,18 +345,29 @@ export class ImageGenerationService {
       }
 
       // gpt-image-1 returns URL format, not base64
+      console.log('🖼️ Processing image data...');
+      console.log('Image data keys:', Object.keys(imageData));
+      console.log('Has URL:', !!imageData.url);
+      console.log('Has b64_json:', !!imageData.b64_json);
+      
       let imageBuffer: Buffer;
       if (imageData.url) {
+        console.log('📥 Fetching image from URL:', imageData.url);
         // If URL format, fetch the image
         const imageResponse = await fetch(imageData.url);
         if (!imageResponse.ok) {
-          throw new Error('Failed to fetch generated image');
+          console.error('❌ Failed to fetch image, status:', imageResponse.status);
+          throw new Error(`Failed to fetch generated image: ${imageResponse.status}`);
         }
         imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+        console.log('✅ Image fetched successfully, size:', imageBuffer.length, 'bytes');
       } else if (imageData.b64_json) {
+        console.log('📥 Using base64 data');
         // If base64 format (fallback)
         imageBuffer = Buffer.from(imageData.b64_json, 'base64');
+        console.log('✅ Base64 decoded, size:', imageBuffer.length, 'bytes');
       } else {
+        console.error('❌ No valid image data found');
         throw new Error('No valid image data received from OpenAI');
       }
 
@@ -385,7 +424,7 @@ export class ImageGenerationService {
         id: logo.id,
         variant_number: variantNumber,
         file_path: fileName,
-        public_url: urlData.publicUrl,
+        public_url: storageFile.publicUrl,
         is_selected: variantNumber === 1,
         generation_time_ms: generationTime,
         generation_cost_usd: generationCost,
@@ -410,55 +449,40 @@ export class ImageGenerationService {
     const startTime = Date.now();
     const generatedLogos: GeneratedLogo[] = [];
 
+
     try {
-      // Generate mock logos for testing
+      // Generate mock logos for testing (without database for now)
       for (let i = 0; i < (options.variantCount || 1); i++) {
         const fileName = `${flowId}/variant_${i + 1}_${Date.now()}.png`;
-        const mockPublicUrl = `https://via.placeholder.com/1024x1024/4F46E5/FFFFFF?text=${encodeURIComponent(options.teamName)}`;
+        
+        // Create a more descriptive mock URL that includes team info
+        const teamText = encodeURIComponent(options.teamName);
+        const sportText = encodeURIComponent(options.sport);
+        const styleText = encodeURIComponent(options.style);
+        const mockPublicUrl = `https://via.placeholder.com/512x512/1E3A8A/FFFFFF?text=${teamText}`;
 
-        // Save mock logo metadata to database
-        const { data: logo, error: logoError } = await supabase
-          .from('team_logos')
-          .insert({
-            flow_id: flowId,
-            file_path: fileName,
-            file_size: 1024000, // Mock file size
-            mime_type: 'image/png',
-            storage_bucket: 'team-logos',
-            variant_number: i + 1,
-            is_selected: i === 0,
-            generation_prompt: `Mock logo for ${options.teamName} (${options.sport}, ${options.ageGroup})`,
-            model_used: 'mock',
-            generation_time_ms: Date.now() - startTime,
-            generation_cost_usd: 0.00
-          })
-          .select()
-          .single();
-
-        if (logoError) {
-          console.error('Error saving mock logo metadata:', logoError);
-          continue;
-        }
-
-        generatedLogos.push({
-          id: logo.id,
+        // Create mock logo object without database insert for now
+        const mockLogo = {
+          id: `mock-${flowId}-${i + 1}`,
           variant_number: i + 1,
-          file_path: fileName,
-          public_url: mockPublicUrl,
           is_selected: i === 0,
+          file_path: fileName,
+          generation_prompt: `Mock logo for ${options.teamName} (${options.sport}) - Style: ${options.style}, Colors: ${options.colors}, Mascot: ${options.mascot}`,
+          model_used: 'mock-fallback',
           generation_time_ms: Date.now() - startTime,
           generation_cost_usd: 0.00,
-          generation_prompt: `Mock logo for ${options.teamName} (${options.sport}, ${options.ageGroup})`,
-          model_used: 'mock',
-          created_at: logo.created_at
-        });
+          created_at: new Date().toISOString(),
+          public_url: mockPublicUrl
+        };
+
+        generatedLogos.push(mockLogo);
       }
 
       await logDebug(flowId, 'info', 'logo_generation', 'Mock logos generated for testing', {
         variant_count: generatedLogos.length,
         team_name: options.teamName,
         sport: options.sport,
-        age_group: options.ageGroup
+        age_group: 'youth'
       });
 
       return generatedLogos;
@@ -483,8 +507,33 @@ export class ImageGenerationService {
     flowId: string,
     options: LogoGenerationOptions
   ): Promise<GeneratedLogo[]> {
+    console.log('=== LOGO GENERATION DEBUG ===');
+    console.log('OpenAI Available:', this.isOpenAIAvailable());
+    console.log('Options:', options);
+    
     if (this.isOpenAIAvailable()) {
-      return this.generateTeamLogos(flowId, options);
+      try {
+        console.log('=== ATTEMPTING AI GENERATION ===');
+        console.log('Flow ID:', flowId);
+        console.log('Options:', JSON.stringify(options, null, 2));
+        const result = await this.generateTeamLogos(flowId, options);
+        console.log('✅ AI generation successful, generated', result.length, 'logos');
+        console.log('First logo model:', result[0]?.model_used);
+        return result;
+      } catch (error) {
+        console.error('❌ AI generation failed with error:', error);
+        console.error('Error message:', error instanceof Error ? error.message : 'Unknown error');
+        console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+        
+        // Check if it's a quota/rate limit error
+        if (error instanceof Error && (error.message.includes('quota') || error.message.includes('insufficient') || error.message.includes('429'))) {
+          console.warn('⚠️ API quota/rate limit exceeded, using mock logos');
+        } else {
+          console.warn('🔄 Other error, falling back to mock logos');
+        }
+        
+        return this.generateMockLogos(flowId, options);
+      }
     } else {
       console.warn('OpenAI API key not available, using mock logos for testing');
       return this.generateMockLogos(flowId, options);

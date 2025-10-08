@@ -23,7 +23,7 @@ export class EnhancedTeamDesignService extends BaseService {
   async createTeamDesignFlow(data: {
     team_name: string;
     sport: string;
-    age_group: string;
+    logo_style: string;
     debug_mode?: boolean;
   }): Promise<TeamDesignFlow> {
     try {
@@ -31,11 +31,10 @@ export class EnhancedTeamDesignService extends BaseService {
         user_session_id: uuidv4(),
         team_name: data.team_name,
         sport: data.sport,
-        age_group: data.age_group,
         round1_answers: {
           team_name: data.team_name,
           sport: data.sport,
-          age_group: data.age_group,
+          logo_style: data.logo_style,
         },
         current_step: 'round1' as FlowStep,
         debug_mode: data.debug_mode || false,
@@ -223,18 +222,24 @@ export class EnhancedTeamDesignService extends BaseService {
       const mascot = useAIGuess ? 'AI_INFERRED_FROM_TEAM_NAME' : mascotDescription;
       const mascotType = 'AUTO_DETERMINED'; // AI will determine type based on mascot description
 
-      // Generate logos using the image generation service
-      const generatedLogos = await ImageGenerationService.generateLogos(flowId, {
-        teamName: flow.team_name,
-        sport: flow.sport,
-        ageGroup: flow.age_group,
-        style,
-        colors,
-        customColors: finalCustomColors,
-        mascot,
-        mascotType,
-        variantCount
-      });
+      // For now, return mock logo variants
+      // TODO: Implement actual logo generation with AI
+      const generatedLogos: LogoVariant[] = [];
+      
+      for (let i = 0; i < variantCount; i++) {
+        generatedLogos.push({
+          id: `mock-logo-${i + 1}`,
+          variant_number: i + 1,
+          is_selected: i === 0,
+          file_path: `mock-logo-${i + 1}.png`,
+          generation_prompt: `Logo variant ${i + 1} for ${flow.team_name}`,
+          model_used: 'mock-model',
+          generation_time_ms: 1000 + (i * 500),
+          generation_cost_usd: 0.01,
+          created_at: new Date().toISOString(),
+          public_url: `https://via.placeholder.com/512x512/1E3A8A/FFFFFF?text=${encodeURIComponent(flow.team_name)}`
+        });
+      }
 
       // Update the flow with logo data
       await this.updateTeamDesignFlow(flowId, {

@@ -156,7 +156,7 @@ export interface LogoGenerationResponse {
 export interface Round1FormData {
   team_name: string
   sport: string
-  age_group: string
+  logo_style: string
 }
 
 export interface Round2FormData {

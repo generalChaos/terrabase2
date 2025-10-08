@@ -10,7 +10,7 @@ export class TeamDesignService {
   static async createFlow(data: {
     team_name: string;
     sport: string;
-    age_group: string;
+    logo_style: string;
     debug_mode?: boolean;
   }): Promise<TeamDesignFlow> {
     try {
@@ -20,11 +20,10 @@ export class TeamDesignService {
           user_session_id: uuidv4(),
           team_name: data.team_name,
           sport: data.sport,
-          age_group: data.age_group,
           round1_answers: {
             team_name: data.team_name,
             sport: data.sport,
-            age_group: data.age_group
+            logo_style: data.logo_style
           },
           round2_questions: [],
           round2_answers: [],
@@ -44,7 +43,7 @@ export class TeamDesignService {
         await logDebug(flow.id, 'info', 'flow_creation', 'Flow created', {
           team_name: data.team_name,
           sport: data.sport,
-          age_group: data.age_group
+          logo_style: data.logo_style
         });
       }
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { serviceManager } from '@/lib/services/serviceManager';
+import { ImageGenerationService } from '@/lib/services/imageGenerationService';
 import { logError } from '@/lib/debug';
 
 // Validation schemas
@@ -8,9 +9,9 @@ const GenerateLogoSchema = z.object({
   flow_id: z.string().uuid(),
   team_name: z.string(),
   sport: z.string(),
-  age_group: z.string(),
-  round1_answers: z.record(z.any()),
-  round2_answers: z.array(z.any()),
+  logo_style: z.string(),
+  colors: z.string(),
+  mascot: z.string(),
   variant_count: z.number().min(1).max(3).optional().default(1)
 });
 
@@ -20,24 +21,48 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedData = GenerateLogoSchema.parse(body);
 
-    // Generate logos using the service layer
-    const generatedLogos = await serviceManager.flows.generateLogosForFlow(
-      validatedData.flow_id,
-      validatedData.variant_count
-    );
+    // Use the direct color and mascot descriptions from the frontend
+    const colorDescription = validatedData.colors;
+    const mascotDescription = validatedData.mascot;
+
+    console.log('=== API ROUTE DEBUG ===');
+    console.log('📥 Received request body:', JSON.stringify({
+      flow_id: validatedData.flow_id,
+      team_name: validatedData.team_name,
+      sport: validatedData.sport,
+      logo_style: validatedData.logo_style,
+      colors: validatedData.colors,
+      mascot: validatedData.mascot,
+      variant_count: validatedData.variant_count
+    }, null, 2));
+    
+    console.log('🎨 Color Description:', colorDescription);
+    console.log('🦅 Mascot Description:', mascotDescription);
+
+
+    // Generate logos using the real image generation service
+    const generatedLogos = await ImageGenerationService.generateLogos(validatedData.flow_id, {
+      teamName: validatedData.team_name,
+      sport: validatedData.sport,
+      style: validatedData.logo_style,
+      colors: colorDescription,
+      mascot: mascotDescription,
+      variantCount: validatedData.variant_count
+    });
 
     return NextResponse.json({
       success: true,
       data: {
         flow_id: validatedData.flow_id,
         logos: generatedLogos,
-        selected_logo_id: generatedLogos[0].id,
+        selected_logo_id: generatedLogos[0]?.id,
         generation_time_ms: generatedLogos.reduce((sum, logo) => sum + logo.generation_time_ms, 0)
       }
     });
 
   } catch (error) {
     console.error('Error in POST /api/logos/generate:', error);
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -47,7 +72,11 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { 
+        error: 'Internal server error', 
+        details: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      },
       { status: 500 }
     );
   }

@@ -44,6 +44,16 @@ const nextConfig: NextConfig = {
         hostname: '*.railway.app',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'via.placeholder.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'picsum.photos',
+        pathname: '/**',
+      },
     ],
     formats: ['image/webp', 'image/avif'],
   },

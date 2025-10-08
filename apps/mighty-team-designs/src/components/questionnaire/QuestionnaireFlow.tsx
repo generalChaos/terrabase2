@@ -3,7 +3,7 @@
 import React from 'react';
 import { useQuestionnaire } from '@/contexts/QuestionnaireContext';
 import { Round1Form } from './Round1Form';
-import { Round2Form } from './Round2Form';
+import { V1Round2Form } from './V1Round2Form';
 import { LogoGeneration } from './LogoGeneration';
 import { LogoSelection } from './LogoSelection';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
@@ -75,7 +75,7 @@ export function QuestionnaireFlow() {
         {/* Main Content */}
         <div className="bg-white rounded-2xl shadow-xl p-8">
           {state.currentStep === 'round1' && <Round1Form />}
-          {state.currentStep === 'round2' && <Round2Form />}
+          {state.currentStep === 'round2' && <V1Round2Form />}
           {state.currentStep === 'generating' && <LogoGeneration />}
           {state.currentStep === 'completed' && <LogoSelection />}
         </div>
