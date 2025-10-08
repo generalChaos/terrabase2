@@ -28,23 +28,9 @@ class StorageFile:
 
 class StorageService:
     def __init__(self):
-        self.storage_type = self._get_storage_type()
-        self.local_path = os.getenv('LOCAL_STORAGE_PATH', './storage')
-        self.local_base_url = os.getenv('LOCAL_STORAGE_BASE_URL', 'http://localhost:8000/api/storage')
+        self.storage_type = 'supabase'
         self.supabase_client: Optional[Client] = None
-        
-        if self.storage_type == 'supabase':
-            self._init_supabase()
-    
-    def _get_storage_type(self) -> str:
-        """Determine storage type based on environment"""
-        storage_type = os.getenv('STORAGE_TYPE')
-        if storage_type in ['local', 'supabase']:
-            return storage_type
-        
-        # Default: local for development, supabase for production
-        environment = os.getenv('NODE_ENV', 'development')
-        return 'local' if environment == 'development' else 'supabase'
+        self._init_supabase()
     
     def _init_supabase(self):
         """Initialize Supabase client"""
@@ -68,32 +54,20 @@ class StorageService:
         content_type: str = 'application/octet-stream',
         cache_control: str = '3600'
     ) -> StorageFile:
-        """Upload a file to storage"""
-        if self.storage_type == 'local':
-            return await self._upload_to_local(file_data, file_name, bucket, content_type)
-        else:
-            return await self._upload_to_supabase(file_data, file_name, bucket, content_type, cache_control)
+        """Upload a file to Supabase storage"""
+        return await self._upload_to_supabase(file_data, file_name, bucket, content_type, cache_control)
     
     async def get_public_url(self, file_path: str, bucket: str = 'team-logos') -> str:
         """Get public URL for a file"""
-        if self.storage_type == 'local':
-            return self._get_local_public_url(file_path)
-        else:
-            return self._get_supabase_public_url(file_path, bucket)
+        return self._get_supabase_public_url(file_path, bucket)
     
     async def delete_file(self, file_path: str, bucket: str = 'team-logos') -> bool:
         """Delete a file from storage"""
-        if self.storage_type == 'local':
-            return await self._delete_local_file(file_path)
-        else:
-            return await self._delete_supabase_file(file_path, bucket)
+        return await self._delete_supabase_file(file_path, bucket)
     
     async def list_files(self, bucket: str = 'team-logos', prefix: str = '') -> List[StorageFile]:
         """List files in storage"""
-        if self.storage_type == 'local':
-            return await self._list_local_files(bucket, prefix)
-        else:
-            return await self._list_supabase_files(bucket, prefix)
+        return await self._list_supabase_files(bucket, prefix)
     
     # Local storage methods
     async def _upload_to_local(

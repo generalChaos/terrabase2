@@ -16,9 +16,13 @@ from src.api.stats import router as stats_router
 from src.api.storage import router as storage_router
 from src.api.background_removal import router as background_removal_router
 from src.api.tshirt import router as tshirt_router
+from src.api.banner_generator import router as banner_router
 from src.models.schemas import HealthResponse
 from src.middleware.request_id import RequestIDMiddleware
 from src.custom_logging import logger
+from src.services.logo_overlay import LogoOverlayService
+from pydantic import BaseModel
+from typing import List, Dict, Any
 
 # Load environment variables
 load_dotenv()
@@ -53,12 +57,54 @@ app.include_router(stats_router, prefix="/api/v1", tags=["stats"])
 app.include_router(storage_router, prefix="/api/v1", tags=["storage"])
 app.include_router(background_removal_router, prefix="/api/v1", tags=["background-removal"])
 app.include_router(tshirt_router, prefix="/api/v1", tags=["tshirt"])
+app.include_router(banner_router, prefix="/api/v1", tags=["banner"])
 
 # Add health endpoint under /api/v1 for consistency with frontend
 @app.get("/api/v1/health", response_model=HealthResponse)
 async def api_health_check():
     """API health check endpoint (for frontend compatibility)"""
     return await health_check()
+
+# Test models for banner generation
+class TestPlayer(BaseModel):
+    number: int
+    name: str
+
+class TestBannerRequest(BaseModel):
+    logo_url: str
+    team_name: str
+    players: List[TestPlayer]
+    output_format: str = "png"
+    quality: int = 95
+
+# Initialize logo overlay service
+logo_overlay_service = LogoOverlayService()
+
+# Test banner endpoint
+@app.post("/api/v1/test-banner")
+async def test_banner_generation(request: TestBannerRequest):
+    """Test banner generation with Impact font"""
+    try:
+        # Convert players to the format expected by the service
+        players_data = [{"number": p.number, "name": p.name} for p in request.players]
+        
+        # Call the create_banner method directly
+        result = await logo_overlay_service.create_banner(
+            logo_url=request.logo_url,
+            team_name=request.team_name,
+            players=players_data,
+            output_format=request.output_format,
+            quality=request.quality
+        )
+        
+        return result
+    except Exception as e:
+        logger.error(f"Banner generation failed: {str(e)}")
+        return {
+            "success": False,
+            "error": str(e),
+            "banner_url": None
+        }
 
 @app.get("/", response_model=dict)
 async def root():

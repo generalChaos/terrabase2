@@ -1,7 +1,9 @@
 #!/bin/bash
 
 # Load environment variables from local.env (skip comments and empty lines)
-export $(grep -v '^#' local.env | grep -v '^$' | xargs)
+set -a
+source <(grep -v '^#' local.env | grep -v '^$' | sed 's/^/export /')
+set +a
 
 # Start the service
 source venv/bin/activate

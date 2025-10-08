@@ -118,8 +118,8 @@ async def create_asset_pack(request: AssetPackRequest):
                    player_count=len(request.players),
                    logo_url=str(request.logo_url))
         
-        # Step 1: Clean up the logo
-        logger.info("Step 1: Cleaning up logo", request_id=request_id)
+        # Step 1: Clean the logo using cleanup service and get Supabase URL
+        logger.info("Step 1: Cleaning logo with Supabase storage", request_id=request_id)
         cleanup_result = await cleanup_service.cleanup_logo(
             logo_url=str(request.logo_url),
             output_format=request.output_format,
@@ -129,7 +129,8 @@ async def create_asset_pack(request: AssetPackRequest):
         if not cleanup_result["success"]:
             raise Exception(f"Logo cleanup failed: {cleanup_result['error']}")
         
-        clean_logo_url = cleanup_result["clean_logo_url"]
+        clean_logo_url = cleanup_result["output_url"]
+        logger.info(f"Cleaned logo URL: {clean_logo_url}")
         
         # Step 2: Create t-shirt front with logo
         logger.info("Step 2: Creating t-shirt front", request_id=request_id)
@@ -148,11 +149,12 @@ async def create_asset_pack(request: AssetPackRequest):
         
         # Step 3: Create t-shirt back with roster
         logger.info("Step 3: Creating t-shirt back with roster", request_id=request_id)
-        tshirt_back_result = await overlay_service.overlay_roster_on_tshirt(
+        tshirt_back_result = await overlay_service.overlay_roster_on_tshirt_back(
             players=request.players,
             tshirt_color=request.tshirt_color,
             output_format=request.output_format,
-            quality=request.quality
+            quality=request.quality,
+            logo_url=clean_logo_url
         )
         
         if not tshirt_back_result["success"]:
@@ -164,7 +166,7 @@ async def create_asset_pack(request: AssetPackRequest):
         banner_url = None
         if request.include_banner:
             logger.info("Step 4: Creating banner", request_id=request_id)
-            banner_result = await overlay_service.overlay_logo_and_roster_on_banner(
+            banner_result = await overlay_service.create_banner(
                 logo_url=clean_logo_url,
                 team_name=request.team_name,
                 players=request.players,
@@ -209,17 +211,59 @@ async def create_asset_pack(request: AssetPackRequest):
             banner_url=banner_url,
             processing_time_ms=processing_time_ms
         )
+
+# New simplified asset pack endpoint for testing
+@app.post("/api/v1/asset-pack-clean-only")
+async def asset_pack_clean_only(request: AssetPackRequest):
+    """Simplified asset pack that only does logo cleaning"""
+    start_time = time.time()
+    request_id = str(uuid.uuid4())
+    
+    try:
+        logger.info("Starting simplified asset pack (clean only)", 
+                   request_id=request_id,
+                   team_name=request.team_name,
+                   logo_url=str(request.logo_url))
         
-    except ValidationError as e:
+        # Step 1: Clean the logo using cleanup service and get Supabase URL
+        logger.info("Step 1: Cleaning logo with Supabase storage", request_id=request_id)
+        from src.services.asset_cleanup import AssetCleanupService
+        cleanup_service = AssetCleanupService()
+        
+        cleanup_result = await cleanup_service.cleanup_logo(
+            logo_url=str(request.logo_url),
+            output_format=request.output_format,
+            quality=request.quality
+        )
+        
+        if not cleanup_result["success"]:
+            raise Exception(f"Logo cleanup failed: {cleanup_result['error']}")
+        
+        clean_logo_url = cleanup_result["output_url"]
+        logger.info(f"Cleaned logo URL: {clean_logo_url}")
+        
         processing_time_ms = int((time.time() - start_time) * 1000)
         
-        # await storage.log_validation_error(
-        #     request_id=request_id,
-        #     field=e.field or "unknown",
-        #     error_message=e.message,
-        #     value=getattr(request, e.field, None) if e.field else None,
-        #     endpoint="asset-pack"
-        # )
+        return {
+            "success": True,
+            "team_name": request.team_name,
+            "original_logo_url": str(request.logo_url),
+            "clean_logo_url": clean_logo_url,
+            "processing_time_ms": processing_time_ms,
+            "message": "Logo cleaning completed successfully"
+        }
+        
+    except Exception as e:
+        processing_time_ms = int((time.time() - start_time) * 1000)
+        logger.error(f"Simplified asset pack failed: {str(e)}", request_id=request_id)
+        return {
+            "success": False,
+            "team_name": request.team_name,
+            "original_logo_url": str(request.logo_url),
+            "clean_logo_url": None,
+            "processing_time_ms": processing_time_ms,
+            "error": str(e)
+        }
         
         raise HTTPException(
             status_code=400,

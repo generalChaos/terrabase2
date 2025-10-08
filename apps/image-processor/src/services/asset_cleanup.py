@@ -29,8 +29,15 @@ class AssetCleanupService:
         self.preprocessor = ImagePreprocessor()
         self.storage = StorageService()
         
-        os.makedirs(self.temp_dir, exist_ok=True)
-        os.makedirs(self.output_dir, exist_ok=True)
+        # Only create directories if not using Supabase
+        storage_type = os.getenv("STORAGE_TYPE", "supabase")
+        if storage_type != "supabase":
+            try:
+                os.makedirs(self.temp_dir, exist_ok=True)
+                os.makedirs(self.output_dir, exist_ok=True)
+            except OSError:
+                # If we can't create directories, continue without them
+                pass
     
     async def cleanup_logo(self, logo_url: str, 
                           output_format: str = "png", quality: int = 95) -> Dict[str, Any]:

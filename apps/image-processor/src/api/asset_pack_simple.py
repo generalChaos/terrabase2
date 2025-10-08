@@ -167,3 +167,54 @@ async def create_asset_pack(request: AssetPackRequest):
             processing_time_ms=processing_time_ms,
             error=f"{type(e).__name__}: {str(e)}"
         )
+
+# New simplified asset pack endpoint for testing
+@router.post("/asset-pack-clean-only")
+async def asset_pack_clean_only(request: AssetPackRequest):
+    """Simplified asset pack that only does logo cleaning"""
+    start_time = time.time()
+    request_id = f"clean-only-{int(time.time())}"
+    
+    try:
+        print(f"DEBUG: Starting simplified asset pack (clean only)", 
+              f"request_id={request_id}",
+              f"team_name={request.team_name}",
+              f"logo_url={request.logo_url}")
+        
+        # Step 1: Clean the logo using cleanup service and get Supabase URL
+        print(f"DEBUG: Step 1: Cleaning logo with Supabase storage")
+        
+        cleanup_result = await cleanup_service.cleanup_logo(
+            logo_url=str(request.logo_url),
+            output_format=request.output_format,
+            quality=request.quality
+        )
+        
+        if not cleanup_result["success"]:
+            raise Exception(f"Logo cleanup failed: {cleanup_result['error']}")
+        
+        clean_logo_url = cleanup_result["output_url"]
+        print(f"DEBUG: Cleaned logo URL: {clean_logo_url}")
+        
+        processing_time_ms = int((time.time() - start_time) * 1000)
+        
+        return {
+            "success": True,
+            "team_name": request.team_name,
+            "original_logo_url": str(request.logo_url),
+            "clean_logo_url": clean_logo_url,
+            "processing_time_ms": processing_time_ms,
+            "message": "Logo cleaning completed successfully"
+        }
+        
+    except Exception as e:
+        processing_time_ms = int((time.time() - start_time) * 1000)
+        print(f"DEBUG: Simplified asset pack failed: {str(e)}")
+        return {
+            "success": False,
+            "team_name": request.team_name,
+            "original_logo_url": str(request.logo_url),
+            "clean_logo_url": None,
+            "processing_time_ms": processing_time_ms,
+            "error": str(e)
+        }

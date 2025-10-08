@@ -1,0 +1,1 @@
+{"success":false,"tshirt_url":null,"processing_time_ms":0,"file_size_bytes":null,"error":"Logo cleanup failed: Background removal failed: HTTPConnectionPool(host='localhost', port=8000): Read timed out. (read timeout=30)"}

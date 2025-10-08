@@ -33,10 +33,11 @@ class TShirtFrontRequest(BaseModel):
 
 class TShirtBackRequest(BaseModel):
     """Request model for t-shirt back creation with roster"""
-    players: List[Player] = Field(..., min_items=1, max_items=20, description="List of players (1-20)")
+    players: List[Player] = Field(..., min_items=1, max_items=10, description="List of players (1-10)")
     tshirt_color: str = Field(default="black", description="T-shirt color: 'black' or 'white'")
     output_format: str = Field(default="png", description="Output format: 'png', 'jpg', or 'webp'")
     quality: int = Field(default=95, ge=1, le=100, description="Output quality (1-100)")
+    logo_url: Optional[str] = Field(default=None, description="Optional URL of logo to display above roster")
 
 class TShirtResponse(BaseModel):
     """Response model for t-shirt creation"""
@@ -74,24 +75,9 @@ async def create_tshirt_front(request: TShirtFrontRequest) -> TShirtResponse:
                 detail="position must be 'left_chest' or 'center_chest'"
             )
         
-        # Step 1: Clean the logo (remove background)
-        logger.info("Step 1: Cleaning logo (removing background)")
-        cleanup_result = await cleanup_service.cleanup_logo(
-            logo_url=request.logo_url,
-            output_format=request.output_format,
-            quality=request.quality
-        )
-        
-        if not cleanup_result["success"]:
-            return TShirtResponse(
-                success=False,
-                processing_time_ms=0,
-                error=f"Logo cleanup failed: {cleanup_result['error']}"
-            )
-        
-        clean_logo_url = cleanup_result["output_url"]
-        logger.info(f"Logo cleaned successfully: {clean_logo_url}")
-        print(f"DEBUG: Clean logo URL: {clean_logo_url}")
+        # Use the original logo URL - the service will handle background removal
+        clean_logo_url = request.logo_url
+        logger.info(f"Using logo URL: {clean_logo_url}")
         
         # Step 2: Create t-shirt front with cleaned logo
         logger.info("Step 2: Creating t-shirt front with cleaned logo")
@@ -151,12 +137,17 @@ async def create_tshirt_back(request: TShirtBackRequest) -> TShirtResponse:
         # Convert players to the format expected by the service
         players_data = [{"number": p.number, "name": p.name} for p in request.players]
         
+        # Use the original logo URL - the service will handle background removal
+        clean_logo_url = request.logo_url
+        logger.info(f"Using logo URL: {clean_logo_url}")
+        
         # Create t-shirt back
         result = await overlay_service.overlay_roster_on_tshirt_back(
             players=players_data,
             tshirt_color=request.tshirt_color,
             output_format=request.output_format,
-            quality=request.quality
+            quality=request.quality,
+            logo_url=clean_logo_url
         )
         
         if not result["success"]:
@@ -186,7 +177,7 @@ async def create_tshirt_back(request: TShirtBackRequest) -> TShirtResponse:
 class TShirtBothRequest(BaseModel):
     """Request model for creating both t-shirt front and back"""
     logo_url: str = Field(..., description="URL or file path of the logo image")
-    players: List[Player] = Field(..., min_items=1, max_items=20, description="List of players (1-20)")
+    players: List[Player] = Field(..., min_items=1, max_items=10, description="List of players (1-10)")
     tshirt_color: str = Field(default="black", description="T-shirt color: 'black' or 'white'")
     logo_position: str = Field(default="left_chest", description="Logo position: 'left_chest' or 'center_chest'")
     output_format: str = Field(default="png", description="Output format: 'png', 'jpg', or 'webp'")
@@ -242,7 +233,8 @@ async def create_tshirt_both(request: TShirtBothRequest) -> dict:
             players=players_data,
             tshirt_color=request.tshirt_color,
             output_format=request.output_format,
-            quality=request.quality
+            quality=request.quality,
+            logo_url=request.logo_url
         )
         
         if not back_result["success"]:
