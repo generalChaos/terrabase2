@@ -15,6 +15,8 @@ export interface TeamDesignFlow {
   current_step: FlowStep
   debug_mode: boolean
   is_active: boolean
+  contact_email?: string
+  contact_phone?: string
   created_at: string
   updated_at: string
 }

@@ -666,4 +666,33 @@ Generate detailed prompt for gpt-image-1.`;
       return this.generateMockLogos(flowId, options);
     }
   }
+
+  /**
+   * Get all asset packs for a specific flow
+   */
+  static async getAssetPacksForFlow(flowId: string): Promise<any[]> {
+    try {
+      console.log('🔍 Getting asset packs for flow:', flowId);
+      
+      const { data: assetPacks, error } = await supabase
+        .from('logo_asset_packs')
+        .select(`
+          *,
+          team_logos!inner(flow_id)
+        `)
+        .eq('team_logos.flow_id', flowId);
+      
+      if (error) {
+        console.error('❌ Error fetching asset packs:', error);
+        throw error;
+      }
+      
+      console.log('✅ Retrieved asset packs:', assetPacks?.length || 0);
+      return assetPacks || [];
+      
+    } catch (error) {
+      console.error('❌ Error in getAssetPacksForFlow:', error);
+      throw error;
+    }
+  }
 }

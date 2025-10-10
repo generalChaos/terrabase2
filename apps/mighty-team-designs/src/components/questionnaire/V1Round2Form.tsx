@@ -26,7 +26,7 @@ export function V1Round2Form() {
       generateColorsAndMascots();
       setHasGenerated(true);
     }
-  }, [state.flow, state.colors.length, state.mascots.length, hasGenerated, generateColorsAndMascots]);
+  }, [state.flow, state.colors.length, state.mascots.length, hasGenerated, generateColorsAndMascots, state.isLoading]);
 
   const handleColorSelect = (colorId: string) => {
     dispatch({ type: 'SELECT_COLORS', payload: colorId });
@@ -109,7 +109,7 @@ export function V1Round2Form() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-blue-800">
               <div className="flex items-center">
                 <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
-                <span>Team name: "{state.round1Answers.team_name}"</span>
+                <span>Team name: &ldquo;{state.round1Answers.team_name}&rdquo;</span>
               </div>
               <div className="flex items-center">
                 <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
@@ -149,10 +149,10 @@ export function V1Round2Form() {
     <div className="max-w-4xl mx-auto">
       <div className="text-center mb-8">
         <h2 className="text-3xl font-bold text-gray-900 mb-4">
-          Choose your team's style
+          Choose your team&apos;s style
         </h2>
         <p className="text-lg text-gray-600">
-          Select colors and a mascot that best represent your team's spirit
+          Select colors and a mascot that best represent your team&apos;s spirit
         </p>
       </div>
 

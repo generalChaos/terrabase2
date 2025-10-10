@@ -409,13 +409,13 @@ export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalPr
                         } else {
                           // Check if round2_answers contains Question objects with selected field
                           const questionWithAnswer = flowDetails.round2_answers.find((q: any) => q.id === question.id);
-                          if (questionWithAnswer && questionWithAnswer.selected !== undefined) {
+                          if (questionWithAnswer && (questionWithAnswer as any).selected !== undefined) {
                             answer = questionWithAnswer;
-                            if (questionWithAnswer.type === 'text') {
-                              answerText = questionWithAnswer.selected as string;
-                            } else if (questionWithAnswer.type === 'multiple_choice' && questionWithAnswer.options) {
-                              const selectedIndex = questionWithAnswer.selected as number;
-                              answerText = questionWithAnswer.options[selectedIndex] || '';
+                            if ((questionWithAnswer as any).type === 'text') {
+                              answerText = (questionWithAnswer as any).selected as string;
+                            } else if ((questionWithAnswer as any).type === 'multiple_choice' && (questionWithAnswer as any).options) {
+                              const selectedIndex = (questionWithAnswer as any).selected as number;
+                              answerText = (questionWithAnswer as any).options[selectedIndex] || '';
                             }
                           }
                         }
@@ -610,10 +610,10 @@ export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalPr
                               <span>Cost:</span>
                               <span>${logo.generation_cost_usd?.toFixed(4)}</span>
                             </div>
-                            {logo.file_size && (
+                            {(logo as any).file_size && (
                               <div className="flex justify-between">
                                 <span>Size:</span>
-                                <span>{(logo.file_size / 1024).toFixed(1)}KB</span>
+                                <span>{((logo as any).file_size / 1024).toFixed(1)}KB</span>
                               </div>
                             )}
                           </div>

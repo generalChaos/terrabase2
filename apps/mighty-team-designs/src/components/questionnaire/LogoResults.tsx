@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { useQuestionnaire } from '@/contexts/QuestionnaireContext';
 import { GeneratedLogo } from '@/lib/services/imageGenerationService';
@@ -69,11 +69,27 @@ export default function LogoResults({ onLogoSelect }: LogoResultsProps) {
   const [newPlayerNumber, setNewPlayerNumber] = useState('');
   const [showPlayerForm, setShowPlayerForm] = useState(false);
   
+  const generateQRCode = useCallback(async () => {
+    try {
+      const resultsUrl = `${window.location.origin}/results/${state.flow?.id}`;
+      const qrCodeDataUrl = await QRCode.toDataURL(resultsUrl, {
+        width: 200,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
+      });
+      setQrCodeUrl(qrCodeDataUrl);
+    } catch (error) {
+      console.error('Error generating QR code:', error);
+    }
+  }, [state.flow?.id]);
 
   useEffect(() => {
     // Generate QR code for the results page
     generateQRCode();
-  }, []);
+  }, [generateQRCode]);
 
   // Watch for logo variants from context
   useEffect(() => {
@@ -106,23 +122,6 @@ export default function LogoResults({ onLogoSelect }: LogoResultsProps) {
       setSelectedLogo(state.logoVariants[0].id);
     }
   }, [state.logoVariants]);
-
-  const generateQRCode = async () => {
-    try {
-      const resultsUrl = `${window.location.origin}/results/${state.flow?.id}`;
-      const qrCodeDataUrl = await QRCode.toDataURL(resultsUrl, {
-        width: 200,
-        margin: 2,
-        color: {
-          dark: '#000000',
-          light: '#FFFFFF'
-        }
-      });
-      setQrCodeUrl(qrCodeDataUrl);
-    } catch (error) {
-      console.error('Error generating QR code:', error);
-    }
-  };
 
   const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -543,12 +542,12 @@ export default function LogoResults({ onLogoSelect }: LogoResultsProps) {
                         onChange={(e) => setTshirtSize(e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       >
-                        <option value="S">S (34-36")</option>
-                        <option value="M">M (38-40")</option>
-                        <option value="L">L (42-44")</option>
-                        <option value="XL">XL (46-48")</option>
-                        <option value="XXL">XXL (50-52")</option>
-                        <option value="XXXL">XXXL (54-56")</option>
+                        <option value="S">S (34-36&rdquo;)</option>
+                        <option value="M">M (38-40&rdquo;)</option>
+                        <option value="L">L (42-44&rdquo;)</option>
+                        <option value="XL">XL (46-48&rdquo;)</option>
+                        <option value="XXL">XXL (50-52&rdquo;)</option>
+                        <option value="XXXL">XXXL (54-56&rdquo;)</option>
                       </select>
                     </div>
                   </div>
@@ -612,7 +611,7 @@ export default function LogoResults({ onLogoSelect }: LogoResultsProps) {
                 Stay Updated
               </h3>
               <p className="text-gray-600 mb-4">
-                Logo generation can take a few minutes. Leave your contact info and we'll notify you when your logos are ready!
+                Logo generation can take a few minutes. Leave your contact info and we&apos;ll notify you when your logos are ready!
               </p>
               
               {!showContactForm ? (
@@ -684,9 +683,11 @@ export default function LogoResults({ onLogoSelect }: LogoResultsProps) {
               
               {qrCodeUrl ? (
                 <div className="inline-block p-4 bg-white rounded-lg shadow-sm">
-                  <img 
+                  <Image 
                     src={qrCodeUrl} 
                     alt="QR Code for results page"
+                    width={200}
+                    height={200}
                     className="w-32 h-32 mx-auto"
                   />
                 </div>

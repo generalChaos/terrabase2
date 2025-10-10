@@ -575,7 +575,7 @@ Generate exactly 5 colors and 5 mascots. Return JSON only.`;
       } else if (error instanceof Error && (error.message.includes('quota') || error.message.includes('insufficient'))) {
         console.warn('⚠️ API quota insufficient, using fallback');
       } else {
-        console.warn('⚠️ Other OpenAI error, using fallback:', error.message);
+        console.warn('⚠️ Other OpenAI error, using fallback:', error instanceof Error ? error.message : 'Unknown error');
       }
       
       return this.getFallbackColorsAndMascots(teamName, sport, logoStyle);

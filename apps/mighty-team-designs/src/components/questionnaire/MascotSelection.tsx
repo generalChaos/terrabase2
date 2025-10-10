@@ -28,7 +28,7 @@ export function MascotSelection({
           Choose your mascot:
         </h3>
         <p className="text-sm text-gray-600">
-          Select the mascot that best represents your team's spirit
+          Select the mascot that best represents your team&apos;s spirit
         </p>
       </div>
 

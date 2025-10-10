@@ -363,5 +363,4 @@ class StorageService {
 // Export singleton instance
 export const storage = new StorageService()
 
-// Export types
-export type { StorageFile, StorageUploadOptions, StorageConfig }
+// Types are already exported as interfaces above

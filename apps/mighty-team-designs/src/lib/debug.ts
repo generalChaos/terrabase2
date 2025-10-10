@@ -5,7 +5,7 @@ export interface DebugContext {
 }
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
-export type LogCategory = 'flow_creation' | 'flow_update' | 'question_generation' | 'logo_generation' | 'asset_pack_generation' | 'api' | 'database' | 'storage' | 'openai' | 'test';
+export type LogCategory = 'flow_creation' | 'flow_update' | 'question_generation' | 'logo_generation' | 'asset_pack_generation' | 'ai_generation' | 'api' | 'database' | 'storage' | 'openai' | 'test';
 
 /**
  * Log debug information to the database

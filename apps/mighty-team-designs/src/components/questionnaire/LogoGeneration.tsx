@@ -244,7 +244,7 @@ export function LogoGeneration() {
           Stay Updated
         </h3>
         <p className="text-gray-600 mb-4">
-          Logo generation can take a few minutes. Leave your contact info and we'll notify you when your logos are ready!
+          Logo generation can take a few minutes. Leave your contact info and we&apos;ll notify you when your logos are ready!
         </p>
         
         {!showContactForm ? (

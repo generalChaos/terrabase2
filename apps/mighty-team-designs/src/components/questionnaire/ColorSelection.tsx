@@ -58,7 +58,7 @@ export function ColorSelection({
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
           <p className="mt-2 text-xs text-gray-600">
-            Be as specific as you'd like - we'll use this to create your perfect logo colors!
+            Be as specific as you&apos;d like - we&apos;ll use this to create your perfect logo colors!
           </p>
         </div>
       )}
