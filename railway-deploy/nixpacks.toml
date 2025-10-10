@@ -8,4 +8,4 @@ cmds = ["pip install -r requirements.txt"]
 cmds = ["echo 'Python build - no compilation needed'"]
 
 [start]
-cmd = "python -m uvicorn src.main_minimal:app --host 0.0.0.0 --port $PORT"
+cmd = "python test_health_server.py"
