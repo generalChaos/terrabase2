@@ -20,38 +20,27 @@ class LogoOverlayService:
         self.output_dir = os.getenv("OUTPUT_DIR", "./output")
         self.assets_dir = os.getenv("ASSETS_DIR", "./assets")
         
-        # Only initialize storage if not using Supabase
-        storage_type = os.getenv("STORAGE_TYPE", "supabase")
-        if storage_type == "supabase":
-            self.storage = None  # We'll use Supabase directly
-        else:
-            self.storage = StorageService()
+        # Always initialize storage service for Supabase
+        self.storage = StorageService()
         
         # Create directories if they don't exist (only if we have write permissions)
-        # Skip if using Supabase storage
-        if storage_type != "supabase":
-            try:
-                os.makedirs(self.temp_dir, exist_ok=True)
-                os.makedirs(self.output_dir, exist_ok=True)
-                os.makedirs(self.assets_dir, exist_ok=True)
-            except OSError:
-                # If we can't create directories, continue without them
-                pass
+        try:
+            os.makedirs(self.temp_dir, exist_ok=True)
+            os.makedirs(self.output_dir, exist_ok=True)
+            os.makedirs(self.assets_dir, exist_ok=True)
+        except OSError:
+            # If we can't create directories, continue without them
+            pass
 
     async def _upload_to_storage(self, file_data: bytes, filename: str, content_type: str) -> str:
         """Upload file to storage and return public URL"""
-        if self.storage is None:
-            # If no storage service, create a simple file URL
-            # This is a fallback for when we can't use Supabase
-            return f"file:///tmp/{filename}"
-        else:
-            storage_file = await self.storage.upload_file(
-                file_data=file_data,
-                file_name=filename,
-                bucket="team-assets",
-                content_type=content_type
-            )
-            return storage_file.public_url
+        storage_file = await self.storage.upload_file(
+            file_data=file_data,
+            file_name=filename,
+            bucket="team-assets",
+            content_type=content_type
+        )
+        return storage_file.public_url
 
     async def overlay_logo_on_tshirt(
         self,
@@ -123,7 +112,7 @@ class LogoOverlayService:
             
             img_bytes.seek(0)
             
-            output_url = await self._upload_to_storage(
+            storage_file = await self._upload_to_storage(
                 file_data=img_bytes.getvalue(),
                 filename=filename,
                 content_type=content_type
@@ -133,9 +122,9 @@ class LogoOverlayService:
             
             return {
                 "success": True,
-                "output_url": output_url,
+                "output_url": storage_file,
                 "processing_time_ms": processing_time_ms,
-                "file_size_bytes": storage_file.file_size
+                "file_size_bytes": len(img_bytes.getvalue())
             }
             
         except Exception as e:
@@ -300,7 +289,7 @@ class LogoOverlayService:
             
             img_bytes.seek(0)
             
-            output_url = await self._upload_to_storage(
+            storage_file = await self._upload_to_storage(
                 file_data=img_bytes.getvalue(),
                 filename=filename,
                 content_type=content_type
@@ -310,9 +299,9 @@ class LogoOverlayService:
             
             return {
                 "success": True,
-                "output_url": output_url,
+                "output_url": storage_file,
                 "processing_time_ms": processing_time_ms,
-                "file_size_bytes": storage_file.file_size
+                "file_size_bytes": len(img_bytes.getvalue())
             }
             
         except Exception as e:
@@ -451,19 +440,7 @@ class LogoOverlayService:
                 content_type = f"image/{output_format.lower()}"
             
             # Upload to Supabase storage
-            import io
-            img_bytes = io.BytesIO()
-            if output_format.lower() == "jpg" or output_format.lower() == "jpeg":
-                result_img = result_img.convert("RGB")
-                result_img.save(img_bytes, "JPEG", quality=quality, optimize=True)
-                content_type = "image/jpeg"
-            else:
-                result_img.save(img_bytes, output_format.upper(), quality=quality, optimize=True)
-                content_type = f"image/{output_format.lower()}"
-            
-            img_bytes.seek(0)
-            
-            output_url = await self._upload_to_storage(
+            storage_file = await self._upload_to_storage(
                 file_data=img_bytes.getvalue(),
                 filename=filename,
                 content_type=content_type
@@ -473,9 +450,9 @@ class LogoOverlayService:
             
             return {
                 "success": True,
-                "output_url": output_url,
+                "output_url": storage_file,
                 "processing_time_ms": processing_time_ms,
-                "file_size_bytes": storage_file.file_size
+                "file_size_bytes": len(img_bytes.getvalue())
             }
             
         except Exception as e:

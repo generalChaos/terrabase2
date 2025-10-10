@@ -14,7 +14,7 @@ import numpy as np
 from src.services.ai_background_remover import AIBackgroundRemover
 from src.services.preprocessor import ImagePreprocessor
 from src.utils.filename_utils import generate_pipeline_filename
-from src.storage.storage_service import StorageService
+from src.storage.storage_service_simple import StorageService
 import logging
 
 logger = logging.getLogger(__name__)
@@ -39,6 +39,70 @@ class AssetCleanupService:
                 # If we can't create directories, continue without them
                 pass
     
+    async def cleanup_logo_from_image(self, logo_image, 
+                                     output_format: str = "png", quality: int = 95) -> Dict[str, Any]:
+        """
+        Clean up a logo from PIL Image by removing background and enhancing quality
+        
+        Args:
+            logo_image: PIL Image object
+            output_format: Output format (png, jpg, webp)
+            quality: Output quality (1-100)
+            
+        Returns:
+            Dictionary with success status and cleaned logo URL
+        """
+        start_time = time.time()
+        
+        try:
+            print(f"DEBUG: Starting logo cleanup from PIL Image")
+            
+            # Step 1: AI Background Removal
+            print(f"DEBUG: Starting AI background removal for PIL Image")
+            bg_result = await self.ai_remover.remove_background_from_image(logo_image)
+            print(f"DEBUG: Background removal result: {bg_result}")
+            if not bg_result["success"]:
+                return {
+                    "success": False,
+                    "error": f"Background removal failed: {bg_result['error']}"
+                }
+            
+            # Step 2: Image Enhancement
+            print(f"DEBUG: Starting image enhancement")
+            enhanced_path = await self._enhance_with_python(bg_result["output_url"])
+            print(f"DEBUG: Enhanced image saved to: {enhanced_path}")
+            
+            # Step 3: Store cleaned logo
+            print(f"DEBUG: Storing cleaned logo")
+            # Read the enhanced image file and upload it
+            with open(enhanced_path, "rb") as f:
+                file_data = f.read()
+            
+            storage_file = await self.storage.upload_file(
+                file_data=file_data,
+                file_name=f"clean_logo_{int(time.time())}.{output_format}",
+                bucket="team-logos",
+                content_type=f"image/{output_format}"
+            )
+            print(f"DEBUG: Storage result: {storage_file}")
+            
+            processing_time = int((time.time() - start_time) * 1000)
+            print(f"DEBUG: Logo cleanup completed in {processing_time}ms")
+            
+            return {
+                "success": True,
+                "output_url": storage_file.public_url,
+                "processing_time_ms": processing_time,
+                "file_size_bytes": storage_file.file_size
+            }
+            
+        except Exception as e:
+            logger.error(f"Logo cleanup failed: {e}")
+            return {
+                "success": False,
+                "error": f"Logo cleanup failed: {str(e)}"
+            }
+
     async def cleanup_logo(self, logo_url: str, 
                           output_format: str = "png", quality: int = 95) -> Dict[str, Any]:
         """

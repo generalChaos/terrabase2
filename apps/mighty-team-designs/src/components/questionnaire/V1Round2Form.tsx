@@ -13,7 +13,16 @@ export function V1Round2Form() {
 
   // Auto-generate colors and mascots when component mounts
   useEffect(() => {
+    console.log('🔄 V1Round2Form useEffect triggered:', {
+      hasFlow: !!state.flow,
+      colorsLength: state.colors.length,
+      mascotsLength: state.mascots.length,
+      hasGenerated,
+      isLoading: state.isLoading
+    });
+    
     if (state.flow && state.colors.length === 0 && state.mascots.length === 0 && !hasGenerated) {
+      console.log('🚀 Starting colors and mascots generation...');
       generateColorsAndMascots();
       setHasGenerated(true);
     }
@@ -42,7 +51,9 @@ export function V1Round2Form() {
 
     try {
       setIsGenerating(true);
-      await generateLogos();
+      // Navigate to generating step first
+      dispatch({ type: 'SET_CURRENT_STEP', payload: 'generating' });
+      // The LogoGeneration component will handle the actual logo generation
     } catch (error) {
       console.error('Error generating logos:', error);
     } finally {
@@ -79,15 +90,56 @@ export function V1Round2Form() {
 
   if (state.isLoading && state.colors.length === 0) {
     return (
-      <div className="min-h-[400px] flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-2xl mx-auto text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">
-            Analyzing mascot and colors...
-          </h2>
-          <p className="text-gray-600">
-            Creating personalized suggestions for your {state.round1Answers.sport} team
-          </p>
+          <div className="mb-8">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-6"></div>
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+              Analyzing Your Team
+            </h2>
+            <p className="text-lg text-gray-600 mb-6">
+              Our AI is creating personalized color and mascot suggestions for <strong>{state.round1Answers.team_name}</strong>
+            </p>
+          </div>
+
+          <div className="bg-blue-50 rounded-lg p-6 mb-8">
+            <h3 className="text-lg font-semibold text-blue-900 mb-4">
+              What we&apos;re analyzing:
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-blue-800">
+              <div className="flex items-center">
+                <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
+                <span>Team name: "{state.round1Answers.team_name}"</span>
+              </div>
+              <div className="flex items-center">
+                <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
+                <span>Sport: {state.round1Answers.sport}</span>
+              </div>
+              <div className="flex items-center">
+                <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
+                <span>Logo style: {state.round1Answers.logo_style}</span>
+              </div>
+              <div className="flex items-center">
+                <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
+                <span>Color psychology & trends</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="text-sm text-gray-500 mb-8">
+            This usually takes 10-15 seconds...
+          </div>
+
+          <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-6 border-2 border-purple-200">
+            <div className="text-center">
+              <h3 className="text-xl font-bold text-gray-900 mb-2">
+                🤖 AI-Powered Suggestions
+              </h3>
+              <p className="text-sm text-gray-600">
+                We&apos;re using advanced AI to analyze your team name and create the perfect color combinations and mascot concepts that match your team&apos;s personality and sport.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     );

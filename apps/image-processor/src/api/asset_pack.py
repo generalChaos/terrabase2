@@ -47,7 +47,7 @@ class AssetPackResponse(BaseModel):
     processing_time_ms: int
     error: Optional[str] = None
 
-@router.post("/asset-pack", response_model=AssetPackResponse)
+@router.post("/asset-pack-legacy", response_model=AssetPackResponse)
 async def create_asset_pack(request: AssetPackRequest):
     """
     Create a complete asset pack for a team logo

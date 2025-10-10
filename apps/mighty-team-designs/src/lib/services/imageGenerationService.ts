@@ -25,6 +25,7 @@ export interface GeneratedLogo {
   generation_prompt: string;
   model_used: string;
   created_at: string;
+  asset_pack?: any;
 }
 
 export class ImageGenerationService {
@@ -437,7 +438,7 @@ Generate detailed prompt for gpt-image-1.`;
         throw new Error('Failed to save logo metadata');
       }
 
-      const logoResult = {
+      const logoResult: GeneratedLogo = {
         id: logo.id,
         variant_number: variantNumber,
         file_path: fileName,
@@ -447,22 +448,21 @@ Generate detailed prompt for gpt-image-1.`;
         generation_cost_usd: generationCost,
         generation_prompt: promptText,
         model_used: 'gpt-image-1',
-        created_at: logo.created_at
+        created_at: logo.created_at,
+        asset_pack: undefined
       };
 
-      // Automatically generate asset pack for the first logo
-      if (variantNumber === 1) {
-        try {
-          console.log('🎨 Automatically generating asset pack for first logo...');
-          const assetPackResult = await this.generateAssetPackForLogo(flowId, storageFile.publicUrl, logo.id);
-          if (assetPackResult) {
-            logoResult.asset_pack = assetPackResult;
-            console.log('✅ Asset pack generated automatically');
-          }
-        } catch (error) {
-          console.error('❌ Failed to generate asset pack automatically:', error);
-          // Don't fail the logo generation if asset pack fails
+      // Automatically generate asset pack for ALL logo variants
+      try {
+        console.log(`🎨 Automatically generating asset pack for logo variant ${variantNumber}...`);
+        const assetPackResult = await this.generateAssetPackForLogo(flowId, storageFile.publicUrl, logo.id);
+        if (assetPackResult) {
+          logoResult.asset_pack = assetPackResult;
+          console.log(`✅ Asset pack generated automatically for variant ${variantNumber}`);
         }
+      } catch (error) {
+        console.error(`❌ Failed to generate asset pack automatically for variant ${variantNumber}:`, error);
+        // Don't fail the logo generation if asset pack fails
       }
 
       return logoResult;

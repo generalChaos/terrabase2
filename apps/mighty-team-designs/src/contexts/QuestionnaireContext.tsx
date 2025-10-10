@@ -310,7 +310,7 @@ export function QuestionnaireProvider({ children }: { children: React.ReactNode 
 
       // Create color description
       const colorDescription = selectedColor 
-        ? `${selectedColor.primary} and ${selectedColor.secondary}`
+        ? selectedColor.name  // Use the name like "Blue & White" instead of description
         : state.customColorInput || 'blue and white';
 
       // Create mascot description
@@ -357,44 +357,75 @@ export function QuestionnaireProvider({ children }: { children: React.ReactNode 
   };
 
   const generateColorsAndMascots = async () => {
-    if (!state.flow) return;
+    console.log('🎨 generateColorsAndMascots called:', {
+      hasFlow: !!state.flow,
+      flowId: state.flow?.id,
+      teamName: state.round1Answers.team_name,
+      sport: state.round1Answers.sport,
+      logoStyle: state.round1Answers.logo_style
+    });
+    
+    if (!state.flow) {
+      console.log('❌ No flow available, skipping colors/mascots generation');
+      return;
+    }
 
     try {
+      console.log('🔄 Setting loading state to true');
       dispatch({ type: 'SET_LOADING', payload: true });
+
+      const requestBody = {
+        flow_id: state.flow.id,
+        team_name: state.round1Answers.team_name,
+        sport: state.round1Answers.sport,
+        logo_style: state.round1Answers.logo_style,
+        round1_answers: {
+          team_name: state.round1Answers.team_name,
+          sport: state.round1Answers.sport,
+          logo_style: state.round1Answers.logo_style
+        }
+      };
+      
+      console.log('📤 Sending request to /api/ai/colors-mascots:', requestBody);
 
       const response = await fetch('/api/ai/colors-mascots', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          flow_id: state.flow.id,
-          team_name: state.round1Answers.team_name,
-          sport: state.round1Answers.sport,
-          logo_style: state.round1Answers.logo_style,
-          round1_answers: {
-            team_name: state.round1Answers.team_name,
-            sport: state.round1Answers.sport,
-            logo_style: state.round1Answers.logo_style
-          }
-        })
+        body: JSON.stringify(requestBody)
+      });
+
+      console.log('📥 Response received:', {
+        ok: response.ok,
+        status: response.status,
+        statusText: response.statusText
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        console.error('❌ API error response:', errorData);
         throw new Error(`Failed to generate colors and mascots: ${errorData.error || response.statusText}`);
       }
 
       const result = await response.json();
+      console.log('📊 API result:', result);
       
       if (!result.success || !result.data) {
+        console.error('❌ Invalid API response structure:', result);
         throw new Error('Invalid response from color/mascot generation API');
       }
+      
+      console.log('✅ Setting colors and mascots:', {
+        colorsCount: result.data.colors?.length || 0,
+        mascotsCount: result.data.mascots?.length || 0
+      });
       
       dispatch({ type: 'SET_COLORS', payload: result.data.colors });
       dispatch({ type: 'SET_MASCOTS', payload: result.data.mascots });
     } catch (error) {
-      console.error('Color/mascot generation error:', error);
+      console.error('❌ Color/mascot generation error:', error);
       dispatch({ type: 'SET_ERROR', payload: error instanceof Error ? error.message : 'Failed to generate colors and mascots. Please try again.' });
     } finally {
+      console.log('🔄 Setting loading state to false');
       dispatch({ type: 'SET_LOADING', payload: false });
     }
   };

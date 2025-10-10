@@ -11,6 +11,7 @@ import time
 
 from src.services.asset_cleanup import AssetCleanupService
 from src.services.logo_overlay import LogoOverlayService
+from src.services.supabase_service import supabase_service
 from src.validators import InputValidator, ValidationError, FileValidator
 
 router = APIRouter()
@@ -26,13 +27,18 @@ class Player(BaseModel):
 
 class AssetPackRequest(BaseModel):
     """Request model for asset pack creation"""
-    logo_url: str = Field(..., description="URL of the logo to process")
+    logo_id: Optional[str] = Field(None, description="ID of the logo in the database")
+    logo_url: Optional[str] = Field(None, description="URL of the logo to process")
     team_name: str = Field(..., min_length=1, max_length=100, description="Team name")
-    players: List[Player] = Field(..., min_length=1, max_length=20, description="Team roster")
+    players: Optional[List[Player]] = Field(default=None, description="Team roster (optional, will use default if not provided)")
     tshirt_color: str = Field("black", description="T-shirt color (black, white)")
     include_banner: bool = Field(True, description="Include banner generation")
     output_format: str = Field("png", description="Output format (png, jpg, webp)")
     quality: int = Field(95, ge=1, le=100, description="Output quality (1-100)")
+    
+    class Config:
+        # Allow extra fields and make all fields optional by default
+        extra = "allow"
 
 class AssetPackResponse(BaseModel):
     """Response model for asset pack creation"""
@@ -60,25 +66,69 @@ async def create_asset_pack(request: AssetPackRequest):
     print(f"DEBUG: Asset pack request received: {request}")
     
     try:
-        # Validate input
-        try:
-            validator = InputValidator()
-            validated_url = validator.validate_image_url(request.logo_url)
-        except ValidationError as e:
+        # Use fallback players if none provided
+        if request.players is None or len(request.players) == 0:
+            request.players = [
+                Player(number=1, name="Captain"),
+                Player(number=2, name="Vice Captain"),
+                Player(number=3, name="Starter"),
+                Player(number=4, name="Starter"),
+                Player(number=5, name="Starter")
+            ]
+            print(f"DEBUG: Using fallback players: {request.players}")
+        
+        # Determine logo source and get logo data
+        logo_source = None
+        logo_data = None
+        
+        if request.logo_id:
+            print(f"DEBUG: Using logo_id approach: {request.logo_id}")
+            logo_data = await supabase_service.get_logo_by_id(request.logo_id)
+            if logo_data:
+                # Try to download from storage first
+                logo_image = await supabase_service.download_logo_image(logo_data)
+                if logo_image:
+                    logo_source = "image"
+                    print(f"DEBUG: Successfully downloaded logo from storage")
+                else:
+                    # Fallback to URL approach
+                    logo_source = "url"
+                    logo_url = f"http://127.0.0.1:54321/storage/v1/object/public/{logo_data.get('storage_bucket', 'team-logos') if logo_data else 'team-logos'}/{logo_data.get('file_path') if logo_data else ''}"
+                    print(f"DEBUG: Falling back to URL approach: {logo_url}")
+            else:
+                return AssetPackResponse(
+                    success=False,
+                    team_name=request.team_name,
+                    processing_time_ms=int((time.time() - start_time) * 1000),
+                    error=f"Logo not found with ID: {request.logo_id}"
+                )
+        elif request.logo_url:
+            print(f"DEBUG: Using logo_url approach: {request.logo_url}")
+            logo_source = "url"
+            logo_url = request.logo_url
+        else:
             return AssetPackResponse(
                 success=False,
                 team_name=request.team_name,
                 processing_time_ms=int((time.time() - start_time) * 1000),
-                error=f"Invalid logo URL: {e.message}"
+                error="Either logo_id or logo_url must be provided"
             )
         
         # Step 1: Clean the logo (remove background, enhance)
-        print(f"DEBUG: Starting logo cleanup for {request.logo_url}")
-        cleanup_result = await cleanup_service.cleanup_logo(
-            logo_url=request.logo_url,
-            output_format=request.output_format,
-            quality=request.quality
-        )
+        if logo_source == "image":
+            print(f"DEBUG: Starting logo cleanup from PIL Image")
+            cleanup_result = await cleanup_service.cleanup_logo_from_image(
+                logo_image=logo_image,
+                output_format=request.output_format,
+                quality=request.quality
+            )
+        else:
+            print(f"DEBUG: Starting logo cleanup from URL")
+            cleanup_result = await cleanup_service.cleanup_logo(
+                logo_url=logo_url if request.logo_url else f"http://127.0.0.1:54321/storage/v1/object/public/{logo_data.get('storage_bucket', 'team-logos') if logo_data else 'team-logos'}/{logo_data.get('file_path') if logo_data else ''}",
+                output_format=request.output_format,
+                quality=request.quality
+            )
         print(f"DEBUG: Cleanup result: {cleanup_result}")
         
         if not cleanup_result["success"]:
@@ -144,6 +194,31 @@ async def create_asset_pack(request: AssetPackRequest):
                 banner_url = banner_result["output_url"]
         
         processing_time_ms = int((time.time() - start_time) * 1000)
+        
+        # Store asset pack in database
+        print(f"DEBUG: Storing asset pack in database")
+        flow_id = logo_data.get("flow_id") if logo_data else None
+        if flow_id:
+            asset_pack_data = {
+                "team_name": request.team_name,
+                "clean_logo": clean_logo_url,
+                "tshirt_front": tshirt_front_url,
+                "tshirt_back": tshirt_back_url,
+                "banner": banner_url,
+                "processing_time_ms": processing_time_ms
+            }
+            
+            store_success = await supabase_service.store_asset_pack(
+                flow_id=flow_id,
+                logo_id=request.logo_id,
+                asset_pack_data=asset_pack_data
+            )
+            if store_success:
+                print(f"DEBUG: Asset pack stored successfully")
+            else:
+                print(f"DEBUG: Warning: Failed to store asset pack in database")
+        else:
+            print(f"DEBUG: Warning: No flow_id found in logo data, skipping database storage")
         
         return AssetPackResponse(
             success=True,

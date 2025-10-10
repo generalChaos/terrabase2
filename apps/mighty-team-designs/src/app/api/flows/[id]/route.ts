@@ -1,103 +1,108 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { serviceManager } from '@/lib/services/serviceManager';
-import { logError } from '@/lib/debug';
+import { z } from 'zod';
+import { enhancedTeamDesignService } from '@/lib/services/enhancedTeamDesignService';
 
-// GET /api/flows/[id] - Get a specific flow
+const PlayerSchema = z.object({
+  id: z.string(),
+  firstName: z.string(),
+  number: z.string(),
+});
+
+const UpdateFlowSchema = z.object({
+  contact_email: z.string().email().optional(),
+  contact_phone: z.string().min(10).optional(),
+  player_roster: z.array(PlayerSchema).optional(),
+  status: z.enum(['pending', 'generating', 'completed', 'failed']).optional(),
+});
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id: flowId } = await params;
-
-    if (!flowId) {
-      return NextResponse.json(
-        { error: 'Flow ID is required' },
-        { status: 400 }
-      );
-    }
-
-    const flow = await serviceManager.flows.getFlowById(flowId);
-
+    console.log('🔄 Flows API: Received GET request for flow:', flowId);
+    
+    // Get the flow data
+    const flow = await enhancedTeamDesignService.getFlowById(flowId);
+    
     if (!flow) {
+      console.log('❌ Flows API: Flow not found:', flowId);
       return NextResponse.json(
-        { error: 'Flow not found' },
+        { 
+          success: false, 
+          error: 'Flow not found' 
+        },
         { status: 404 }
       );
     }
 
+    console.log('✅ Flows API: Flow retrieved successfully:', flow.id);
+    
     return NextResponse.json({
       success: true,
       data: flow
     });
 
   } catch (error) {
-    console.error('Error in GET /api/flows/[id]:', error);
+    console.error('❌ Flows API GET Error:', error);
+    
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { 
+        success: false, 
+        error: 'Failed to retrieve flow',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     );
   }
 }
 
-// PUT /api/flows/[id] - Update a flow
-export async function PUT(
+export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id: flowId } = await params;
+    console.log('🔄 Flows API: Received PATCH request for flow:', flowId);
     const body = await request.json();
-
-    if (!flowId) {
+    console.log('🔄 Flows API: Request body:', body);
+    
+    // Validate the request body
+    const validatedData = UpdateFlowSchema.parse(body);
+    console.log('🔄 Flows API: Validated data:', validatedData);
+    
+    // Update the flow with the new data
+    console.log('🔄 Flows API: Calling updateFlow...');
+    const updatedFlow = await enhancedTeamDesignService.updateFlow(flowId, validatedData);
+    console.log('🔄 Flows API: Update successful:', updatedFlow);
+    
+    return NextResponse.json({
+      success: true,
+      flow: updatedFlow
+    });
+    
+  } catch (error) {
+    console.error('❌ Flows API Error:', error);
+    
+    if (error instanceof z.ZodError) {
+      console.error('❌ Validation error:', error.errors);
       return NextResponse.json(
-        { error: 'Flow ID is required' },
+        { 
+          success: false, 
+          error: 'Invalid request data',
+          details: error.errors 
+        },
         { status: 400 }
       );
     }
-
-    const updatedFlow = await serviceManager.flows.updateTeamDesignFlow(flowId, body);
-
-    return NextResponse.json({
-      success: true,
-      data: updatedFlow
-    });
-
-  } catch (error) {
-    console.error('Error in PUT /api/flows/[id]:', error);
+    
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
-  }
-}
-
-// DELETE /api/flows/[id] - Soft delete a flow
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const { id: flowId } = await params;
-
-    if (!flowId) {
-      return NextResponse.json(
-        { error: 'Flow ID is required' },
-        { status: 400 }
-      );
-    }
-
-    await serviceManager.flows.softDeleteTeamDesignFlow(flowId);
-
-    return NextResponse.json({
-      success: true,
-      message: 'Flow deleted successfully'
-    });
-
-  } catch (error) {
-    console.error('Error in DELETE /api/flows/[id]:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
+      { 
+        success: false, 
+        error: 'Failed to update flow',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     );
   }

@@ -34,6 +34,8 @@ importers:
         specifier: ^5.5.0
         version: 5.9.2
 
+  apps/image-processor: {}
+
   apps/magic-marker/api:
     dependencies:
       '@supabase/supabase-js':

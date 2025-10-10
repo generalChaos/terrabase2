@@ -6,15 +6,10 @@ import { Round1Form } from './Round1Form';
 import { V1Round2Form } from './V1Round2Form';
 import { LogoGeneration } from './LogoGeneration';
 import { LogoSelection } from './LogoSelection';
-import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
 
 export function QuestionnaireFlow() {
-  const { state } = useQuestionnaire();
-
-  if (state.isLoading) {
-    return <LoadingSpinner />;
-  }
+  const { state, dispatch } = useQuestionnaire();
 
   if (state.error) {
     return <ErrorMessage message={state.error} />;
@@ -35,39 +30,39 @@ export function QuestionnaireFlow() {
 
         {/* Progress Indicator */}
         <div className="mb-8">
-          <div className="flex items-center justify-center space-x-4">
-            <div className={`flex items-center ${state.currentStep === 'round1' ? 'text-blue-600' : state.currentStep === 'round2' || state.currentStep === 'generating' || state.currentStep === 'completed' ? 'text-green-600' : 'text-gray-400'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${state.currentStep === 'round1' ? 'bg-blue-600 text-white' : state.currentStep === 'round2' || state.currentStep === 'generating' || state.currentStep === 'completed' ? 'bg-green-600 text-white' : 'bg-gray-300 text-gray-600'}`}>
+          <div className="flex items-center justify-center space-x-2 sm:space-x-4 overflow-x-auto">
+            <div className={`flex items-center ${state.currentStep === 'round1' ? 'text-blue-600' : state.currentStep === 'round2' || state.currentStep === 'generating' || state.currentStep === 'results' || state.currentStep === 'completed' ? 'text-green-600' : 'text-gray-400'}`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${state.currentStep === 'round1' ? 'bg-blue-600 text-white' : state.currentStep === 'round2' || state.currentStep === 'generating' || state.currentStep === 'results' || state.currentStep === 'completed' ? 'bg-green-600 text-white' : 'bg-gray-300 text-gray-600'}`}>
                 1
               </div>
-              <span className="ml-2 font-medium">Basic Info</span>
+              <span className="ml-2 font-medium hidden sm:inline">Basic Info</span>
             </div>
             
-            <div className={`w-16 h-0.5 ${state.currentStep === 'round2' || state.currentStep === 'generating' || state.currentStep === 'completed' ? 'bg-green-600' : 'bg-gray-300'}`} />
+            <div className={`w-8 h-0.5 sm:w-16 ${state.currentStep === 'round2' || state.currentStep === 'generating' || state.currentStep === 'results' || state.currentStep === 'completed' ? 'bg-green-600' : 'bg-gray-300'}`} />
             
-            <div className={`flex items-center ${state.currentStep === 'round2' ? 'text-blue-600' : state.currentStep === 'generating' || state.currentStep === 'completed' ? 'text-green-600' : 'text-gray-400'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${state.currentStep === 'round2' ? 'bg-blue-600 text-white' : state.currentStep === 'generating' || state.currentStep === 'completed' ? 'bg-green-600 text-white' : 'bg-gray-300 text-gray-600'}`}>
+            <div className={`flex items-center ${state.currentStep === 'round2' ? 'text-blue-600' : state.currentStep === 'generating' || state.currentStep === 'results' || state.currentStep === 'completed' ? 'text-green-600' : 'text-gray-400'}`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${state.currentStep === 'round2' ? 'bg-blue-600 text-white' : state.currentStep === 'generating' || state.currentStep === 'results' || state.currentStep === 'completed' ? 'bg-green-600 text-white' : 'bg-gray-300 text-gray-600'}`}>
                 2
               </div>
-              <span className="ml-2 font-medium">Preferences</span>
+              <span className="ml-2 font-medium hidden sm:inline">Preferences</span>
             </div>
             
-            <div className={`w-16 h-0.5 ${state.currentStep === 'generating' || state.currentStep === 'completed' ? 'bg-green-600' : 'bg-gray-300'}`} />
+            <div className={`w-8 h-0.5 sm:w-16 ${state.currentStep === 'generating' || state.currentStep === 'results' || state.currentStep === 'completed' ? 'bg-green-600' : 'bg-gray-300'}`} />
             
-            <div className={`flex items-center ${state.currentStep === 'generating' ? 'text-blue-600' : state.currentStep === 'completed' ? 'text-green-600' : 'text-gray-400'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${state.currentStep === 'generating' ? 'bg-blue-600 text-white' : state.currentStep === 'completed' ? 'bg-green-600 text-white' : 'bg-gray-300 text-gray-600'}`}>
+            <div className={`flex items-center ${state.currentStep === 'generating' ? 'text-blue-600' : state.currentStep === 'results' || state.currentStep === 'completed' ? 'text-green-600' : 'text-gray-400'}`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${state.currentStep === 'generating' ? 'bg-blue-600 text-white' : state.currentStep === 'results' || state.currentStep === 'completed' ? 'bg-green-600 text-white' : 'bg-gray-300 text-gray-600'}`}>
                 3
               </div>
-              <span className="ml-2 font-medium">Generate</span>
+              <span className="ml-2 font-medium hidden sm:inline">Generate</span>
             </div>
             
-            <div className={`w-16 h-0.5 ${state.currentStep === 'completed' ? 'bg-green-600' : 'bg-gray-300'}`} />
+            <div className={`w-8 h-0.5 sm:w-16 ${state.currentStep === 'results' || state.currentStep === 'completed' ? 'bg-green-600' : 'bg-gray-300'}`} />
             
-            <div className={`flex items-center ${state.currentStep === 'completed' ? 'text-green-600' : 'text-gray-400'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${state.currentStep === 'completed' ? 'bg-green-600 text-white' : 'bg-gray-300 text-gray-600'}`}>
+            <div className={`flex items-center ${state.currentStep === 'results' ? 'text-blue-600' : state.currentStep === 'completed' ? 'text-green-600' : 'text-gray-400'}`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${state.currentStep === 'results' ? 'bg-blue-600 text-white' : state.currentStep === 'completed' ? 'bg-green-600 text-white' : 'bg-gray-300 text-gray-600'}`}>
                 4
               </div>
-              <span className="ml-2 font-medium">Select</span>
+              <span className="ml-2 font-medium hidden sm:inline">Select</span>
             </div>
           </div>
         </div>

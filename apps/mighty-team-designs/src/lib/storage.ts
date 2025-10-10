@@ -83,16 +83,24 @@ class StorageService {
     bucket: string = 'team-logos',
     options: StorageUploadOptions = {}
   ): Promise<StorageFile> {
+    console.log('🚀 StorageService.uploadFile called:', { fileName, bucket, configType: this.config.type })
+    
     const fileId = uuidv4()
-    const timestamp = Date.now()
     const extension = path.extname(fileName)
     const baseName = path.basename(fileName, extension)
-    const finalFileName = `${baseName}_${timestamp}${extension}`
+    
+    // Check if filename already has a timestamp (ends with 13 digits)
+    const hasTimestamp = /\d{13}$/.test(baseName)
+    const finalFileName = hasTimestamp ? fileName : `${baseName}_${Date.now()}${extension}`
     const filePath = `${bucket}/${finalFileName}`
     
+    console.log('📁 File details:', { finalFileName, filePath, hasTimestamp })
+    
     if (this.config.type === 'local') {
+      console.log('📁 Using local storage')
       return this.uploadToLocal(file, filePath, finalFileName, options)
     } else {
+      console.log('☁️ Using Supabase storage')
       return this.uploadToSupabase(file, filePath, bucket, finalFileName, options)
     }
   }
@@ -218,27 +226,41 @@ class StorageService {
     fileName: string,
     options: StorageUploadOptions
   ): Promise<StorageFile> {
+    console.log('☁️ uploadToSupabase called:', { filePath, bucket, fileName, fileSize: file.length })
+    
     if (!this.supabase) {
+      console.error('❌ Supabase client not initialized')
       throw new Error('Supabase client not initialized')
     }
 
+    // Extract just the file name from the filePath (remove bucket prefix)
+    const actualFileName = filePath.startsWith(`${bucket}/`) 
+      ? filePath.substring(`${bucket}/`.length)
+      : filePath
+
+    console.log('📤 Uploading to Supabase:', { actualFileName, bucket })
+
     const { data, error } = await this.supabase.storage
       .from(bucket)
-      .upload(filePath, file, {
+      .upload(actualFileName, file, {
         contentType: options.contentType,
         cacheControl: options.cacheControl,
         upsert: options.upsert
       })
 
     if (error) {
+      console.error('❌ Supabase upload error:', error)
       throw new Error(`Failed to upload to Supabase: ${error.message}`)
     }
 
-    const publicUrl = this.getSupabasePublicUrl(filePath, bucket)
+    console.log('✅ Supabase upload successful:', data)
+
+    const publicUrl = this.getSupabasePublicUrl(actualFileName, bucket)
+    console.log('🔗 Generated public URL:', publicUrl)
 
     return {
       fileName,
-      filePath,
+      filePath: actualFileName, // Store just the file name, not the full path
       publicUrl,
       fileSize: file.length,
       mimeType: options.contentType || 'application/octet-stream',

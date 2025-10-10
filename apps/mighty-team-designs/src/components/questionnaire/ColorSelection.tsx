@@ -117,12 +117,11 @@ function ColorCard({ color, isSelected, onSelect }: ColorCardProps) {
         </p>
 
         {/* Color codes */}
-        <div className="text-xs text-gray-500 space-y-1">
+        <div className="text-xs text-gray-500">
           <div className="flex justify-center space-x-2">
             <span className="font-mono">{color.primary}</span>
             <span className="font-mono">{color.secondary}</span>
           </div>
-          <div className="font-mono">{color.accent}</div>
         </div>
       </div>
 

@@ -4,6 +4,9 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { GeneratedLogo } from '@/lib/services/imageGenerationService';
 import QRCode from 'qrcode';
+import TShirtModal, { TShirtOrderItem } from './TShirtModal';
+import BannerModal from './BannerModal';
+import OrderSummary from './OrderSummary';
 
 interface FlowData {
   id: string;
@@ -11,6 +14,11 @@ interface FlowData {
   sport: string;
   logo_style: string;
   current_step: string;
+  player_roster?: Array<{
+    id: string;
+    firstName: string;
+    number: string;
+  }>;
   logo_variants?: Array<{
     id: string;
     variant_number: number;
@@ -58,7 +66,7 @@ interface StandaloneLogoResultsProps {
 }
 
 export default function StandaloneLogoResults({ flowData, onLogoSelect }: StandaloneLogoResultsProps) {
-  const [selectedLogo, setSelectedLogo] = useState<string | null>(flowData.selected_logo_id || flowData.logo_variants[0]?.id || null);
+  const [selectedLogo, setSelectedLogo] = useState<string | null>(flowData.selected_logo_id || flowData.logo_variants?.[0]?.id || null);
   const [generatedLogos, setGeneratedLogos] = useState<GeneratedLogo[]>([]);
   const [tshirtColor, setTshirtColor] = useState('black');
   const [tshirtSize, setTshirtSize] = useState('M');
@@ -66,6 +74,92 @@ export default function StandaloneLogoResults({ flowData, onLogoSelect }: Standa
   const [bannerSize, setBannerSize] = useState('large');
   const [contactEmail, setContactEmail] = useState('');
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
+  
+  // Player roster state
+  const [players, setPlayers] = useState<Array<{id: string, firstName: string, number: string}>>(
+    flowData.player_roster || []
+  );
+  const [newPlayerFirstName, setNewPlayerFirstName] = useState('');
+  const [newPlayerNumber, setNewPlayerNumber] = useState('');
+  const [showPlayerForm, setShowPlayerForm] = useState(false);
+
+  // Modal state
+  const [showTShirtModal, setShowTShirtModal] = useState(false);
+  const [showBannerModal, setShowBannerModal] = useState(false);
+  const [showOrderSummary, setShowOrderSummary] = useState(false);
+  const [orderItems, setOrderItems] = useState<TShirtOrderItem[]>([]);
+
+  // Debug logging
+  console.log('🎯 StandaloneLogoResults - flowData:', flowData);
+  console.log('🎯 StandaloneLogoResults - player_roster:', flowData?.player_roster);
+
+  // Player management functions
+  const handleAddPlayer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!newPlayerFirstName.trim() || !newPlayerNumber.trim()) {
+      alert('Please enter both first name and number');
+      return;
+    }
+
+    if (players.some(player => player.number === newPlayerNumber.trim())) {
+      alert('This number is already taken. Please choose a different number.');
+      return;
+    }
+
+    const newPlayer = {
+      id: Date.now().toString(),
+      firstName: newPlayerFirstName.trim(),
+      number: newPlayerNumber.trim()
+    };
+
+    const updatedPlayers = [...players, newPlayer];
+    setPlayers(updatedPlayers);
+    setNewPlayerFirstName('');
+    setNewPlayerNumber('');
+    setShowPlayerForm(false);
+
+    try {
+      const response = await fetch(`/api/flows/${flowData.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          player_roster: updatedPlayers
+        })
+      });
+
+      if (response.ok) {
+        console.log('✅ Player roster saved successfully');
+      } else {
+        console.error('❌ Failed to save player roster');
+      }
+    } catch (error) {
+      console.error('Error saving player roster:', error);
+    }
+  };
+
+  const handleRemovePlayer = async (playerId: string) => {
+    const updatedPlayers = players.filter(player => player.id !== playerId);
+    setPlayers(updatedPlayers);
+
+    try {
+      const response = await fetch(`/api/flows/${flowData.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          player_roster: updatedPlayers
+        })
+      });
+
+      if (response.ok) {
+        console.log('✅ Player roster updated successfully');
+      } else {
+        console.error('❌ Failed to update player roster');
+      }
+    } catch (error) {
+      console.error('Error updating player roster:', error);
+    }
+  };
 
   // Extract team colors from generation prompt
   const getTeamColors = () => {
@@ -134,10 +228,14 @@ export default function StandaloneLogoResults({ flowData, onLogoSelect }: Standa
       return {
         id: logo.id,
         variant_number: logo.variant_number,
+        file_path: '', // Not available in FlowData
         public_url: fixedUrl,
-        model_used: logo.model_used,
+        is_selected: logo.is_selected || false,
+        generation_time_ms: logo.generation_time_ms || 0,
+        generation_cost_usd: logo.generation_cost_usd || 0,
         generation_prompt: logo.generation_prompt || '',
-        created_at: logo.created_at,
+        model_used: logo.model_used,
+        created_at: new Date().toISOString(), // Not available in FlowData
         asset_pack: logo.asset_pack || null
       };
     });
@@ -191,6 +289,21 @@ export default function StandaloneLogoResults({ flowData, onLogoSelect }: Standa
     }
   };
 
+  // Modal handlers
+  const handleAddToOrder = (orderItem: TShirtOrderItem) => {
+    setOrderItems(prev => [...prev, orderItem]);
+    setShowOrderSummary(true);
+  };
+
+  const handleRemoveFromOrder = (itemId: string) => {
+    setOrderItems(prev => prev.filter(item => item.id !== itemId));
+  };
+
+  const handleSendEmail = () => {
+    setShowOrderSummary(false);
+    // Email is sent via the OrderSummary component
+  };
+
   const LogoCard = ({ logo, isSelected }: { logo: GeneratedLogo; isSelected: boolean }) => {
     console.log(`🎨 StandaloneLogoResults LogoCard ${logo.variant_number}:`, {
       id: logo.id,
@@ -200,7 +313,6 @@ export default function StandaloneLogoResults({ flowData, onLogoSelect }: Standa
       hasPublicUrl: !!logo.public_url,
       publicUrlLength: logo.public_url?.length || 0
     });
-    
     return (
       <div
         className={`relative cursor-pointer rounded-lg border-2 transition-all ${
@@ -230,7 +342,6 @@ export default function StandaloneLogoResults({ flowData, onLogoSelect }: Standa
                 console.error('Error details:', e);
               }}
             />
-            <div className="text-xs text-gray-400 mt-1">Clean Logo</div>
           </div>
         ) : logo.public_url ? (
           <div>
@@ -246,17 +357,12 @@ export default function StandaloneLogoResults({ flowData, onLogoSelect }: Standa
                 console.error('Error details:', e);
               }}
             />
-            <div className="text-xs text-gray-400 mt-1">Original Logo</div>
           </div>
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gray-100 rounded">
             <div className="text-gray-400 text-xs">No Logo</div>
           </div>
         )}
-      </div>
-      <div className="p-2 text-center">
-        <p className="text-xs font-medium text-gray-900">Variant {logo.variant_number}</p>
-        <p className="text-xs text-gray-500">{logo.model_used}</p>
       </div>
       {isSelected && logo.public_url && (
         <div className="absolute top-1 right-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
@@ -284,12 +390,11 @@ export default function StandaloneLogoResults({ flowData, onLogoSelect }: Standa
     <div 
       className="min-h-screen py-8 px-4"
       style={{
-        backgroundColor: teamColors.primary
+        backgroundColor: teamColors.secondary
       }}
     >
       <div className="max-w-6xl mx-auto">
 
-        {/* Section 1: Team Information & Roster */}
         <div 
           className="rounded-lg p-4 sm:p-6 mb-6 sm:mb-8 shadow-lg border backdrop-blur-sm"
           style={{
@@ -300,21 +405,21 @@ export default function StandaloneLogoResults({ flowData, onLogoSelect }: Standa
           <div className="flex flex-col sm:flex-row lg:flex-row gap-4 sm:gap-6">
             {/* Team Logo Display */}
             <div className="flex-shrink-0 mx-auto sm:mx-0">
-              <div className="w-32 h-32 sm:w-40 sm:h-40 bg-gray-100 rounded-lg flex items-center justify-center">
+              <div className="w-48 h-48 sm:w-56 sm:h-56 bg-gray-100 rounded-lg flex items-center justify-center">
                 {selectedLogo && generatedLogos.find(logo => logo.id === selectedLogo)?.asset_pack?.clean_logo_url ? (
                   <Image
                     src={generatedLogos.find(logo => logo.id === selectedLogo)!.asset_pack!.clean_logo_url!}
                     alt="Selected team logo"
-                    width={160}
-                    height={160}
+                    width={224}
+                    height={224}
                     className="object-contain"
                   />
                 ) : selectedLogo && generatedLogos.find(logo => logo.id === selectedLogo)?.public_url ? (
                   <Image
                     src={generatedLogos.find(logo => logo.id === selectedLogo)!.public_url}
                     alt="Selected team logo"
-                    width={160}
-                    height={160}
+                    width={224}
+                    height={224}
                     className="object-contain"
                   />
                 ) : (
@@ -325,27 +430,161 @@ export default function StandaloneLogoResults({ flowData, onLogoSelect }: Standa
             
             {/* Team Info */}
             <div className="flex-1 text-center sm:text-left">
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">
-                {flowData.team_name}
+              <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black mb-2" style={{ 
+                fontFamily: 'Impact, Arial Black, sans-serif', 
+                letterSpacing: '0.05em',
+                color: teamColors.primary
+              }}>
+                {flowData.team_name.toUpperCase()}
               </h2>
-              <p className="text-base sm:text-lg text-gray-600 mb-4">
-                {flowData.sport} Team
-              </p>
-              
-              {/* Team Details */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-gray-600">
-                <div>
-                  <span className="font-medium">Style:</span> {flowData.logo_style}
-                </div>
-                <div>
-                  <span className="font-medium">Generated:</span> {new Date(flowData.created_at).toLocaleDateString()}
+              <div className="flex items-center justify-center sm:justify-start gap-3 mb-4">
+                <p className="text-lg sm:text-xl text-gray-600 font-semibold">
+                  {flowData.sport.toUpperCase()}
+                </p>
+                {/* Team Color Swatches */}
+                <div className="flex gap-2">
+                  <div 
+                    className="w-5 h-5 rounded-full border-2 border-gray-300 shadow-sm"
+                    style={{ backgroundColor: teamColors.primary }}
+                    title={`Primary: ${teamColors.primary}`}
+                  />
+                  <div 
+                    className="w-5 h-5 rounded-full border-2 border-gray-300 shadow-sm"
+                    style={{ backgroundColor: teamColors.secondary }}
+                    title={`Secondary: ${teamColors.secondary}`}
+                  />
                 </div>
               </div>
+
+              {/* Player Roster */}
+              <div className="mt-6">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-lg font-bold text-gray-900" style={{ color: teamColors.primary }}>
+                    ROSTER
+                  </h3>
+                  {players.length === 0 && (
+                    <button
+                      onClick={() => setShowPlayerForm(true)}
+                      className="px-4 py-2 rounded-lg text-white font-semibold hover:opacity-90 transition-opacity"
+                      style={{ backgroundColor: teamColors.primary }}
+                    >
+                      Add Players
+                    </button>
+                  )}
+                </div>
+                
+                {/* Player Form */}
+                {showPlayerForm && (
+                  <form
+                    onSubmit={handleAddPlayer}
+                    className="bg-white p-4 rounded-lg border-2 mb-4"
+                    style={{ 
+                      borderColor: `${teamColors.primary}30`,
+                      backgroundColor: `${teamColors.secondary}05`
+                    }}
+                  >
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          First Name
+                        </label>
+                        <input
+                          type="text"
+                          value={newPlayerFirstName}
+                          onChange={(e) => setNewPlayerFirstName(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="Enter first name"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Jersey Number
+                        </label>
+                        <input
+                          type="text"
+                          value={newPlayerNumber}
+                          onChange={(e) => setNewPlayerNumber(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="Enter number"
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div className="flex gap-2 mt-4">
+                      <button
+                        type="submit"
+                        className="px-4 py-2 rounded-lg text-white font-semibold hover:opacity-90 transition-opacity"
+                        style={{ backgroundColor: teamColors.primary }}
+                      >
+                        Add Player
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowPlayerForm(false)}
+                        className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                )}
+                
+                {/* Players Grid */}
+                {players.length > 0 && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                    {players.map((player) => (
+                      <div 
+                        key={player.id} 
+                        className="bg-white p-3 rounded-lg border-2 shadow-sm hover:shadow-md transition-shadow group"
+                        style={{ 
+                          borderColor: `${teamColors.primary}30`,
+                          backgroundColor: `${teamColors.secondary}05`
+                        }}
+                      >
+                        <div className="flex items-center space-x-3">
+                          <div 
+                            className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white"
+                            style={{ backgroundColor: teamColors.primary }}
+                          >
+                            {player.number}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p 
+                              className="font-normal text-gray-600 truncate"
+                              style={{ 
+                                fontFamily: 'Impact, Arial Black, sans-serif',
+                                letterSpacing: '0.05em',
+                                fontSize: '1.3rem'
+                              }}
+                            >
+                              {player.firstName.toUpperCase()}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => handleRemovePlayer(player.id)}
+                            className="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700 transition-opacity"
+                            title="Remove player"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                    <button
+                      onClick={() => setShowPlayerForm(true)}
+                      className="bg-white p-3 rounded-lg border-2 border-dashed border-gray-300 hover:border-gray-400 transition-colors flex items-center justify-center text-gray-500 hover:text-gray-700"
+                    >
+                      <span className="text-2xl">+</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+              
             </div>
           </div>
         </div>
 
-        {/* Section 2: Asset Customization */}
         <div 
           className="rounded-lg p-4 sm:p-6 mb-6 sm:mb-8 shadow-lg border backdrop-blur-sm"
           style={{
@@ -353,21 +592,19 @@ export default function StandaloneLogoResults({ flowData, onLogoSelect }: Standa
             borderColor: `${teamColors.secondary}20`
           }}
         >
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">Customize Your Assets</h2>
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* A) Banner Image */}
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">A) Banner Image</h3>
-              <div className="bg-gray-100 rounded-lg p-4 mb-4" style={{ height: '400px' }}>
+              <div className="bg-gray-100 rounded-lg p-4 mb-4" style={{ height: '500px' }}>
                 {selectedLogo && generatedLogos.find(logo => logo.id === selectedLogo)?.asset_pack?.banner_url ? (
                   <div className="w-full h-full flex items-center justify-center">
                     <Image
                       src={generatedLogos.find(logo => logo.id === selectedLogo)!.asset_pack!.banner_url!}
                       alt="Team banner"
-                      width={800}
-                      height={400}
-                      className="max-w-full max-h-full object-contain rounded-lg"
+                      width={600}
+                      height={500}
+                      className="max-w-full max-h-full object-contain rounded-xl"
                       onError={(e) => {
                         console.error('Failed to load banner image:', e);
                         // Fallback to placeholder
@@ -392,135 +629,92 @@ export default function StandaloneLogoResults({ flowData, onLogoSelect }: Standa
                   </div>
                 )}
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Color</label>
-                  <select
-                    value={bannerColor}
-                    onChange={(e) => setBannerColor(e.target.value)}
-                    className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="blue">Blue</option>
-                    <option value="red">Red</option>
-                    <option value="green">Green</option>
-                    <option value="purple">Purple</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Size</label>
-                  <select
-                    value={bannerSize}
-                    onChange={(e) => setBannerSize(e.target.value)}
-                    className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="small">Small (2x1 ft)</option>
-                    <option value="medium">Medium (3x2 ft)</option>
-                    <option value="large">Large (4x3 ft)</option>
-                    <option value="xlarge">X-Large (6x4 ft)</option>
-                  </select>
-                </div>
+              <div className="flex justify-center">
+                <button 
+                  className="text-white px-4 py-2 rounded-lg transition-colors font-medium shadow-lg"
+                  style={{ 
+                    backgroundColor: teamColors.primary,
+                    boxShadow: `0 4px 14px 0 ${teamColors.primary}40`
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = teamColors.secondary;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = teamColors.primary;
+                  }}
+                >
+                  Add Banner
+                </button>
               </div>
-              <button 
-                className="mt-4 text-white px-4 py-2 rounded-lg transition-colors font-medium"
-                style={{ 
-                  backgroundColor: teamColors.primary,
-                  boxShadow: `0 4px 14px 0 ${teamColors.primary}40`
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = teamColors.secondary;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = teamColors.primary;
-                }}
-              >
-                Add Banner
-              </button>
             </div>
 
             {/* B) T-Shirt Image */}
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">B) T-Shirt Image</h3>
-              <div className="flex flex-col sm:flex-row gap-4">
-                {/* T-Shirt Preview */}
-                <div className="flex-shrink-0 mx-auto sm:mx-0">
-                  <div className="bg-gray-100 rounded-lg p-4 flex items-center justify-center overflow-hidden" style={{ height: '400px', width: '300px' }}>
-                    {selectedLogo && generatedLogos.find(logo => logo.id === selectedLogo)?.asset_pack?.tshirt_front_url ? (
-                      <Image
-                        src={generatedLogos.find(logo => logo.id === selectedLogo)!.asset_pack!.tshirt_front_url!}
-                        alt="T-shirt"
-                        width={300}
-                        height={400}
-                        className="max-w-full max-h-full object-contain rounded-lg"
-                        onError={(e) => {
-                          console.error('Failed to load t-shirt image:', e);
-                          // Fallback to placeholder
-                          const target = e.target as HTMLImageElement;
-                          target.style.display = 'none';
-                          target.nextElementSibling?.classList.remove('hidden');
-                        }}
-                      />
-                    ) : null}
-                    <div className={`text-center text-gray-500 ${selectedLogo && generatedLogos.find(logo => logo.id === selectedLogo)?.asset_pack?.tshirt_front_url ? 'hidden' : ''}`}>
-                      <div className="text-xl sm:text-2xl mb-1">👕</div>
-                      <p className="text-xs">T-shirt preview</p>
-                    </div>
-                  </div>
+              <div className="bg-gray-100 rounded-lg p-4 mb-4 flex items-center justify-center relative" style={{ height: '500px' }}>
+                {selectedLogo && generatedLogos.find(logo => logo.id === selectedLogo)?.asset_pack?.tshirt_front_url ? (
+                  <Image
+                    src={generatedLogos.find(logo => logo.id === selectedLogo)!.asset_pack!.tshirt_front_url!}
+                    alt="T-shirt"
+                      width={600}
+                      height={500}
+                    className="max-w-full max-h-full object-contain rounded-xl"
+                    onError={(e) => {
+                      console.error('Failed to load t-shirt image:', e);
+                      // Fallback to placeholder
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      target.nextElementSibling?.classList.remove('hidden');
+                    }}
+                  />
+                ) : null}
+                <div className={`text-center text-gray-500 ${selectedLogo && generatedLogos.find(logo => logo.id === selectedLogo)?.asset_pack?.tshirt_front_url ? 'hidden' : ''}`}>
+                  <div className="text-4xl mb-2">👕</div>
+                  <p className="text-sm">T-shirt preview</p>
+                  <p className="text-xs text-gray-400">Coming soon</p>
                 </div>
                 
-                {/* T-Shirt Controls */}
-                <div className="flex-1 space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Color</label>
-                      <select
-                        value={tshirtColor}
-                        onChange={(e) => setTshirtColor(e.target.value)}
-                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      >
-                        <option value="black">Black</option>
-                        <option value="white">White</option>
-                        <option value="navy">Navy</option>
-                        <option value="red">Red</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Size</label>
-                      <select
-                        value={tshirtSize}
-                        onChange={(e) => setTshirtSize(e.target.value)}
-                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      >
-                        <option value="S">S (34-36&ldquo;)</option>
-                        <option value="M">M (38-40&ldquo;)</option>
-                        <option value="L">L (42-44&ldquo;)</option>
-                        <option value="XL">XL (46-48&ldquo;)</option>
-                        <option value="XXL">XXL (50-52&ldquo;)</option>
-                        <option value="XXXL">XXXL (54-56&ldquo;)</option>
-                      </select>
-                    </div>
-                  </div>
+                {/* Color Swatches */}
+                <div className="absolute flex gap-2" style={{ bottom: '20px', left: '20px' }}>
+                  <div 
+                    className="w-12 h-12 rounded-full border-2 border-gray-300 shadow-sm"
+                    style={{ backgroundColor: '#ffffff' }}
+                    title="White"
+                  />
+                  <div 
+                    className="w-12 h-12 rounded-full border-2 border-gray-300 shadow-sm"
+                    style={{ backgroundColor: '#000000' }}
+                    title="Black"
+                  />
                 </div>
               </div>
-              <button 
-                className="mt-4 text-white px-4 py-2 rounded-lg transition-colors font-medium"
-                style={{ 
-                  backgroundColor: teamColors.primary,
-                  boxShadow: `0 4px 14px 0 ${teamColors.primary}40`
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = teamColors.secondary;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = teamColors.primary;
-                }}
-              >
-                Add T-Shirt
-              </button>
+              <div className="flex justify-center">
+                <button 
+                  onClick={() => setShowTShirtModal(true)}
+                  className="text-white px-4 py-2 rounded-lg transition-colors font-medium shadow-lg flex items-center space-x-2"
+                  style={{ 
+                    backgroundColor: teamColors.primary,
+                    boxShadow: `0 4px 14px 0 ${teamColors.primary}40`
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = teamColors.secondary;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = teamColors.primary;
+                  }}
+                >
+                  <span>Add T-Shirt</span>
+                  {orderItems.length > 0 && (
+                    <span className="bg-white text-gray-900 text-xs font-bold px-2 py-1 rounded-full">
+                      {orderItems.length}
+                    </span>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Section 3: Logo Selection & Download */}
+        {/* Logo Selection & Download */}
         <div 
           className="rounded-lg p-4 sm:p-6 mb-6 sm:mb-8 shadow-lg border backdrop-blur-sm"
           style={{
@@ -528,33 +722,23 @@ export default function StandaloneLogoResults({ flowData, onLogoSelect }: Standa
             borderColor: `${teamColors.primary}20`
           }}
         >
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">Choose Your Logo</h2>
           
-          {/* Selected Logo Display */}
+          {/* Logo Options */}
+          <div className="mb-4 sm:mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+              {generatedLogos.map((logo) => (
+                <LogoCard
+                  key={logo.id}
+                  logo={logo}
+                  isSelected={selectedLogo === logo.id}
+                />
+              ))}
+            </div>
+          </div>
+          
+          {/* Download Button */}
           {selectedLogo && (generatedLogos.find(logo => logo.id === selectedLogo)?.asset_pack?.clean_logo_url || generatedLogos.find(logo => logo.id === selectedLogo)?.public_url) && (
-            <div className="text-center mb-6 sm:mb-8">
-              <div className="w-48 h-48 sm:w-64 sm:h-64 lg:w-72 lg:h-72 mx-auto bg-gray-100 rounded-lg flex items-center justify-center mb-4">
-                {generatedLogos.find(logo => logo.id === selectedLogo)?.asset_pack?.clean_logo_url ? (
-                  <Image
-                    src={generatedLogos.find(logo => logo.id === selectedLogo)!.asset_pack!.clean_logo_url!}
-                    alt="Selected team logo"
-                    width={288}
-                    height={288}
-                    className="object-contain"
-                  />
-                ) : (
-                  <Image
-                    src={generatedLogos.find(logo => logo.id === selectedLogo)!.public_url}
-                    alt="Selected team logo"
-                    width={288}
-                    height={288}
-                    className="object-contain"
-                  />
-                )}
-              </div>
-              <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">
-                {flowData.team_name}
-              </h3>
+            <div className="text-center">
               <button 
                 onClick={() => selectedLogo && handleDownload(generatedLogos.find(logo => logo.id === selectedLogo)!)}
                 className="text-white px-6 sm:px-8 py-2 sm:py-3 rounded-lg transition-colors font-semibold text-sm sm:text-base"
@@ -573,34 +757,12 @@ export default function StandaloneLogoResults({ flowData, onLogoSelect }: Standa
               </button>
             </div>
           )}
-          
-          {/* Alternative Logo Options */}
-          <div className="mb-4 sm:mb-6">
-            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Alternative Options</h3>
-            <div className="mb-4 p-3 bg-gray-100 rounded text-sm">
-              <p><strong>Debug Info (Results Page):</strong></p>
-              <p>Generated logos count: {generatedLogos.length}</p>
-              <p>Selected logo: {selectedLogo}</p>
-              <p>Flow data team_logos: {flowData.team_logos?.length || 0}</p>
-              <p>Flow data logo_variants: {flowData.logo_variants?.length || 0}</p>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-              {generatedLogos.map((logo) => (
-                <LogoCard
-                  key={logo.id}
-                  logo={logo}
-                  isSelected={selectedLogo === logo.id}
-                />
-              ))}
-            </div>
-          </div>
         </div>
 
-        {/* Contact Info & QR Code Section */}
         <div 
           className="rounded-lg p-4 sm:p-6 mb-6 sm:mb-8 shadow-lg border backdrop-blur-sm"
           style={{
-            background: `linear-gradient(135deg, ${teamColors.primary}08, ${teamColors.secondary}12, rgba(255,255,255,0.9))`,
+            background: `rgba(255,255,255,1)`,
             borderColor: `${teamColors.primary}30`
           }}
         >
@@ -690,6 +852,29 @@ export default function StandaloneLogoResults({ flowData, onLogoSelect }: Standa
           </button>
         </div>
       </div>
+
+      {/* T-Shirt Modal */}
+      <TShirtModal
+        isOpen={showTShirtModal}
+        onClose={() => setShowTShirtModal(false)}
+        teamLogo={selectedLogo ? (generatedLogos.find(logo => logo.id === selectedLogo)?.public_url || '') : ''}
+        cleanLogoUrl={selectedLogo ? (generatedLogos.find(logo => logo.id === selectedLogo)?.asset_pack?.clean_logo_url || '') : ''}
+        tshirtFrontUrl={selectedLogo ? (generatedLogos.find(logo => logo.id === selectedLogo)?.asset_pack?.tshirt_front_url || '') : ''}
+        tshirtBackUrl={selectedLogo ? (generatedLogos.find(logo => logo.id === selectedLogo)?.asset_pack?.tshirt_back_url || '') : ''}
+        teamName={flowData.team_name}
+        teamColors={teamColors}
+        playerRoster={players.map(p => ({ id: p.id, firstName: p.firstName, lastName: '', number: parseInt(p.number) }))}
+        onAddToOrder={handleAddToOrder}
+      />
+
+      {/* Order Summary Modal */}
+      <OrderSummary
+        isOpen={showOrderSummary}
+        onClose={() => setShowOrderSummary(false)}
+        orderItems={orderItems}
+        onRemoveItem={handleRemoveFromOrder}
+        onSendEmail={handleSendEmail}
+      />
     </div>
   );
 }

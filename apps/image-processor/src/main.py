@@ -27,6 +27,19 @@ from typing import List, Dict, Any
 # Load environment variables
 load_dotenv()
 
+# Initialize Supabase client
+from supabase import create_client
+import os
+
+# Supabase configuration
+SUPABASE_URL = os.getenv("SUPABASE_URL", "http://127.0.0.1:54321")
+SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+
+if not SUPABASE_SERVICE_KEY:
+    raise ValueError("SUPABASE_SERVICE_ROLE_KEY environment variable is required")
+
+supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+
 # Logging is configured in the structured_logger module
 
 # Create FastAPI app

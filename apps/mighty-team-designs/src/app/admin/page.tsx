@@ -275,7 +275,7 @@ export default function AdminDashboard() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Overview Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           <div className="bg-white p-6 rounded-lg shadow">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Total Flows</h3>
             <p className="text-3xl font-bold text-blue-600">{data?.flows.total || 0}</p>
@@ -291,6 +291,16 @@ export default function AdminDashboard() {
           <div className="bg-white p-6 rounded-lg shadow">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Debug Logs</h3>
             <p className="text-3xl font-bold text-orange-600">{data?.debug_logs.total || 0}</p>
+          </div>
+          <div className="bg-white p-6 rounded-lg shadow border-2 border-green-200">
+            <div className="flex items-center mb-2">
+              <h3 className="text-lg font-semibold text-gray-900">V1 Results</h3>
+              <svg className="ml-2 h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <p className="text-2xl font-bold text-green-600">Active</p>
+            <p className="text-xs text-gray-500 mt-1">V1-compliant design</p>
           </div>
         </div>
 
@@ -383,6 +393,112 @@ export default function AdminDashboard() {
           </div>
         </div>
 
+        {/* V1 Results Page Testing */}
+        <div className="bg-white p-6 rounded-lg shadow mb-8">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">V1 Results Page Testing</h2>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+            <div className="flex items-start">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-blue-800">
+                  V1-Compliant Results Page
+                </h3>
+                <div className="mt-2 text-sm text-blue-700">
+                  <p>The results page has been updated with V1-compliant design featuring:</p>
+                  <ul className="list-disc list-inside mt-2 space-y-1">
+                    <li>Team Information & Roster section</li>
+                    <li>Asset Customization (Banner & T-shirt)</li>
+                    <li>Logo Selection & Download</li>
+                    <li>Mobile-responsive design</li>
+                    <li>QR code for sharing results</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 mb-3">Test Results Page</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Click on any completed flow below to test the V1 results page:
+              </p>
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {data?.flows.recent
+                  .filter((flow: any) => flow.current_step === 'completed' && flow.logo_variants?.length > 0)
+                  .slice(0, 5)
+                  .map((flow: any) => (
+                    <div key={flow.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{flow.team_name}</p>
+                        <p className="text-xs text-gray-500">{flow.sport} • {flow.logo_variants?.length || 0} logos</p>
+                      </div>
+                      <a
+                        href={`/results/${flow.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 transition-colors"
+                      >
+                        View Results
+                        <svg className="ml-1 h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                      </a>
+                    </div>
+                  ))}
+              </div>
+              {data?.flows.recent.filter((flow: any) => flow.current_step === 'completed' && flow.logo_variants?.length > 0).length === 0 && (
+                <p className="text-sm text-gray-500 italic">No completed flows with logos available for testing.</p>
+              )}
+            </div>
+            
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 mb-3">Results Page Features</h3>
+              <div className="space-y-3">
+                <div className="flex items-center">
+                  <svg className="h-4 w-4 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-sm text-gray-700">Mobile-responsive design</span>
+                </div>
+                <div className="flex items-center">
+                  <svg className="h-4 w-4 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-sm text-gray-700">Team roster management</span>
+                </div>
+                <div className="flex items-center">
+                  <svg className="h-4 w-4 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-sm text-gray-700">Asset customization controls</span>
+                </div>
+                <div className="flex items-center">
+                  <svg className="h-4 w-4 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-sm text-gray-700">Logo selection & download</span>
+                </div>
+                <div className="flex items-center">
+                  <svg className="h-4 w-4 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-sm text-gray-700">QR code for sharing</span>
+                </div>
+                <div className="flex items-center">
+                  <svg className="h-4 w-4 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-sm text-gray-700">Contact form integration</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* Recent Debug Logs */}
         <div className="bg-white p-6 rounded-lg shadow">
