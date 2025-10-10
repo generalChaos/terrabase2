@@ -66,29 +66,12 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    """Health check endpoint - simple version for Railway"""
-    try:
-        # Create required directories if they don't exist
-        temp_dir = os.getenv("TEMP_DIR", "/app/temp")
-        output_dir = os.getenv("OUTPUT_DIR", "/app/output")
-        
-        os.makedirs(temp_dir, exist_ok=True)
-        os.makedirs(output_dir, exist_ok=True)
-        
-        # Simple health check response
-        return {
-            "status": "healthy",
-            "service": "image-processor",
-            "version": "1.0.0",
-            "timestamp": "2024-01-01T00:00:00Z"
-        }
-    except Exception as e:
-        return {
-            "status": "unhealthy",
-            "service": "image-processor",
-            "version": "1.0.0",
-            "error": str(e)
-        }
+    """Health check endpoint - minimal version for Railway"""
+    return {
+        "status": "healthy",
+        "service": "image-processor",
+        "version": "1.0.0"
+    }
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request, exc):
