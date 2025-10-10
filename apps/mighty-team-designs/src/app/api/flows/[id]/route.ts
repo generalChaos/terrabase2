@@ -8,11 +8,39 @@ const PlayerSchema = z.object({
   number: z.string(),
 });
 
+const AssetPackSchema = z.object({
+  id: z.string().optional(),
+  clean_logo_url: z.string().optional(),
+  tshirt_front_url: z.string().optional(),
+  tshirt_back_url: z.string().optional(),
+  banner_url: z.string().optional(),
+  processing_time_ms: z.number().optional(),
+  colors: z.object({
+    colors: z.array(z.string()),
+    frequencies: z.array(z.number()),
+    percentages: z.array(z.number()),
+    total_pixels_analyzed: z.number()
+  }).optional()
+}).optional();
+
+const TeamLogoSchema = z.object({
+  id: z.string(),
+  variant_number: z.number(),
+  public_url: z.string(),
+  is_selected: z.boolean().optional(),
+  generation_prompt: z.string().optional(),
+  model_used: z.string().optional(),
+  generation_time_ms: z.number().optional(),
+  generation_cost_usd: z.number().optional(),
+  asset_pack: AssetPackSchema
+});
+
 const UpdateFlowSchema = z.object({
   contact_email: z.string().email().optional(),
   contact_phone: z.string().min(10).optional(),
   player_roster: z.array(PlayerSchema).optional(),
   status: z.enum(['pending', 'generating', 'completed', 'failed']).optional(),
+  team_logos: z.array(TeamLogoSchema).optional(),
 });
 
 export async function GET(

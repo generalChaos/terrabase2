@@ -448,6 +448,7 @@ export class EnhancedTeamDesignService extends BaseService {
     contact_phone?: string;
     player_roster?: Array<{id: string, firstName: string, number: string}>;
     status?: 'pending' | 'generating' | 'completed' | 'failed';
+    team_logos?: any[];
   }): Promise<TeamDesignFlow> {
     try {
       const { data, error } = await supabase

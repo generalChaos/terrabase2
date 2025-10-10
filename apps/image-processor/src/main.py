@@ -17,6 +17,7 @@ from src.api.storage import router as storage_router
 from src.api.background_removal import router as background_removal_router
 from src.api.tshirt import router as tshirt_router
 from src.api.banner_generator import router as banner_router
+from src.api.color_analysis import analyze_colors_endpoint
 from src.models.schemas import HealthResponse
 from src.middleware.request_id import RequestIDMiddleware
 from src.custom_logging import logger
@@ -76,7 +77,25 @@ app.include_router(banner_router, prefix="/api/v1", tags=["banner"])
 @app.get("/api/v1/health", response_model=HealthResponse)
 async def api_health_check():
     """API health check endpoint (for frontend compatibility)"""
-    return await health_check()
+
+# Color analysis endpoint
+class ColorAnalysisRequest(BaseModel):
+    image_url: str
+
+class ColorAnalysisResponse(BaseModel):
+    success: bool
+    data: Dict[str, Any] = None
+    error: str = None
+
+@app.post("/api/v1/analyze-colors", response_model=ColorAnalysisResponse)
+async def analyze_colors(request: ColorAnalysisRequest):
+    """Analyze an image and return the top 3 most frequent colors"""
+    try:
+        result = analyze_colors_endpoint({"image_url": request.image_url})
+        return ColorAnalysisResponse(**result)
+    except Exception as e:
+        logger.error(f"Color analysis endpoint error: {e}")
+        return ColorAnalysisResponse(success=False, error=str(e))
 
 # Test models for banner generation
 class TestPlayer(BaseModel):

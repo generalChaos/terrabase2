@@ -13,6 +13,7 @@ from src.services.asset_cleanup import AssetCleanupService
 from src.services.logo_overlay import LogoOverlayService
 from src.services.supabase_service import supabase_service
 from src.validators import InputValidator, ValidationError, FileValidator
+from src.api.color_analysis import analyze_image_colors
 
 router = APIRouter()
 
@@ -40,6 +41,13 @@ class AssetPackRequest(BaseModel):
         # Allow extra fields and make all fields optional by default
         extra = "allow"
 
+class ColorAnalysis(BaseModel):
+    """Color analysis result"""
+    colors: List[str] = Field(..., description="Top 3 colors as hex codes")
+    frequencies: List[int] = Field(..., description="Color frequencies")
+    percentages: List[float] = Field(..., description="Color percentages")
+    total_pixels_analyzed: int = Field(..., description="Total pixels analyzed")
+
 class AssetPackResponse(BaseModel):
     """Response model for asset pack creation"""
     success: bool
@@ -48,6 +56,7 @@ class AssetPackResponse(BaseModel):
     tshirt_front_url: Optional[str] = None
     tshirt_back_url: Optional[str] = None
     banner_url: Optional[str] = None
+    colors: Optional[ColorAnalysis] = None
     processing_time_ms: int
     error: Optional[str] = None
 
@@ -142,6 +151,31 @@ async def create_asset_pack(request: AssetPackRequest):
         clean_logo_url = cleanup_result["output_url"]
         print(f"DEBUG: Clean logo URL: {clean_logo_url}")
         
+        # Step 1.5: Analyze colors from the clean logo
+        print(f"DEBUG: Starting color analysis for URL: {clean_logo_url}")
+        color_analysis_result = None
+        try:
+            print(f"DEBUG: Calling analyze_image_colors function")
+            color_analysis_data = analyze_image_colors(clean_logo_url)
+            print(f"DEBUG: Color analysis raw result: {color_analysis_data}")
+            
+            # The function returns data directly, not wrapped in success/error
+            if color_analysis_data and "colors" in color_analysis_data:
+                print(f"DEBUG: Color analysis successful, creating ColorAnalysis object")
+                color_analysis_result = ColorAnalysis(
+                    colors=color_analysis_data["colors"],
+                    frequencies=color_analysis_data["frequencies"],
+                    percentages=color_analysis_data["percentages"],
+                    total_pixels_analyzed=color_analysis_data["total_pixels_analyzed"]
+                )
+                print(f"DEBUG: Color analysis successful: {color_analysis_result.colors}")
+            else:
+                print(f"DEBUG: Color analysis failed: Invalid data format")
+        except Exception as e:
+            print(f"DEBUG: Color analysis exception: {e}")
+            import traceback
+            traceback.print_exc()
+        
         # Step 2: Create t-shirt front with logo
         tshirt_front_result = await overlay_service.overlay_logo_on_tshirt(
             logo_url=clean_logo_url,
@@ -205,7 +239,8 @@ async def create_asset_pack(request: AssetPackRequest):
                 "tshirt_front": tshirt_front_url,
                 "tshirt_back": tshirt_back_url,
                 "banner": banner_url,
-                "processing_time_ms": processing_time_ms
+                "processing_time_ms": processing_time_ms,
+                "colors": color_analysis_result.dict() if color_analysis_result else None
             }
             
             store_success = await supabase_service.store_asset_pack(
@@ -227,6 +262,7 @@ async def create_asset_pack(request: AssetPackRequest):
             tshirt_front_url=tshirt_front_url,
             tshirt_back_url=tshirt_back_url,
             banner_url=banner_url,
+            colors=color_analysis_result,
             processing_time_ms=processing_time_ms
         )
         
