@@ -58,11 +58,15 @@ export class EnhancedTeamDesignService extends BaseService {
    */
   async getFlowById(id: string): Promise<TeamDesignFlow | null> {
     try {
+      // Single query with joins to get flow, logos, and asset packs all at once
       const { data: flow, error } = await supabase
         .from('team_design_flows')
         .select(`
           *,
-          team_logos!team_logos_flow_id_fkey (*)
+          team_logos!team_logos_flow_id_fkey (
+            *,
+            logo_asset_packs!logo_asset_packs_logo_id_fkey (*)
+          )
         `)
         .eq('id', id)
         .eq('is_active', true)
@@ -72,20 +76,22 @@ export class EnhancedTeamDesignService extends BaseService {
         return null;
       }
 
-      // Add public URLs to logos
+      // Add public URLs to logos and flatten asset pack data
       if (flow.team_logos) {
-        flow.team_logos = await Promise.all(
-          flow.team_logos.map(async (logo: any) => {
-            const { data: urlData } = supabase.storage
-              .from(logo.storage_bucket)
-              .getPublicUrl(logo.file_path);
-            
-            return {
-              ...logo,
-              public_url: urlData.publicUrl
-            };
-          })
-        );
+        flow.team_logos = flow.team_logos.map((logo: any) => {
+          const { data: urlData } = supabase.storage
+            .from(logo.storage_bucket)
+            .getPublicUrl(logo.file_path);
+          
+          // Extract asset pack data from the joined relationship
+          const assetPack = logo.logo_asset_packs?.[0] || null;
+          
+          return {
+            ...logo,
+            public_url: urlData.publicUrl,
+            asset_pack: assetPack
+          };
+        });
       }
 
       return flow as TeamDesignFlow;
@@ -433,4 +439,41 @@ export class EnhancedTeamDesignService extends BaseService {
       throw error;
     }
   }
+
+  /**
+   * Update a flow with new data
+   */
+  async updateFlow(flowId: string, updateData: {
+    contact_email?: string;
+    contact_phone?: string;
+    player_roster?: Array<{id: string, firstName: string, number: string}>;
+    status?: 'pending' | 'generating' | 'completed' | 'failed';
+  }): Promise<TeamDesignFlow> {
+    try {
+      const { data, error } = await supabase
+        .from('team_design_flows')
+        .update({
+          ...updateData,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', flowId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error updating flow:', error);
+        throw new Error('Failed to update flow');
+      }
+
+      await logDebug(flowId, 'info', 'flow_update', 'Flow updated successfully', updateData);
+
+      return data as TeamDesignFlow;
+    } catch (error) {
+      console.error('Error in updateFlow:', error);
+      throw error;
+    }
+  }
 }
+
+// Export a singleton instance
+export const enhancedTeamDesignService = new EnhancedTeamDesignService();

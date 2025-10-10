@@ -114,6 +114,7 @@ export default function StandaloneLogoResults({ flowData, onLogoSelect }: Standa
     
     const logosToConvert = flowData.team_logos || flowData.logo_variants || [];
     console.log('📊 Logos to convert:', logosToConvert);
+    console.log('📊 First logo asset_pack:', logosToConvert[0]?.asset_pack);
     
     const convertedLogos = logosToConvert.map(logo => {
       console.log(`📊 Converting logo ${logo.variant_number}:`, {
@@ -143,7 +144,7 @@ export default function StandaloneLogoResults({ flowData, onLogoSelect }: Standa
     console.log('📊 Converted logos in StandaloneLogoResults:', convertedLogos);
     console.log('📊 First converted logo public_url:', convertedLogos[0]?.public_url);
     setGeneratedLogos(convertedLogos);
-  }, [flowData.team_logos, flowData.logo_variants]);
+  }, [flowData.team_logos, flowData.logo_variants, flowData]);
 
   // Generate QR code for this results page
   useEffect(() => {
@@ -215,7 +216,23 @@ export default function StandaloneLogoResults({ flowData, onLogoSelect }: Standa
         }}
       >
       <div className="aspect-square p-2">
-        {logo.public_url ? (
+        {logo.asset_pack?.clean_logo_url ? (
+          <div>
+            <Image
+              src={logo.asset_pack.clean_logo_url}
+              alt={`Logo variant ${logo.variant_number}`}
+              width={100}
+              height={100}
+              className="w-full h-full object-contain"
+              onLoad={() => console.log(`✅ Clean logo ${logo.variant_number} loaded successfully from:`, logo.asset_pack?.clean_logo_url)}
+              onError={(e) => {
+                console.error(`❌ Failed to load clean logo ${logo.variant_number} from:`, logo.asset_pack?.clean_logo_url);
+                console.error('Error details:', e);
+              }}
+            />
+            <div className="text-xs text-gray-400 mt-1">Clean Logo</div>
+          </div>
+        ) : logo.public_url ? (
           <div>
             <Image
               src={logo.public_url}
@@ -229,11 +246,11 @@ export default function StandaloneLogoResults({ flowData, onLogoSelect }: Standa
                 console.error('Error details:', e);
               }}
             />
-            <div className="text-xs text-gray-400 mt-1">URL: {logo.public_url.substring(0, 50)}...</div>
+            <div className="text-xs text-gray-400 mt-1">Original Logo</div>
           </div>
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gray-100 rounded">
-            <div className="text-gray-400 text-xs">No URL</div>
+            <div className="text-gray-400 text-xs">No Logo</div>
           </div>
         )}
       </div>
@@ -284,7 +301,15 @@ export default function StandaloneLogoResults({ flowData, onLogoSelect }: Standa
             {/* Team Logo Display */}
             <div className="flex-shrink-0 mx-auto sm:mx-0">
               <div className="w-32 h-32 sm:w-40 sm:h-40 bg-gray-100 rounded-lg flex items-center justify-center">
-                {selectedLogo && generatedLogos.find(logo => logo.id === selectedLogo)?.public_url ? (
+                {selectedLogo && generatedLogos.find(logo => logo.id === selectedLogo)?.asset_pack?.clean_logo_url ? (
+                  <Image
+                    src={generatedLogos.find(logo => logo.id === selectedLogo)!.asset_pack!.clean_logo_url!}
+                    alt="Selected team logo"
+                    width={160}
+                    height={160}
+                    className="object-contain"
+                  />
+                ) : selectedLogo && generatedLogos.find(logo => logo.id === selectedLogo)?.public_url ? (
                   <Image
                     src={generatedLogos.find(logo => logo.id === selectedLogo)!.public_url}
                     alt="Selected team logo"
@@ -465,12 +490,12 @@ export default function StandaloneLogoResults({ flowData, onLogoSelect }: Standa
                         onChange={(e) => setTshirtSize(e.target.value)}
                         className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       >
-                        <option value="S">S (34-36")</option>
-                        <option value="M">M (38-40")</option>
-                        <option value="L">L (42-44")</option>
-                        <option value="XL">XL (46-48")</option>
-                        <option value="XXL">XXL (50-52")</option>
-                        <option value="XXXL">XXXL (54-56")</option>
+                        <option value="S">S (34-36&ldquo;)</option>
+                        <option value="M">M (38-40&ldquo;)</option>
+                        <option value="L">L (42-44&ldquo;)</option>
+                        <option value="XL">XL (46-48&ldquo;)</option>
+                        <option value="XXL">XXL (50-52&ldquo;)</option>
+                        <option value="XXXL">XXXL (54-56&ldquo;)</option>
                       </select>
                     </div>
                   </div>
@@ -506,16 +531,26 @@ export default function StandaloneLogoResults({ flowData, onLogoSelect }: Standa
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">Choose Your Logo</h2>
           
           {/* Selected Logo Display */}
-          {selectedLogo && generatedLogos.find(logo => logo.id === selectedLogo)?.public_url && (
+          {selectedLogo && (generatedLogos.find(logo => logo.id === selectedLogo)?.asset_pack?.clean_logo_url || generatedLogos.find(logo => logo.id === selectedLogo)?.public_url) && (
             <div className="text-center mb-6 sm:mb-8">
               <div className="w-48 h-48 sm:w-64 sm:h-64 lg:w-72 lg:h-72 mx-auto bg-gray-100 rounded-lg flex items-center justify-center mb-4">
-                <Image
-                  src={generatedLogos.find(logo => logo.id === selectedLogo)!.public_url}
-                  alt="Selected team logo"
-                  width={288}
-                  height={288}
-                  className="object-contain"
-                />
+                {generatedLogos.find(logo => logo.id === selectedLogo)?.asset_pack?.clean_logo_url ? (
+                  <Image
+                    src={generatedLogos.find(logo => logo.id === selectedLogo)!.asset_pack!.clean_logo_url!}
+                    alt="Selected team logo"
+                    width={288}
+                    height={288}
+                    className="object-contain"
+                  />
+                ) : (
+                  <Image
+                    src={generatedLogos.find(logo => logo.id === selectedLogo)!.public_url}
+                    alt="Selected team logo"
+                    width={288}
+                    height={288}
+                    className="object-contain"
+                  />
+                )}
               </div>
               <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">
                 {flowData.team_name}

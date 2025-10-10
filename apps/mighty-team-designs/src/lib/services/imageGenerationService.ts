@@ -106,6 +106,23 @@ Generate detailed prompt for gpt-image-1.`;
         throw new Error('Failed to generate any logo variants');
       }
 
+      // Update the flow's logo_variants array with the generated logo IDs
+      const logoIds = generatedLogos.map(logo => logo.id);
+      const { error: updateFlowError } = await supabase
+        .from('team_design_flows')
+        .update({ 
+          logo_variants: logoIds,
+          logo_generated_at: new Date().toISOString()
+        })
+        .eq('id', flowId);
+
+      if (updateFlowError) {
+        console.error('Error updating flow logo_variants:', updateFlowError);
+        // Don't fail the whole process if this update fails
+      } else {
+        console.log('✅ Updated flow logo_variants array with logo IDs:', logoIds);
+      }
+
       // Record success metrics
       const totalTime = Date.now() - startTime;
       await recordMetric('logo_generation_success', 1, 'count', 'hour');
@@ -314,7 +331,7 @@ Generate detailed prompt for gpt-image-1.`;
   ): Promise<GeneratedLogo> {
     try {
       const size = '1024x1024';
-      const quality = 'low';
+      const quality = 'high';
       const n = 1;
 
       console.log('=== OPENAI API CALL DEBUG ===');
@@ -324,7 +341,7 @@ Generate detailed prompt for gpt-image-1.`;
       console.log('📐 Size:', size);
       console.log('⭐ Quality:', quality);
       
-      // Generate logo using gpt-image-1 for testing (reduced quality)
+      // Generate logo using gpt-image-1
       console.log('🚀 Making OpenAI API call...');
       const imageResponse = await openai.images.generate({
         model: 'gpt-image-1',
@@ -395,7 +412,7 @@ Generate detailed prompt for gpt-image-1.`;
         .insert({
           flow_id: flowId,
           file_path: fileName,
-          file_size: Buffer.from(imageData.b64_json || '', 'base64').length,
+          file_size: imageBuffer.length,
           mime_type: 'image/png',
           storage_bucket: 'team-logos',
           variant_number: variantNumber,
@@ -420,7 +437,7 @@ Generate detailed prompt for gpt-image-1.`;
         throw new Error('Failed to save logo metadata');
       }
 
-      return {
+      const logoResult = {
         id: logo.id,
         variant_number: variantNumber,
         file_path: fileName,
@@ -432,6 +449,23 @@ Generate detailed prompt for gpt-image-1.`;
         model_used: 'gpt-image-1',
         created_at: logo.created_at
       };
+
+      // Automatically generate asset pack for the first logo
+      if (variantNumber === 1) {
+        try {
+          console.log('🎨 Automatically generating asset pack for first logo...');
+          const assetPackResult = await this.generateAssetPackForLogo(flowId, storageFile.publicUrl, logo.id);
+          if (assetPackResult) {
+            logoResult.asset_pack = assetPackResult;
+            console.log('✅ Asset pack generated automatically');
+          }
+        } catch (error) {
+          console.error('❌ Failed to generate asset pack automatically:', error);
+          // Don't fail the logo generation if asset pack fails
+        }
+      }
+
+      return logoResult;
 
     } catch (error) {
       console.error(`Error generating logo variant ${variantNumber}:`, error);
@@ -489,6 +523,99 @@ Generate detailed prompt for gpt-image-1.`;
 
     } catch (error) {
       console.error('Error in generateMockLogos:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Generate asset pack for a logo
+   */
+  private static async generateAssetPackForLogo(flowId: string, logoUrl: string, logoId: string): Promise<any> {
+    try {
+      // Call the image processor directly
+      const response = await fetch(`${process.env.IMAGE_PROCESSOR_BASE_URL || 'http://localhost:8000/api/v1'}/asset-pack`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          logo_url: logoUrl,
+          team_name: 'Team', // We'll get this from the flow data
+          players: [
+            { number: 1, name: "Captain" },
+            { number: 2, name: "Vice Captain" },
+            { number: 3, name: "Starter" },
+            { number: 4, name: "Starter" },
+            { number: 5, name: "Starter" }
+          ],
+          tshirt_color: 'black',
+          include_banner: true,
+          output_format: 'png',
+          quality: 95
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Asset pack generation failed: ${response.status}`);
+      }
+
+      const result = await response.json();
+      if (result.success) {
+        const assetPackData = {
+          id: result.id || 'generated',
+          clean_logo_url: result.clean_logo_url,
+          tshirt_front_url: result.tshirt_front_url,
+          tshirt_back_url: result.tshirt_back_url,
+          banner_url: result.banner_url,
+          processing_time_ms: result.processing_time_ms || 0
+        };
+
+        // Save asset pack to database
+        try {
+          const { data: insertedAssetPack, error: assetPackError } = await supabase
+            .from('logo_asset_packs')
+            .insert({
+              flow_id: flowId,
+              logo_id: logoId,
+              asset_pack_id: assetPackData.id,
+              clean_logo_url: assetPackData.clean_logo_url,
+              tshirt_front_url: assetPackData.tshirt_front_url,
+              tshirt_back_url: assetPackData.tshirt_back_url,
+              banner_url: assetPackData.banner_url,
+              processing_time_ms: assetPackData.processing_time_ms
+            })
+            .select()
+            .single();
+
+          if (assetPackError) {
+            console.error('Error saving asset pack to database:', assetPackError);
+            // Don't fail the whole process if database save fails
+          } else {
+            console.log('✅ Asset pack saved to database');
+            
+            // Update the team_logos table to reference the asset pack
+            const { error: updateLogoError } = await supabase
+              .from('team_logos')
+              .update({ asset_pack_id: insertedAssetPack.id })
+              .eq('id', logoId);
+
+            if (updateLogoError) {
+              console.error('Error updating team_logos with asset_pack_id:', updateLogoError);
+            } else {
+              console.log('✅ Updated team_logos with asset_pack_id');
+            }
+          }
+        } catch (dbError) {
+          console.error('Error saving asset pack to database:', dbError);
+          // Don't fail the whole process if database save fails
+        }
+
+        return assetPackData;
+      } else {
+        throw new Error(result.error || 'Asset pack generation failed');
+      }
+    } catch (error) {
+      console.error('Error generating asset pack:', error);
       throw error;
     }
   }
