@@ -175,37 +175,64 @@ export default function StandaloneLogoResults({ flowData, onLogoSelect }: Standa
 
   // Extract team colors from generation prompt
   const getTeamColors = () => {
+    console.log('🎨 getTeamColors called - generatedLogos.length:', generatedLogos.length);
     if (!generatedLogos.length) {
-      return { primary: '#3B82F6', secondary: '#8B5CF6', tertiary: '#10B981' }; // Default blue-purple-green
+      console.log('🎨 No generated logos, using neutral colors');
+      return { primary: '#6B7280', secondary: '#9CA3AF', tertiary: '#D1D5DB' }; // Neutral gray colors
     }
     
     // Use selected logo or fallback to first logo
     const logoToUse = selectedLogo || generatedLogos[0]?.id;
     if (!logoToUse) {
-      return { primary: '#3B82F6', secondary: '#8B5CF6', tertiary: '#10B981' };
+      return { primary: '#6B7280', secondary: '#9CA3AF', tertiary: '#D1D5DB' }; // Neutral gray colors
     }
     
     const selectedLogoData = generatedLogos.find(logo => logo.id === logoToUse);
     if (!selectedLogoData) {
-      return { primary: '#3B82F6', secondary: '#8B5CF6', tertiary: '#10B981' };
+      return { primary: '#6B7280', secondary: '#9CA3AF', tertiary: '#D1D5DB' }; // Neutral gray colors
     }
     
     
     // First, try to use extracted colors from asset pack
+    console.log('🎨 DEBUG: selectedLogoData.asset_pack:', selectedLogoData.asset_pack);
+    console.log('🎨 DEBUG: asset_pack.colors:', selectedLogoData.asset_pack?.colors);
+    
     if (selectedLogoData.asset_pack?.colors?.colors && selectedLogoData.asset_pack.colors.colors.length >= 2) {
       const extractedColors = selectedLogoData.asset_pack.colors.colors;
       console.log('🎨 Using extracted colors from asset pack:', extractedColors);
       console.log('🎨 Asset pack colors object:', selectedLogoData.asset_pack.colors);
-      return {
+      const colors = {
         primary: extractedColors[0], // Most frequent color
         secondary: extractedColors[1], // Second most frequent color
-        tertiary: extractedColors[2] || '#10B981' // Third most frequent color or default
+        tertiary: extractedColors[2] || extractedColors[0] + '60' // Third most frequent color or primary with transparency
       };
+      console.log('🎨 Final team colors:', colors);
+      return colors;
+    } else {
+      console.log('🎨 DEBUG: No extracted colors found, falling back to prompt parsing');
+      console.log('🎨 DEBUG: asset_pack exists:', !!selectedLogoData.asset_pack);
+      console.log('🎨 DEBUG: colors exists:', !!selectedLogoData.asset_pack?.colors);
+      console.log('🎨 DEBUG: colors.colors exists:', !!selectedLogoData.asset_pack?.colors?.colors);
+      console.log('🎨 DEBUG: colors.colors length:', selectedLogoData.asset_pack?.colors?.colors?.length);
+      console.log('🎨 DEBUG: colors.colors content:', selectedLogoData.asset_pack?.colors?.colors);
+      
+      // If we have at least 1 color, use it as primary and generate secondary/tertiary
+      if (selectedLogoData.asset_pack?.colors?.colors && selectedLogoData.asset_pack.colors.colors.length >= 1) {
+        const extractedColors = selectedLogoData.asset_pack.colors.colors;
+        console.log('🎨 Using single extracted color and generating variants:', extractedColors[0]);
+        const colors = {
+          primary: extractedColors[0], // Use the extracted color
+          secondary: extractedColors[0] + '80', // Add transparency for secondary
+          tertiary: extractedColors[0] + '40' // Add more transparency for tertiary
+        };
+        console.log('🎨 Generated team colors from single color:', colors);
+        return colors;
+      }
     }
     
     // Fallback to prompt parsing if no extracted colors available
     if (!selectedLogoData.generation_prompt) {
-      return { primary: '#3B82F6', secondary: '#8B5CF6', tertiary: '#10B981' };
+      return { primary: '#6B7280', secondary: '#9CA3AF', tertiary: '#D1D5DB' }; // Neutral gray colors
     }
     
     const prompt = selectedLogoData.generation_prompt;
@@ -214,23 +241,23 @@ export default function StandaloneLogoResults({ flowData, onLogoSelect }: Standa
     const hexMatches = prompt.match(/#[0-9A-Fa-f]{6}/g);
     const colorMatches = prompt.match(/\b(red|blue|green|yellow|orange|purple|pink|black|white|navy|maroon|gold|silver)\b/gi);
     
-    let primary = '#3B82F6'; // Default blue
-    let secondary = '#8B5CF6'; // Default purple
-    let tertiary = '#10B981'; // Default green
+    let primary = '#6B7280'; // Default neutral gray
+    let secondary = '#9CA3AF'; // Default neutral gray
+    let tertiary = '#D1D5DB'; // Default neutral gray
     
     if (hexMatches && hexMatches.length >= 1) {
       primary = hexMatches[0];
-      secondary = hexMatches[1] || '#8B5CF6';
-      tertiary = hexMatches[2] || '#10B981';
+      secondary = hexMatches[1] || primary + '80';
+      tertiary = hexMatches[2] || primary + '40';
     } else if (colorMatches && colorMatches.length >= 1) {
       const colorMap: { [key: string]: string } = {
         'red': '#EF4444', 'blue': '#3B82F6', 'green': '#10B981', 'yellow': '#F59E0B',
         'orange': '#F97316', 'purple': '#8B5CF6', 'pink': '#EC4899', 'black': '#1F2937',
         'white': '#F9FAFB', 'navy': '#1E3A8A', 'maroon': '#7C2D12', 'gold': '#D97706', 'silver': '#6B7280'
       };
-      primary = colorMap[colorMatches[0].toLowerCase()] || '#3B82F6';
-      secondary = colorMap[colorMatches[1]?.toLowerCase()] || '#8B5CF6';
-      tertiary = colorMap[colorMatches[2]?.toLowerCase()] || '#10B981';
+      primary = colorMap[colorMatches[0].toLowerCase()] || '#6B7280';
+      secondary = colorMap[colorMatches[1]?.toLowerCase()] || primary + '80';
+      tertiary = colorMap[colorMatches[2]?.toLowerCase()] || primary + '40';
     }
     
     console.log('🎨 Using prompt-parsed colors:', { primary, secondary, tertiary });
@@ -239,6 +266,9 @@ export default function StandaloneLogoResults({ flowData, onLogoSelect }: Standa
 
   const teamColors = getTeamColors();
   console.log('🎨 Final team colors being used:', teamColors);
+  
+  // Force re-render when colors change
+  const colorKey = `${teamColors.primary}-${teamColors.secondary}-${teamColors.tertiary}`;
 
   // Convert team logos to GeneratedLogo format
   useEffect(() => {
@@ -444,10 +474,11 @@ export default function StandaloneLogoResults({ flowData, onLogoSelect }: Standa
   }
 
   return (
-    <div 
+    <div
+      key={colorKey}
       className="min-h-screen py-8 px-4"
       style={{
-        backgroundColor: teamColors.primary
+        background: `linear-gradient(135deg, ${teamColors.secondary}25, ${teamColors.primary}15, ${teamColors.tertiary || teamColors.secondary}10)`
       }}
     >
       <div className="max-w-6xl mx-auto">
@@ -455,8 +486,8 @@ export default function StandaloneLogoResults({ flowData, onLogoSelect }: Standa
         <div 
           className="rounded-lg p-4 sm:p-6 mb-6 sm:mb-8 shadow-lg border backdrop-blur-sm"
           style={{
-            background: `linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,255,255,0.85))`,
-            borderColor: `${teamColors.primary}20`
+            background: `linear-gradient(145deg, rgba(255,255,255,0.95), rgba(255,255,255,0.85), rgba(255,255,255,0.9))`,
+            borderColor: `${teamColors.primary}30`
           }}
         >
           <div className="flex flex-col sm:flex-row lg:flex-row gap-4 sm:gap-6">
@@ -499,7 +530,7 @@ export default function StandaloneLogoResults({ flowData, onLogoSelect }: Standa
                   {flowData.sport.toUpperCase()}
                 </p>
                 {/* Team Color Swatches */}
-                <div className="flex gap-2">
+                <div key={`swatches-${colorKey}`} className="flex gap-2">
                   <div 
                     className="w-5 h-5 rounded-full border-2 border-gray-300 shadow-sm"
                     style={{ backgroundColor: teamColors.primary }}
@@ -527,13 +558,13 @@ export default function StandaloneLogoResults({ flowData, onLogoSelect }: Standa
                     ROSTER
                   </h3>
                   {players.length === 0 && (
-                    <button
-                      onClick={() => setShowPlayerForm(true)}
-                      className="px-4 py-2 rounded-lg text-white font-semibold hover:opacity-90 transition-opacity"
-                      style={{ backgroundColor: teamColors.secondary }}
-                    >
-                      Add Players
-                    </button>
+      <button
+        onClick={() => setShowPlayerForm(true)}
+        className="px-4 py-2 rounded-lg text-white font-semibold hover:opacity-90 transition-opacity"
+        style={{ backgroundColor: teamColors.primary }}
+      >
+        Add Players
+      </button>
                   )}
                 </div>
                 
@@ -544,7 +575,7 @@ export default function StandaloneLogoResults({ flowData, onLogoSelect }: Standa
                     className="bg-white p-4 rounded-lg border-2 mb-4"
                     style={{ 
                       borderColor: `${teamColors.primary}30`,
-                      backgroundColor: `${teamColors.secondary}05`
+                      background: `linear-gradient(135deg, ${teamColors.secondary}15, ${teamColors.primary}08, ${teamColors.tertiary || teamColors.secondary}05)`
                     }}
                   >
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -579,7 +610,7 @@ export default function StandaloneLogoResults({ flowData, onLogoSelect }: Standa
                       <button
                         type="submit"
                         className="px-4 py-2 rounded-lg text-white font-semibold hover:opacity-90 transition-opacity"
-                        style={{ backgroundColor: teamColors.secondary }}
+                        style={{ backgroundColor: teamColors.primary }}
                       >
                         Add Player
                       </button>
@@ -603,7 +634,7 @@ export default function StandaloneLogoResults({ flowData, onLogoSelect }: Standa
                         className="bg-white p-3 rounded-lg border-2 shadow-sm hover:shadow-md transition-shadow group"
                         style={{ 
                           borderColor: `${teamColors.primary}30`,
-                          backgroundColor: `${teamColors.secondary}05`
+                          background: `linear-gradient(135deg, ${teamColors.secondary}15, ${teamColors.primary}08, ${teamColors.tertiary || teamColors.secondary}05)`
                         }}
                       >
                         <div className="flex items-center space-x-3">
@@ -652,8 +683,8 @@ export default function StandaloneLogoResults({ flowData, onLogoSelect }: Standa
         <div 
           className="rounded-lg p-4 sm:p-6 mb-6 sm:mb-8 shadow-lg border backdrop-blur-sm"
           style={{
-            background: `linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,255,255,0.85))`,
-            borderColor: `${teamColors.secondary}20`
+            background: `linear-gradient(145deg, rgba(255,255,255,0.95), rgba(255,255,255,0.85), rgba(255,255,255,0.9))`,
+            borderColor: `${teamColors.secondary}30`
           }}
         >
           
@@ -698,7 +729,7 @@ export default function StandaloneLogoResults({ flowData, onLogoSelect }: Standa
                   onClick={() => setShowBannerModal(true)}
                   className="text-white px-4 py-2 rounded-lg transition-colors font-medium shadow-lg"
                   style={{ 
-                    backgroundColor: teamColors.secondary,
+                    background: `linear-gradient(135deg, ${teamColors.primary}, ${teamColors.primary}CC)`,
                     boxShadow: `0 4px 14px 0 ${teamColors.secondary}40`
                   }}
                   onMouseEnter={(e) => {
@@ -757,7 +788,7 @@ export default function StandaloneLogoResults({ flowData, onLogoSelect }: Standa
                   onClick={() => setShowTShirtModal(true)}
                   className="text-white px-4 py-2 rounded-lg transition-colors font-medium shadow-lg flex items-center space-x-2"
                   style={{ 
-                    backgroundColor: teamColors.secondary,
+                    background: `linear-gradient(135deg, ${teamColors.primary}, ${teamColors.primary}CC)`,
                     boxShadow: `0 4px 14px 0 ${teamColors.secondary}40`
                   }}
                   onMouseEnter={(e) => {
@@ -783,8 +814,8 @@ export default function StandaloneLogoResults({ flowData, onLogoSelect }: Standa
         <div 
           className="rounded-lg p-4 sm:p-6 mb-6 sm:mb-8 shadow-lg border backdrop-blur-sm"
           style={{
-            background: `linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,255,255,0.85))`,
-            borderColor: `${teamColors.primary}20`
+            background: `linear-gradient(145deg, rgba(255,255,255,0.95), rgba(255,255,255,0.85), rgba(255,255,255,0.9))`,
+            borderColor: `${teamColors.primary}30`
           }}
         >
           
@@ -808,15 +839,15 @@ export default function StandaloneLogoResults({ flowData, onLogoSelect }: Standa
                 onClick={() => selectedLogo && handleDownload(generatedLogos.find(logo => logo.id === selectedLogo)!)}
                 className="text-white px-6 sm:px-8 py-2 sm:py-3 rounded-lg transition-colors font-semibold text-sm sm:text-base"
                 style={{ 
-                  backgroundColor: teamColors.secondary,
+                  background: `linear-gradient(135deg, ${teamColors.primary}, ${teamColors.primary}CC)`,
                   boxShadow: `0 4px 14px 0 ${teamColors.secondary}40`
                 }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = teamColors.primary;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = teamColors.primary;
-                }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = `linear-gradient(135deg, ${teamColors.secondary}, ${teamColors.secondary}CC)`;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = `linear-gradient(135deg, ${teamColors.primary}, ${teamColors.primary}CC)`;
+                  }}
               >
                 Download Selected Logo
               </button>
@@ -899,7 +930,7 @@ export default function StandaloneLogoResults({ flowData, onLogoSelect }: Standa
             disabled={!selectedLogo}
             className="px-6 sm:px-8 py-2 sm:py-3 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm sm:text-base"
             style={{ 
-              backgroundColor: teamColors.secondary,
+              backgroundColor: teamColors.primary,
               boxShadow: `0 4px 14px 0 ${teamColors.secondary}40`
             }}
             onMouseEnter={(e) => {
@@ -930,6 +961,18 @@ export default function StandaloneLogoResults({ flowData, onLogoSelect }: Standa
         teamColors={teamColors}
         playerRoster={players.map(p => ({ id: p.id, firstName: p.firstName, lastName: '', number: parseInt(p.number) }))}
         onAddToOrder={handleAddToOrder}
+        onAddPlayer={(firstName, number) => {
+          const newPlayer = {
+            id: Date.now().toString(),
+            firstName: firstName,
+            number: number
+          };
+          setPlayers([...players, newPlayer]);
+        }}
+        onViewOrder={() => {
+          setShowTShirtModal(false);
+          setShowOrderSummary(true);
+        }}
       />
 
       {/* Banner Modal */}

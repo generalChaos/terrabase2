@@ -41,6 +41,7 @@ export default function OrderSummary({
         }
         emailBody += `\n`;
       }
+      emailBody += `   Description: ${item.description}\n`;
       emailBody += `   Quantity: ${item.quantity}\n\n`;
     });
 
@@ -116,6 +117,9 @@ export default function OrderSummary({
                             {item.selectedPlayer.number && ` #${item.selectedPlayer.number}`}
                           </div>
                         )}
+                        <div className="col-span-2">
+                          <span className="font-medium">Description:</span> {item.description}
+                        </div>
                       </div>
                     </div>
                     

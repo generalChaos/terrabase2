@@ -23,6 +23,8 @@ interface TShirtModalProps {
     number?: number;
   }>;
   onAddToOrder: (orderItem: TShirtOrderItem) => void;
+  onAddPlayer?: (firstName: string, number: string) => void;
+  onViewOrder?: () => void;
 }
 
 export interface TShirtOrderItem {
@@ -40,6 +42,7 @@ export interface TShirtOrderItem {
   quantity: number;
   logoUrl: string;
   teamName: string;
+  description: string;
 }
 
 const T_SHIRT_SIZES = ['S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
@@ -98,7 +101,9 @@ export default function TShirtModal({
   teamName,
   teamColors,
   playerRoster,
-  onAddToOrder
+  onAddToOrder,
+  onAddPlayer,
+  onViewOrder
 }: TShirtModalProps) {
   const [selectedSize, setSelectedSize] = useState('L');
   const [selectedColor, setSelectedColor] = useState('Black');
@@ -106,6 +111,11 @@ export default function TShirtModal({
   const [selectedPlayer, setSelectedPlayer] = useState<string>('');
   const [quantity, setQuantity] = useState(1);
   const [showPlayerSelection, setShowPlayerSelection] = useState(false);
+  
+  // New player form state
+  const [showNewPlayerForm, setShowNewPlayerForm] = useState(false);
+  const [newPlayerFirstName, setNewPlayerFirstName] = useState('');
+  const [newPlayerNumber, setNewPlayerNumber] = useState('');
 
   const handleBackOptionChange = (option: 'blank' | 'team_roster' | 'player_name' | 'player_name_number') => {
     setSelectedBackOption(option);
@@ -117,6 +127,33 @@ export default function TShirtModal({
 
   const [showToast, setShowToast] = useState(false);
 
+  const handleAddNewPlayer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!newPlayerFirstName.trim() || !newPlayerNumber.trim()) {
+      alert('Please enter both first name and number');
+      return;
+    }
+
+    if (playerRoster.some(player => player.number === parseInt(newPlayerNumber.trim()))) {
+      alert('This number is already taken. Please choose a different number.');
+      return;
+    }
+
+    if (onAddPlayer) {
+      onAddPlayer(newPlayerFirstName.trim(), newPlayerNumber.trim());
+      
+      // Reset form
+      setNewPlayerFirstName('');
+      setNewPlayerNumber('');
+      setShowNewPlayerForm(false);
+      
+      // Show success message
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+    }
+  };
+
   const handleAddToOrder = () => {
     const orderItem: TShirtOrderItem = {
       id: `tshirt-${Date.now()}`,
@@ -127,7 +164,8 @@ export default function TShirtModal({
       selectedPlayer: selectedPlayer ? playerRoster.find(p => p.id === selectedPlayer) : undefined,
       quantity,
       logoUrl: teamLogo,
-      teamName
+      teamName,
+      description: "Front: Team Logo left chest. Logo size adjusted by shirt size."
     };
 
     onAddToOrder(orderItem);
@@ -326,12 +364,71 @@ export default function TShirtModal({
                       ))}
                     </select>
                     <button
-                      onClick={() => {/* TODO: Add new player functionality */}}
+                      onClick={() => setShowNewPlayerForm(!showNewPlayerForm)}
                       className="mt-2 text-sm text-blue-600 hover:text-blue-800 flex items-center"
                     >
                       <Plus size={16} className="mr-1" />
                       Add New Player
                     </button>
+                    
+                    {/* New Player Form */}
+                    {showNewPlayerForm && (
+                      <form
+                        onSubmit={handleAddNewPlayer}
+                        className="mt-4 p-4 bg-white rounded-lg border border-gray-200"
+                      >
+                        <h5 className="text-sm font-semibold text-gray-900 mb-3">Add New Player</h5>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                              First Name
+                            </label>
+                            <input
+                              type="text"
+                              value={newPlayerFirstName}
+                              onChange={(e) => setNewPlayerFirstName(e.target.value)}
+                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                              placeholder="Enter name"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                              Number
+                            </label>
+                            <input
+                              type="number"
+                              value={newPlayerNumber}
+                              onChange={(e) => setNewPlayerNumber(e.target.value)}
+                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                              placeholder="Enter number"
+                              min="1"
+                              max="99"
+                              required
+                            />
+                          </div>
+                        </div>
+                        <div className="flex gap-2 mt-3">
+                          <button
+                            type="submit"
+                            className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                          >
+                            Add Player
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowNewPlayerForm(false);
+                              setNewPlayerFirstName('');
+                              setNewPlayerNumber('');
+                            }}
+                            className="px-3 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </form>
+                    )}
                   </div>
                 )}
               </div>
@@ -367,7 +464,7 @@ export default function TShirtModal({
               
               {/* View Order Button */}
               <button
-                onClick={onClose}
+                onClick={onViewOrder || onClose}
                 className="w-full bg-gray-500 text-white py-2 px-6 rounded-lg font-medium hover:bg-gray-600 transition-colors mt-2"
               >
                 View Order

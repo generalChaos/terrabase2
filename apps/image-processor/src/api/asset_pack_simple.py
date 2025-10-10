@@ -155,13 +155,19 @@ async def create_asset_pack(request: AssetPackRequest):
         print(f"DEBUG: Starting color analysis for URL: {clean_logo_url}")
         color_analysis_result = None
         try:
+            # Clean the URL by removing query parameters that might cause issues
+            clean_url = clean_logo_url.split('?')[0] if '?' in clean_logo_url else clean_logo_url
+            print(f"DEBUG: Cleaned URL for color analysis: {clean_url}")
+            
             print(f"DEBUG: Calling analyze_image_colors function")
-            color_analysis_data = analyze_image_colors(clean_logo_url)
+            color_analysis_data = analyze_image_colors(clean_url)
+            print(f"DEBUG: Color analysis raw result type: {type(color_analysis_data)}")
             print(f"DEBUG: Color analysis raw result: {color_analysis_data}")
             
-            # The function returns data directly, not wrapped in success/error
-            if color_analysis_data and "colors" in color_analysis_data:
+            # The function returns data directly
+            if color_analysis_data and isinstance(color_analysis_data, dict) and "colors" in color_analysis_data:
                 print(f"DEBUG: Color analysis successful, creating ColorAnalysis object")
+                print(f"DEBUG: Colors found: {color_analysis_data['colors']}")
                 color_analysis_result = ColorAnalysis(
                     colors=color_analysis_data["colors"],
                     frequencies=color_analysis_data["frequencies"],
@@ -171,6 +177,8 @@ async def create_asset_pack(request: AssetPackRequest):
                 print(f"DEBUG: Color analysis successful: {color_analysis_result.colors}")
             else:
                 print(f"DEBUG: Color analysis failed: Invalid data format")
+                print(f"DEBUG: Data type: {type(color_analysis_data)}")
+                print(f"DEBUG: Data content: {color_analysis_data}")
         except Exception as e:
             print(f"DEBUG: Color analysis exception: {e}")
             import traceback

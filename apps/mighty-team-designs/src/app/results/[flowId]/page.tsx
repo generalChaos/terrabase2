@@ -31,6 +31,12 @@ interface FlowData {
       tshirt_back_url: string;
       banner_url?: string;
       processing_time_ms: number;
+      colors?: {
+        colors: string[];
+        frequencies: number[];
+        percentages: number[];
+        total_pixels_analyzed: number;
+      };
     } | null;
   }>;
   selected_logo_id: string | null;
@@ -72,6 +78,9 @@ export default function ResultsPage() {
             public_url: logo.public_url,
             asset_pack: logo.asset_pack
           });
+          if (logo.asset_pack) {
+            console.log(`📊 Logo ${index + 1} asset_pack.colors:`, logo.asset_pack.colors);
+          }
         });
       }
       setFlowData(result.data);
