@@ -1,0 +1,1 @@
+{"success":false,"team_name":"Turbo Turtles","clean_logo_url":null,"tshirt_front_url":null,"tshirt_back_url":null,"banner_url":null,"processing_time_ms":30006,"error":"Logo cleanup failed: Background removal failed: HTTPConnectionPool(host='localhost', port=8000): Read timed out. (read timeout=30)"}

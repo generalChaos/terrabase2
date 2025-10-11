@@ -42,24 +42,90 @@ class AIBackgroundRemover:
                 raise ImportError("rembg library not available")
         return self._rembg_session, self._remove_func
     
-    async def remove_background_ai(self, image_url: str) -> dict:
+    async def remove_background_from_image(self, image: Image.Image) -> dict:
         """
-        Remove background using AI-powered rembg
+        Remove background from PIL Image using AI-powered rembg
         
         Args:
-            image_url: URL of the image to process
+            image: PIL Image object
             
         Returns:
             dict: Result with success status and processed image path
         """
         try:
-            # Download image
-            response = requests.get(image_url, timeout=30)
-            response.raise_for_status()
+            print(f"DEBUG: Starting AI background removal from PIL Image")
             
-            # Load image
-            image_data = BytesIO(response.content)
-            image = Image.open(image_data)
+            # Get rembg session
+            session, remove_func = self._get_rembg_session()
+            
+            # Convert PIL Image to bytes
+            img_bytes = BytesIO()
+            image.save(img_bytes, format='PNG')
+            img_bytes.seek(0)
+            
+            # Process with rembg
+            print(f"DEBUG: Processing image with rembg")
+            result_bytes = remove_func(img_bytes.getvalue(), session=session)
+            
+            # Convert result back to PIL Image
+            result_image = Image.open(BytesIO(result_bytes))
+            
+            # Generate output filename
+            output_filename = generate_processing_filename("bg_removed", "png")
+            output_path = os.path.join(self.output_dir, output_filename)
+            
+            # Save processed image
+            result_image.save(output_path, "PNG")
+            
+            print(f"DEBUG: Background removed successfully, saved to: {output_path}")
+            
+            return {
+                "success": True,
+                "output_url": output_path,
+                "file_size_bytes": os.path.getsize(output_path)
+            }
+            
+        except Exception as e:
+            logger.error(f"AI background removal failed: {e}")
+            return {
+                "success": False,
+                "error": f"AI background removal failed: {str(e)}"
+            }
+
+    async def remove_background_ai(self, image_url: str) -> dict:
+        """
+        Remove background using AI-powered rembg
+        
+        Args:
+            image_url: URL or data URL of the image to process
+            
+        Returns:
+            dict: Result with success status and processed image path
+        """
+        try:
+            # Handle data URLs, file URLs, and HTTP URLs
+            if image_url.startswith('data:'):
+                # Handle data URLs (base64 encoded images)
+                import base64
+                header, data = image_url.split(',', 1)
+                image_data = base64.b64decode(data)
+                image = Image.open(BytesIO(image_data))
+            else:
+                from urllib.parse import urlparse
+                parsed_url = urlparse(image_url)
+                
+                if parsed_url.scheme == 'file':
+                    # For file URLs, open directly
+                    file_path = parsed_url.path
+                    image = Image.open(file_path)
+                else:
+                    # For HTTP URLs, download first
+                    response = requests.get(image_url, timeout=30)
+                    response.raise_for_status()
+                    
+                    # Load image
+                    image_data = BytesIO(response.content)
+                    image = Image.open(image_data)
             
             # Convert to RGB if needed
             if image.mode != 'RGB':
@@ -80,7 +146,7 @@ class AIBackgroundRemover:
             
             return {
                 "success": True,
-                "processed_path": output_path,
+                "output_url": output_path,
                 "file_size_bytes": file_size,
                 "method": "ai_rembg"
             }
@@ -138,7 +204,7 @@ class AIBackgroundRemover:
                 return ai_result
             
             # Load the AI result
-            ai_image = Image.open(ai_result["processed_path"])
+            ai_image = Image.open(ai_result["output_url"])
             
             # Apply additional cleanup
             cleaned_image = self._cleanup_ai_result(ai_image)
@@ -149,7 +215,7 @@ class AIBackgroundRemover:
             
             return {
                 "success": True,
-                "processed_path": output_path,
+                "output_url": output_path,
                 "file_size_bytes": file_size,
                 "method": "hybrid_ai_manual"
             }

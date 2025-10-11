@@ -5,8 +5,10 @@ import { useQuestionnaire } from '@/contexts/QuestionnaireContext';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
+import { LogoStyleSelector } from './LogoStyleSelector';
 
 const SPORTS = [
+  { value: 'generic', label: 'Generic Logo' },
   { value: 'soccer', label: 'Soccer' },
   { value: 'basketball', label: 'Basketball' },
   { value: 'baseball', label: 'Baseball' },
@@ -16,28 +18,18 @@ const SPORTS = [
   { value: 'tennis', label: 'Tennis' },
   { value: 'swimming', label: 'Swimming' },
   { value: 'track', label: 'Track & Field' },
+  { value: 'golf', label: 'Golf' },
   { value: 'other', label: 'Other' }
 ];
 
-const AGE_GROUPS = [
-  { value: 'U6', label: 'U6 (Under 6)' },
-  { value: 'U8', label: 'U8 (Under 8)' },
-  { value: 'U10', label: 'U10 (Under 10)' },
-  { value: 'U12', label: 'U12 (Under 12)' },
-  { value: 'U14', label: 'U14 (Under 14)' },
-  { value: 'U16', label: 'U16 (Under 16)' },
-  { value: 'U18', label: 'U18 (Under 18)' },
-  { value: 'U19', label: 'U19 (Under 19)' },
-  { value: 'adult', label: 'Adult' },
-  { value: 'mixed', label: 'Mixed Age' }
-];
+// Age groups removed - no longer needed for Step 2
 
 export function Round1Form() {
   const { state, dispatch, createFlow } = useQuestionnaire();
   const [formData, setFormData] = useState({
     team_name: state.round1Answers.team_name,
-    sport: state.round1Answers.sport,
-    age_group: state.round1Answers.age_group
+    sport: state.round1Answers.sport || 'generic', // Default to Generic Logo
+    logo_style: state.round1Answers.logo_style || ''
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -54,8 +46,10 @@ export function Round1Form() {
       newErrors.sport = 'Please select a sport';
     }
 
-    if (!formData.age_group) {
-      newErrors.age_group = 'Please select an age group';
+    // Age group validation removed
+
+    if (!formData.logo_style) {
+      newErrors.logo_style = 'Please select a logo style';
     }
 
     setErrors(newErrors);
@@ -73,7 +67,7 @@ export function Round1Form() {
       await createFlow({
         team_name: formData.team_name.trim(),
         sport: formData.sport,
-        age_group: formData.age_group,
+        logo_style: formData.logo_style,
         debug_mode: process.env.NODE_ENV === 'development'
       });
     } catch (error) {
@@ -141,26 +135,16 @@ export function Round1Form() {
           )}
         </div>
 
-        {/* Age Group */}
+        {/* Age Group removed - no longer needed */}
+
+        {/* Logo Style Selection */}
         <div>
-          <label htmlFor="age_group" className="block text-sm font-medium text-gray-700 mb-2">
-            Age Group *
-          </label>
-          <Select
-            id="age_group"
-            value={formData.age_group}
-            onChange={(e) => handleInputChange('age_group', e.target.value)}
-            className={errors.age_group ? 'border-red-500' : ''}
-          >
-            <option value="">Select an age group</option>
-            {AGE_GROUPS.map((age) => (
-              <option key={age.value} value={age.value}>
-                {age.label}
-              </option>
-            ))}
-          </Select>
-          {errors.age_group && (
-            <p className="mt-1 text-sm text-red-600">{errors.age_group}</p>
+          <LogoStyleSelector
+            selectedStyle={formData.logo_style}
+            onStyleSelect={(styleId) => handleInputChange('logo_style', styleId)}
+          />
+          {errors.logo_style && (
+            <p className="mt-2 text-sm text-red-600 text-center">{errors.logo_style}</p>
           )}
         </div>
 

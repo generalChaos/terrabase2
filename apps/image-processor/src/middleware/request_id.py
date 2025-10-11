@@ -8,7 +8,7 @@ import time
 from typing import Callable
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
-from src.logging import logger, set_request_id, clear_request_id
+from src.custom_logging import logger, set_request_id, clear_request_id
 
 class RequestIDMiddleware(BaseHTTPMiddleware):
     """Middleware to add unique request IDs to all requests"""

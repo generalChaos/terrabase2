@@ -7,7 +7,7 @@ import { logError } from '@/lib/debug';
 const CreateFlowSchema = z.object({
   team_name: z.string().min(1, 'Team name is required'),
   sport: z.string().min(1, 'Sport is required'),
-  age_group: z.string().min(1, 'Age group is required'),
+  logo_style: z.string().min(1, 'Logo style is required'),
   debug_mode: z.boolean().optional().default(false)
 });
 

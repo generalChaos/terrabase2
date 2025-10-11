@@ -11,14 +11,35 @@ import os
 from dotenv import load_dotenv
 
 from src.api.upscaling import router as upscaling_router
-from src.api.asset_pack import router as asset_pack_router
+from src.api.asset_pack_simple import router as asset_pack_router
 from src.api.stats import router as stats_router
+from src.api.storage import router as storage_router
+from src.api.background_removal import router as background_removal_router
+from src.api.tshirt import router as tshirt_router
+from src.api.banner_generator import router as banner_router
+from src.api.color_analysis import analyze_colors_endpoint
 from src.models.schemas import HealthResponse
 from src.middleware.request_id import RequestIDMiddleware
-from src.logging import logger
+from src.custom_logging import logger
+from src.services.logo_overlay import LogoOverlayService
+from pydantic import BaseModel
+from typing import List, Dict, Any
 
 # Load environment variables
 load_dotenv()
+
+# Initialize Supabase client
+from supabase import create_client
+import os
+
+# Supabase configuration
+SUPABASE_URL = os.getenv("SUPABASE_URL", "http://127.0.0.1:54321")
+SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+
+if not SUPABASE_SERVICE_KEY:
+    raise ValueError("SUPABASE_SERVICE_ROLE_KEY environment variable is required")
+
+supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
 # Logging is configured in the structured_logger module
 
@@ -47,6 +68,75 @@ app.add_middleware(
 app.include_router(upscaling_router, prefix="/api/v1", tags=["upscaling"])
 app.include_router(asset_pack_router, prefix="/api/v1", tags=["asset-pack"])
 app.include_router(stats_router, prefix="/api/v1", tags=["stats"])
+app.include_router(storage_router, prefix="/api/v1", tags=["storage"])
+app.include_router(background_removal_router, prefix="/api/v1", tags=["background-removal"])
+app.include_router(tshirt_router, prefix="/api/v1", tags=["tshirt"])
+app.include_router(banner_router, prefix="/api/v1", tags=["banner"])
+
+# Add health endpoint under /api/v1 for consistency with frontend
+@app.get("/api/v1/health", response_model=HealthResponse)
+async def api_health_check():
+    """API health check endpoint (for frontend compatibility)"""
+
+# Color analysis endpoint
+class ColorAnalysisRequest(BaseModel):
+    image_url: str
+
+class ColorAnalysisResponse(BaseModel):
+    success: bool
+    data: Dict[str, Any] = None
+    error: str = None
+
+@app.post("/api/v1/analyze-colors", response_model=ColorAnalysisResponse)
+async def analyze_colors(request: ColorAnalysisRequest):
+    """Analyze an image and return the top 3 most frequent colors"""
+    try:
+        result = analyze_colors_endpoint({"image_url": request.image_url})
+        return ColorAnalysisResponse(**result)
+    except Exception as e:
+        logger.error(f"Color analysis endpoint error: {e}")
+        return ColorAnalysisResponse(success=False, error=str(e))
+
+# Test models for banner generation
+class TestPlayer(BaseModel):
+    number: int
+    name: str
+
+class TestBannerRequest(BaseModel):
+    logo_url: str
+    team_name: str
+    players: List[TestPlayer]
+    output_format: str = "png"
+    quality: int = 95
+
+# Initialize logo overlay service
+logo_overlay_service = LogoOverlayService()
+
+# Test banner endpoint
+@app.post("/api/v1/test-banner")
+async def test_banner_generation(request: TestBannerRequest):
+    """Test banner generation with Impact font"""
+    try:
+        # Convert players to the format expected by the service
+        players_data = [{"number": p.number, "name": p.name} for p in request.players]
+        
+        # Call the create_banner method directly
+        result = await logo_overlay_service.create_banner(
+            logo_url=request.logo_url,
+            team_name=request.team_name,
+            players=players_data,
+            output_format=request.output_format,
+            quality=request.quality
+        )
+        
+        return result
+    except Exception as e:
+        logger.error(f"Banner generation failed: {str(e)}")
+        return {
+            "success": False,
+            "error": str(e),
+            "banner_url": None
+        }
 
 @app.get("/", response_model=dict)
 async def root():
@@ -58,6 +148,10 @@ async def root():
         "endpoints": {
             "upscaling": "/api/v1/upscale",
             "asset_pack": "/api/v1/asset-pack",
+            "background_removal": "/api/v1/remove-background",
+            "tshirt_front": "/api/v1/tshirt/front",
+            "tshirt_back": "/api/v1/tshirt/back",
+            "tshirt_both": "/api/v1/tshirt/both",
             "stats": "/api/v1/stats",
             "health": "/health",
             "docs": "/docs"
@@ -76,7 +170,8 @@ async def health_check():
         output_exists = os.path.exists(output_dir)
         
         # Check if models are available (optional)
-        realesrgan_model = os.getenv("REALESRGAN_MODEL_PATH", "/app/models/RealESRGAN_x4plus.pth")
+        models_dir = os.getenv("MODELS_DIR", "./models")
+        realesrgan_model = os.getenv("REALESRGAN_MODEL_PATH", os.path.join(models_dir, "RealESRGAN_x4plus.pth"))
         model_exists = os.path.exists(realesrgan_model)
         
         healthy = temp_exists and output_exists

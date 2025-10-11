@@ -34,6 +34,10 @@ lerna-debug.log*
 **/test-images/
 **/temp-images/
 
+# Image processor output
+**/output/
+**/temp/
+
 # IDEs and editors
 /.idea
 .project
@@ -81,3 +85,28 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 **/dist/
 
 .vercel
+
+# Backup files
+**/backup/
+**/backup-*.json
+**/backup-*.js
+**/storage-backup.json
+**/latest-backup.json
+
+# Large model files
+*.pth
+*.bin
+*.model
+*.weights
+*.h5
+*.pkl
+*.pickle
+**/models/
+**/checkpoints/
+
+# Test and debug files
+test-*.js
+debug-*.js
+temp-*.js
+*.test.js
+*.spec.js

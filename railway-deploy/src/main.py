@@ -64,40 +64,14 @@ async def root():
         }
     }
 
-@app.get("/health", response_model=HealthResponse)
+@app.get("/health")
 async def health_check():
-    """Health check endpoint"""
-    try:
-        # Check if required directories exist
-        temp_dir = os.getenv("TEMP_DIR", "/app/temp")
-        output_dir = os.getenv("OUTPUT_DIR", "/app/output")
-        
-        temp_exists = os.path.exists(temp_dir)
-        output_exists = os.path.exists(output_dir)
-        
-        # Check if models are available (optional)
-        realesrgan_model = os.getenv("REALESRGAN_MODEL_PATH", "/app/models/RealESRGAN_x4plus.pth")
-        model_exists = os.path.exists(realesrgan_model)
-        
-        healthy = temp_exists and output_exists
-        
-        return HealthResponse(
-            status="healthy" if healthy else "unhealthy",
-            service="image-processor",
-            version="1.0.0",
-            checks={
-                "temp_directory": temp_exists,
-                "output_directory": output_exists,
-                "model_available": model_exists
-            }
-        )
-    except Exception as e:
-        return HealthResponse(
-            status="unhealthy",
-            service="image-processor",
-            version="1.0.0",
-            checks={"error": str(e)}
-        )
+    """Health check endpoint - minimal version for Railway"""
+    return {
+        "status": "healthy",
+        "service": "image-processor",
+        "version": "1.0.0"
+    }
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request, exc):

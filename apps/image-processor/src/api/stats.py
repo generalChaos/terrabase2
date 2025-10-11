@@ -4,8 +4,8 @@ Statistics API endpoints
 
 from fastapi import APIRouter, HTTPException
 from typing import Dict, Any
-from src.storage import storage_service
-from src.logging import logger
+from src.storage import storage
+from src.custom_logging import logger
 
 router = APIRouter()
 
@@ -21,7 +21,7 @@ async def get_processing_stats(hours: int = 24) -> Dict[str, Any]:
         Dictionary with processing statistics
     """
     try:
-        stats = await storage_service.get_stats(hours)
+        stats = await storage.get_stats(hours)
         
         logger.info("Retrieved processing stats", 
                    hours=hours,
@@ -56,7 +56,7 @@ async def get_endpoint_stats(endpoint: str, hours: int = 24) -> Dict[str, Any]:
         Dictionary with endpoint statistics
     """
     try:
-        stats = await storage_service.get_endpoint_stats(endpoint, hours)
+        stats = await storage.get_endpoint_stats(endpoint, hours)
         
         logger.info("Retrieved endpoint stats", 
                    endpoint=endpoint,
@@ -80,36 +80,3 @@ async def get_endpoint_stats(endpoint: str, hours: int = 24) -> Dict[str, Any]:
             }
         )
 
-@router.post("/cleanup")
-async def cleanup_old_records(days: int = 30) -> Dict[str, Any]:
-    """
-    Clean up old records to free up storage space
-    
-    Args:
-        days: Number of days to keep (default: 30)
-        
-    Returns:
-        Dictionary with cleanup results
-    """
-    try:
-        deleted_count = await storage_service.cleanup(days)
-        
-        logger.info("Cleaned up old records", 
-                   days=days,
-                   deleted_count=deleted_count)
-        
-        return {
-            "success": True,
-            "deleted_records": deleted_count,
-            "retention_days": days
-        }
-        
-    except Exception as e:
-        logger.error(f"Failed to cleanup old records: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail={
-                "error": "Failed to cleanup old records",
-                "message": str(e)
-            }
-        )

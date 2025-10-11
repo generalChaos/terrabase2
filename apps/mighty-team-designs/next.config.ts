@@ -39,6 +39,21 @@ const nextConfig: NextConfig = {
         hostname: '*.supabase.co',
         pathname: '/storage/v1/object/public/**',
       },
+      {
+        protocol: 'https',
+        hostname: '*.railway.app',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'via.placeholder.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'picsum.photos',
+        pathname: '/**',
+      },
     ],
     formats: ['image/webp', 'image/avif'],
   },

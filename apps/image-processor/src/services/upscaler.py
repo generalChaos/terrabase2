@@ -17,6 +17,15 @@ from src.utils.filename_utils import generate_processing_filename
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Import Real-ESRGAN
+try:
+    from realesrgan import RealESRGANer
+    from basicsr.archs.rrdbnet_arch import RRDBNet
+    REALESRGAN_AVAILABLE = True
+except ImportError:
+    REALESRGAN_AVAILABLE = False
+    logger.warning("Real-ESRGAN not available, will use OpenCV fallback")
+
 class ImageUpscaler:
     """Main upscaling service class"""
     
@@ -25,13 +34,49 @@ class ImageUpscaler:
         self.output_dir = os.getenv("OUTPUT_DIR", "./output")
         self.max_file_size = int(os.getenv("MAX_FILE_SIZE_MB", "50")) * 1024 * 1024
         
+        # Model paths
+        self.models_dir = os.getenv("MODELS_DIR", "./models")
+        self.realesrgan_model_path = os.getenv("REALESRGAN_MODEL_PATH", os.path.join(self.models_dir, "RealESRGAN_x4plus.pth"))
+        self.esrgan_model_path = os.getenv("ESRGAN_MODEL_PATH", os.path.join(self.models_dir, "RRDB_ESRGAN_x4.pth"))
+        
         # Ensure directories exist
         os.makedirs(self.temp_dir, exist_ok=True)
         os.makedirs(self.output_dir, exist_ok=True)
+        os.makedirs(self.models_dir, exist_ok=True)
         
         # Initialize models (lazy loading)
         self._realesrgan_model = None
         self._esrgan_model = None
+    
+    def _init_realesrgan_model(self):
+        """Initialize Real-ESRGAN model if available"""
+        if not REALESRGAN_AVAILABLE:
+            return False
+            
+        if self._realesrgan_model is not None:
+            return True
+            
+        try:
+            if not os.path.exists(self.realesrgan_model_path):
+                logger.warning(f"Real-ESRGAN model not found at {self.realesrgan_model_path}")
+                return False
+            
+            # Initialize Real-ESRGAN model
+            model = RRDBNet(num_in_ch=3, num_out_ch=3, num_feat=64, num_block=23, num_grow_ch=32, scale=4)
+            self._realesrgan_model = RealESRGANer(
+                scale=4,
+                model_path=self.realesrgan_model_path,
+                model=model,
+                tile=0,
+                tile_pad=10,
+                pre_pad=0,
+                half=False
+            )
+            logger.info("Real-ESRGAN model initialized successfully")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to initialize Real-ESRGAN model: {str(e)}")
+            return False
     
     async def upscale_image(
         self,
@@ -149,10 +194,29 @@ class ImageUpscaler:
     async def _upscale_realesrgan(self, image: np.ndarray, scale: int) -> np.ndarray:
         """Upscale using Real-ESRGAN"""
         try:
-            # This would require Real-ESRGAN installation
-            # For now, fallback to OpenCV
-            logger.warning("Real-ESRGAN not available, using OpenCV fallback")
-            return self._upscale_opencv(image, scale)
+            # Initialize model if not already done
+            if not self._init_realesrgan_model():
+                logger.warning("Real-ESRGAN not available, using OpenCV fallback")
+                return self._upscale_opencv(image, scale)
+            
+            # Real-ESRGAN works best with 4x scale, so we'll use it for 4x and above
+            if scale >= 4:
+                # Use Real-ESRGAN for 4x upscaling
+                output, _ = self._realesrgan_model.enhance(image, outscale=4)
+                
+                # If we need a different scale, resize accordingly
+                if scale != 4:
+                    height, width = output.shape[:2]
+                    new_width = int(width * scale / 4)
+                    new_height = int(height * scale / 4)
+                    output = cv2.resize(output, (new_width, new_height), interpolation=cv2.INTER_CUBIC)
+                
+                return output
+            else:
+                # For scales less than 4x, use OpenCV
+                logger.info(f"Using OpenCV for {scale}x upscaling (Real-ESRGAN optimized for 4x+)")
+                return self._upscale_opencv(image, scale)
+                
         except Exception as e:
             logger.error(f"Real-ESRGAN upscaling failed: {str(e)}")
             return self._upscale_opencv(image, scale)

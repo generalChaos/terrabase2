@@ -15,11 +15,13 @@ export interface TeamDesignFlow {
   current_step: FlowStep
   debug_mode: boolean
   is_active: boolean
+  contact_email?: string
+  contact_phone?: string
   created_at: string
   updated_at: string
 }
 
-export type FlowStep = 'round1' | 'round2' | 'generating' | 'completed' | 'failed'
+export type FlowStep = 'round1' | 'round2' | 'generating' | 'results' | 'completed' | 'failed'
 
 // Question Types (Simplified)
 export interface Question {
@@ -48,6 +50,22 @@ export interface LogoVariant {
   generation_cost_usd: number
   created_at: string
   public_url?: string
+  asset_pack?: AssetPack | null
+}
+
+// Asset Pack Types
+export interface AssetPack {
+  id: string
+  flow_id: string
+  logo_id: string
+  asset_pack_id: string
+  clean_logo_url: string
+  tshirt_front_url: string
+  tshirt_back_url: string
+  banner_url?: string
+  processing_time_ms: number
+  created_at: string
+  updated_at: string
 }
 
 export interface TeamLogo {
@@ -156,7 +174,7 @@ export interface LogoGenerationResponse {
 export interface Round1FormData {
   team_name: string
   sport: string
-  age_group: string
+  logo_style: string
 }
 
 export interface Round2FormData {

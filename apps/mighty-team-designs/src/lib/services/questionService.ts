@@ -22,7 +22,26 @@ export interface Question {
   selected: number | string;
 }
 
+export interface ColorOption {
+  id: string;
+  name: string;
+  primary: string;    // hex code
+  secondary: string;  // hex code  
+  accent: string;     // hex code
+  description: string;
+}
+
+export interface MascotOption {
+  id: string;
+  name: string;
+  description: string;
+  characteristics: string[];
+}
+
 export class QuestionService extends BaseService {
+  private lastGenerationTime = 0;
+  private readonly MIN_GENERATION_INTERVAL = 2000; // 2 seconds between generations
+
   constructor() {
     super('question_sets');
   }
@@ -70,6 +89,48 @@ export class QuestionService extends BaseService {
     } catch (error) {
       await logError('system', 'question_generation', 'Failed to get questions by sport and age', error as Error);
       return null;
+    }
+  }
+
+  /**
+   * Generate colors and mascots for V1 flow (public method)
+   */
+  async generateColorsAndMascotsForFlow(flowId: string, teamName: string, sport: string, logoStyle: string): Promise<{ colors: ColorOption[], mascots: MascotOption[] }> {
+    try {
+      console.log('=== COLOR/MASCOT GENERATION DEBUG ===');
+      console.log('🎯 Team Name:', teamName);
+      console.log('🏀 Sport:', sport);
+      console.log('🎨 Logo Style:', logoStyle);
+      
+      await logDebug(flowId, 'info', 'ai_generation', `Generating colors and mascots for flow ${flowId}`, {
+        teamName,
+        sport,
+        logoStyle
+      });
+      
+      const isOpenAIAvailable = !!(process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'your_openai_api_key_here');
+      console.log('🤖 OpenAI Available:', isOpenAIAvailable);
+      console.log('🔑 API Key exists:', !!process.env.OPENAI_API_KEY);
+      console.log('🔑 API Key value:', process.env.OPENAI_API_KEY ? 'SET' : 'NOT SET');
+      
+      if (isOpenAIAvailable) {
+        console.log('🚀 Attempting AI generation...');
+        const result = await this.generateColorsAndMascotsWithAI(teamName, sport, logoStyle);
+        console.log('✅ AI generation successful');
+        console.log('🎨 Generated colors:', result.colors.length);
+        console.log('🦅 Generated mascots:', result.mascots.length);
+        return result;
+      } else {
+        console.log('⚠️ Using fallback generation');
+        const result = this.getFallbackColorsAndMascots(teamName, sport, logoStyle);
+        console.log('📋 Fallback colors:', result.colors.length);
+        console.log('📋 Fallback mascots:', result.mascots.length);
+        return result;
+      }
+    } catch (error) {
+      console.error('❌ Error in generateColorsAndMascotsForFlow:', error);
+      await logError(flowId, 'ai_generation', 'Failed to generate colors and mascots', error as Error);
+      throw error;
     }
   }
 
@@ -367,5 +428,337 @@ Return JSON only.`;
       await logError('system', 'question_generation', 'Failed to get question statistics', error as Error);
       throw error;
     }
+  }
+
+  /**
+   * Generate colors and mascots using OpenAI
+   */
+  private async generateColorsAndMascotsWithAI(teamName: string, sport: string, logoStyle: string): Promise<{ colors: ColorOption[], mascots: MascotOption[] }> {
+    try {
+      console.log('=== AI GENERATION METHOD CALLED ===');
+      console.log('🎯 Team Name:', teamName);
+      console.log('🏀 Sport:', sport);
+      console.log('🎨 Logo Style:', logoStyle);
+      
+      const prompt = `Generate 5 color combinations and 4 mascot concepts for a team logo based on the team name and style.
+
+TEAM: "${teamName}" (${sport}, ${logoStyle})
+
+COLOR GENERATION RULES:
+1. If the team name suggests colors (e.g., "Red Devils" → red, "Blue Jays" → blue), create 4 variations based on that color
+2. If no obvious color from team name, suggest 4 popular team color combinations like "Blue & White", "Red & Black", "Green & Gold", "Purple & Silver"
+3. ALWAYS include a 5th option: "Custom colors" with placeholder colors and description encouraging user input
+4. Each color combination should have: primary color, secondary color, accent color (all as hex codes)
+5. Make sure colors work well together and are appropriate for the ${logoStyle} style
+
+MASCOT GENERATION RULES:
+1. Analyze the team name to extract the primary mascot concept (e.g., "Thunder Hawks" → hawk, "Blue Vipers" → viper, "Golden Tigers" → tiger)
+2. If team name suggests a clear mascot, create 4 different variations of that SAME mascot concept, each inspired by the ${logoStyle} style
+3. Each variation should be a different visual interpretation of the same mascot (e.g., 4 different hawk designs, 4 different viper designs)
+4. Style inspiration examples:
+   - "fun-and-friendly": Cartoon-like, bright, approachable versions
+   - "bold-and-competitive": Strong, confident, professional versions  
+   - "dynamic-and-fierce": Aggressive, energetic, action-oriented versions
+   - "classic-and-iconic": Timeless, traditional, heritage-inspired versions
+5. If no clear mascot can be inferred from team name, suggest 4 different "best guess" mascot concepts that fit the sport and style
+6. Each mascot should have: name, description, and 2-3 key visual characteristics
+7. ALWAYS include a 5th option: "Custom mascot" with placeholder content encouraging user input
+
+Return JSON format:
+{
+  "colors": [
+    {
+      "id": "color_1",
+      "name": "Blue & White",
+      "primary": "#1E3A8A",
+      "secondary": "#FFFFFF", 
+      "accent": "#3B82F6",
+      "description": "Classic team colors that work great for any sport"
+    },
+    {
+      "id": "custom_colors",
+      "name": "Custom colors",
+      "primary": "#6B7280",
+      "secondary": "#9CA3AF",
+      "accent": "#D1D5DB",
+      "description": "Describe your own color combination (e.g., 'purple and teal')"
+    }
+  ],
+  "mascots": [
+    {
+      "id": "hawk_1",
+      "name": "Classic Hawk",
+      "description": "Traditional hawk design with bold, competitive styling",
+      "characteristics": ["Wings spread", "Sharp talons", "Confident posture"]
+    },
+    {
+      "id": "hawk_2", 
+      "name": "Dynamic Hawk",
+      "description": "Energetic hawk in action pose for competitive teams",
+      "characteristics": ["Mid-flight pose", "Intense eyes", "Streamlined body"]
+    },
+    {
+      "id": "hawk_3",
+      "name": "Power Hawk",
+      "description": "Strong, muscular hawk representing team strength",
+      "characteristics": ["Broad chest", "Powerful stance", "Determined look"]
+    },
+    {
+      "id": "hawk_4",
+      "name": "Victory Hawk",
+      "description": "Triumphant hawk celebrating team success",
+      "characteristics": ["Head held high", "Wings raised", "Proud expression"]
+    },
+    {
+      "id": "custom_mascot",
+      "name": "Custom mascot",
+      "description": "Describe your own mascot concept (e.g., 'a fierce dragon' or 'a lightning bolt')",
+      "characteristics": ["Your choice", "Your design", "Your vision"]
+    }
+  ]
+}
+
+Generate exactly 5 colors and 5 mascots. Return JSON only.`;
+
+      console.log('📝 Sending prompt to OpenAI...');
+      console.log('📏 Prompt length:', prompt.length, 'characters');
+      
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.7,
+        max_tokens: 800
+      });
+
+      console.log('✅ OpenAI response received');
+      console.log('📊 Response choices:', response.choices?.length || 0);
+      
+      const content = response.choices[0]?.message?.content;
+      if (!content) {
+        console.error('❌ No response content from OpenAI');
+        throw new Error('No response from OpenAI');
+      }
+
+      console.log('📄 Raw AI response:');
+      console.log(content.substring(0, 500) + '...');
+
+      const result = JSON.parse(content);
+      console.log('✅ JSON parsed successfully');
+      console.log('🎨 Parsed colors:', result.colors?.length || 0);
+      console.log('🦅 Parsed mascots:', result.mascots?.length || 0);
+      
+      // Validate the response structure
+      if (!result.colors || !Array.isArray(result.colors) || result.colors.length !== 5) {
+        throw new Error('Invalid colors format from OpenAI');
+      }
+      
+      if (!result.mascots || !Array.isArray(result.mascots) || result.mascots.length !== 5) {
+        throw new Error('Invalid mascots format from OpenAI');
+      }
+
+      return {
+        colors: result.colors,
+        mascots: result.mascots
+      };
+    } catch (error) {
+      console.error('❌ OpenAI color/mascot generation failed:', error);
+      
+      // Check if it's a rate limit or quota error
+      if (error instanceof Error && error.message.includes('429')) {
+        console.warn('⚠️ Rate limit exceeded, using fallback');
+      } else if (error instanceof Error && (error.message.includes('quota') || error.message.includes('insufficient'))) {
+        console.warn('⚠️ API quota insufficient, using fallback');
+      } else {
+        console.warn('⚠️ Other OpenAI error, using fallback:', error instanceof Error ? error.message : 'Unknown error');
+      }
+      
+      return this.getFallbackColorsAndMascots(teamName, sport, logoStyle);
+    }
+  }
+
+  /**
+   * Get fallback colors and mascots when AI is not available
+   */
+  private getFallbackColorsAndMascots(teamName: string, sport: string, logoStyle: string): { colors: ColorOption[], mascots: MascotOption[] } {
+    // Popular team color combinations
+    const colors: ColorOption[] = [
+      {
+        id: 'blue_white',
+        name: 'Blue & White',
+        primary: '#1E3A8A',
+        secondary: '#FFFFFF',
+        accent: '#3B82F6',
+        description: 'Classic team colors that work great for any sport'
+      },
+      {
+        id: 'red_black',
+        name: 'Red & Black',
+        primary: '#DC2626',
+        secondary: '#000000',
+        accent: '#F59E0B',
+        description: 'Bold and powerful combination perfect for competitive teams'
+      },
+      {
+        id: 'green_gold',
+        name: 'Green & Gold',
+        primary: '#059669',
+        secondary: '#F59E0B',
+        accent: '#10B981',
+        description: 'Fresh and energetic colors that stand out on the field'
+      },
+      {
+        id: 'purple_silver',
+        name: 'Purple & Silver',
+        primary: '#7C3AED',
+        secondary: '#6B7280',
+        accent: '#A78BFA',
+        description: 'Unique and modern combination for distinctive team identity'
+      },
+      {
+        id: 'custom_colors',
+        name: 'Custom colors',
+        primary: '#6B7280',
+        secondary: '#9CA3AF',
+        accent: '#D1D5DB',
+        description: 'Describe your own color combination (e.g., "purple and teal")'
+      }
+    ];
+
+    // Analyze team name for smart mascot suggestions
+    const teamNameLower = teamName.toLowerCase();
+    let suggestedMascots: MascotOption[] = [];
+    
+    console.log('🔍 Analyzing team name for mascot suggestions:', teamNameLower);
+    
+    // Extract mascot concepts from team name
+    if (teamNameLower.includes('hawk') || teamNameLower.includes('eagle') || teamNameLower.includes('bird')) {
+      console.log('🦅 Detected bird-related team name, suggesting hawk variations');
+      suggestedMascots = [
+        {
+          id: 'hawk',
+          name: 'Hawk',
+          description: 'Powerful bird of prey representing speed and precision',
+          characteristics: ['Sharp talons', 'Wings spread', 'Fierce eyes']
+        },
+        {
+          id: 'eagle',
+          name: 'Eagle',
+          description: 'Majestic bird symbolizing strength and freedom',
+          characteristics: ['Wings spread', 'Sharp beak', 'Regal posture']
+        },
+        {
+          id: 'falcon',
+          name: 'Falcon',
+          description: 'Fast and agile bird perfect for dynamic teams',
+          characteristics: ['Streamlined body', 'Sharp vision', 'Swift movement']
+        },
+        {
+          id: 'phoenix',
+          name: 'Phoenix',
+          description: 'Mythical bird representing rebirth and determination',
+          characteristics: ['Fire wings', 'Majestic presence', 'Eternal spirit']
+        }
+      ];
+    } else if (teamNameLower.includes('tiger') || teamNameLower.includes('lion') || teamNameLower.includes('cat')) {
+      suggestedMascots = [
+        {
+          id: 'tiger',
+          name: 'Tiger',
+          description: 'Fierce predator representing strength and agility',
+          characteristics: ['Striped pattern', 'Sharp claws', 'Intense gaze']
+        },
+        {
+          id: 'lion',
+          name: 'Lion',
+          description: 'King of the jungle symbolizing courage and leadership',
+          characteristics: ['Mane flowing', 'Strong jaw', 'Regal posture']
+        },
+        {
+          id: 'panther',
+          name: 'Panther',
+          description: 'Stealthy and powerful big cat for competitive teams',
+          characteristics: ['Sleek body', 'Sharp claws', 'Night vision']
+        },
+        {
+          id: 'jaguar',
+          name: 'Jaguar',
+          description: 'Fast and powerful cat representing speed and strength',
+          characteristics: ['Spotted coat', 'Muscular build', 'Fierce expression']
+        }
+      ];
+    } else if (teamNameLower.includes('shark') || teamNameLower.includes('fish') || teamNameLower.includes('water')) {
+      suggestedMascots = [
+        {
+          id: 'shark',
+          name: 'Shark',
+          description: 'Fast and powerful predator perfect for competitive teams',
+          characteristics: ['Sharp teeth', 'Streamlined body', 'Intense eyes']
+        },
+        {
+          id: 'orca',
+          name: 'Orca',
+          description: 'Intelligent and powerful marine predator',
+          characteristics: ['Black and white', 'Strong tail', 'Team hunting']
+        },
+        {
+          id: 'dolphin',
+          name: 'Dolphin',
+          description: 'Intelligent and playful marine animal',
+          characteristics: ['Friendly smile', 'Sleek body', 'Team spirit']
+        },
+        {
+          id: 'kraken',
+          name: 'Kraken',
+          description: 'Mythical sea monster representing power and mystery',
+          characteristics: ['Tentacles', 'Deep sea', 'Legendary strength']
+        }
+      ];
+    } else {
+      // Generic fallback mascots
+      suggestedMascots = [
+        {
+          id: 'eagle',
+          name: 'Eagle',
+          description: 'Strong and majestic bird representing power and freedom',
+          characteristics: ['Wings spread', 'Sharp talons', 'Fierce expression']
+        },
+        {
+          id: 'lion',
+          name: 'Lion',
+          description: 'King of the jungle symbolizing courage and leadership',
+          characteristics: ['Mane flowing', 'Strong jaw', 'Regal posture']
+        },
+        {
+          id: 'shark',
+          name: 'Shark',
+          description: 'Fast and powerful predator perfect for competitive teams',
+          characteristics: ['Sharp teeth', 'Streamlined body', 'Intense eyes']
+        },
+        {
+          id: 'bear',
+          name: 'Bear',
+          description: 'Strong and protective animal representing team unity',
+          characteristics: ['Muscular build', 'Protective stance', 'Determined look']
+        }
+      ];
+    }
+
+    // Add custom mascot option
+    suggestedMascots.push({
+      id: 'custom_mascot',
+      name: 'Custom mascot',
+      description: 'Describe your own mascot concept (e.g., "a fierce dragon" or "a lightning bolt")',
+      characteristics: ['Your choice', 'Your design', 'Your vision']
+    });
+
+    const mascots: MascotOption[] = suggestedMascots;
+
+    return { colors, mascots };
   }
 }

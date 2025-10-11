@@ -29,6 +29,13 @@ interface AdminData {
   };
 }
 
+interface ImageProcessorTest {
+  type: 'upscale' | 'asset-pack' | 'health' | 'stats';
+  status: 'idle' | 'loading' | 'success' | 'error';
+  result?: any;
+  error?: string;
+}
+
 export default function AdminDashboard() {
   const [data, setData] = useState<AdminData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -37,6 +44,16 @@ export default function AdminDashboard() {
   const [authenticated, setAuthenticated] = useState(false);
   const [selectedFlowId, setSelectedFlowId] = useState<string | null>(null);
   const [showFlowDetails, setShowFlowDetails] = useState(false);
+  
+  // Image Processor Test State
+  const [imageProcessorTests, setImageProcessorTests] = useState<Record<string, ImageProcessorTest>>({
+    health: { type: 'health', status: 'idle' },
+    stats: { type: 'stats', status: 'idle' },
+    upscale: { type: 'upscale', status: 'idle' },
+    'asset-pack': { type: 'asset-pack', status: 'idle' }
+  });
+  const [testImageUrl, setTestImageUrl] = useState('file:///Users/ricovelasco/Documents/devprojects/party-game/apps/image-processor/test-input/logos/king-cobra-youth-soccer-logo.png');
+  const [testTeamName, setTestTeamName] = useState('Test Team');
 
   const authenticate = async () => {
     try {
@@ -91,6 +108,81 @@ export default function AdminDashboard() {
   const handleCloseFlowDetails = () => {
     setShowFlowDetails(false);
     setSelectedFlowId(null);
+  };
+
+  // Image Processor Test Functions
+  const testImageProcessor = async (testType: string) => {
+    setImageProcessorTests(prev => ({
+      ...prev,
+      [testType]: { ...prev[testType], status: 'loading', error: undefined }
+    }));
+
+    try {
+      let response;
+      let endpoint;
+
+      switch (testType) {
+        case 'health':
+          endpoint = '/api/image-processor/health';
+          response = await fetch(endpoint);
+          break;
+        case 'stats':
+          endpoint = '/api/image-processor/stats';
+          response = await fetch(endpoint);
+          break;
+        case 'upscale':
+          endpoint = '/api/image-processor/upscale';
+          response = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              image_url: testImageUrl,
+              scale_factor: 2
+            })
+          });
+          break;
+        case 'asset-pack':
+          endpoint = '/api/image-processor/asset-pack';
+          response = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              logo_url: testImageUrl,
+              team_name: testTeamName,
+              players: [
+                { number: 1, name: 'Player 1' },
+                { number: 2, name: 'Player 2' },
+                { number: 3, name: 'Player 3' }
+              ]
+            })
+          });
+          break;
+        default:
+          throw new Error('Unknown test type');
+      }
+
+      const result = await response.json();
+
+      setImageProcessorTests(prev => ({
+        ...prev,
+        [testType]: {
+          ...prev[testType],
+          status: response.ok ? 'success' : 'error',
+          result: result,
+          error: response.ok ? undefined : result.error || 'Unknown error'
+        }
+      }));
+
+    } catch (error) {
+      setImageProcessorTests(prev => ({
+        ...prev,
+        [testType]: {
+          ...prev[testType],
+          status: 'error',
+          error: error instanceof Error ? error.message : 'Unknown error'
+        }
+      }));
+    }
   };
 
   if (!authenticated) {
@@ -183,7 +275,7 @@ export default function AdminDashboard() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Overview Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           <div className="bg-white p-6 rounded-lg shadow">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Total Flows</h3>
             <p className="text-3xl font-bold text-blue-600">{data?.flows.total || 0}</p>
@@ -199,6 +291,16 @@ export default function AdminDashboard() {
           <div className="bg-white p-6 rounded-lg shadow">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Debug Logs</h3>
             <p className="text-3xl font-bold text-orange-600">{data?.debug_logs.total || 0}</p>
+          </div>
+          <div className="bg-white p-6 rounded-lg shadow border-2 border-green-200">
+            <div className="flex items-center mb-2">
+              <h3 className="text-lg font-semibold text-gray-900">V1 Results</h3>
+              <svg className="ml-2 h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <p className="text-2xl font-bold text-green-600">Active</p>
+            <p className="text-xs text-gray-500 mt-1">V1-compliant design</p>
           </div>
         </div>
 
@@ -291,6 +393,112 @@ export default function AdminDashboard() {
           </div>
         </div>
 
+        {/* V1 Results Page Testing */}
+        <div className="bg-white p-6 rounded-lg shadow mb-8">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">V1 Results Page Testing</h2>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+            <div className="flex items-start">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-blue-800">
+                  V1-Compliant Results Page
+                </h3>
+                <div className="mt-2 text-sm text-blue-700">
+                  <p>The results page has been updated with V1-compliant design featuring:</p>
+                  <ul className="list-disc list-inside mt-2 space-y-1">
+                    <li>Team Information & Roster section</li>
+                    <li>Asset Customization (Banner & T-shirt)</li>
+                    <li>Logo Selection & Download</li>
+                    <li>Mobile-responsive design</li>
+                    <li>QR code for sharing results</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 mb-3">Test Results Page</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Click on any completed flow below to test the V1 results page:
+              </p>
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {data?.flows.recent
+                  .filter((flow: any) => flow.current_step === 'completed' && flow.logo_variants?.length > 0)
+                  .slice(0, 5)
+                  .map((flow: any) => (
+                    <div key={flow.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{flow.team_name}</p>
+                        <p className="text-xs text-gray-500">{flow.sport} • {flow.logo_variants?.length || 0} logos</p>
+                      </div>
+                      <a
+                        href={`/results/${flow.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 transition-colors"
+                      >
+                        View Results
+                        <svg className="ml-1 h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                      </a>
+                    </div>
+                  ))}
+              </div>
+              {data?.flows.recent.filter((flow: any) => flow.current_step === 'completed' && flow.logo_variants?.length > 0).length === 0 && (
+                <p className="text-sm text-gray-500 italic">No completed flows with logos available for testing.</p>
+              )}
+            </div>
+            
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 mb-3">Results Page Features</h3>
+              <div className="space-y-3">
+                <div className="flex items-center">
+                  <svg className="h-4 w-4 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-sm text-gray-700">Mobile-responsive design</span>
+                </div>
+                <div className="flex items-center">
+                  <svg className="h-4 w-4 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-sm text-gray-700">Team roster management</span>
+                </div>
+                <div className="flex items-center">
+                  <svg className="h-4 w-4 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-sm text-gray-700">Asset customization controls</span>
+                </div>
+                <div className="flex items-center">
+                  <svg className="h-4 w-4 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-sm text-gray-700">Logo selection & download</span>
+                </div>
+                <div className="flex items-center">
+                  <svg className="h-4 w-4 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-sm text-gray-700">QR code for sharing</span>
+                </div>
+                <div className="flex items-center">
+                  <svg className="h-4 w-4 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-sm text-gray-700">Contact form integration</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* Recent Debug Logs */}
         <div className="bg-white p-6 rounded-lg shadow">
@@ -318,6 +526,136 @@ export default function AdminDashboard() {
                   </span>
                 </div>
                 <p className="text-sm text-gray-600 mt-1">{log.message}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Image Processor Testing */}
+        <div className="bg-white p-6 rounded-lg shadow">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Image Processor Testing</h2>
+          
+          {/* Test Configuration */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Test Image URL
+              </label>
+              <input
+                type="url"
+                value={testImageUrl}
+                onChange={(e) => setTestImageUrl(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="file:///path/to/local/image.png or https://example.com/image.png"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Test Team Name
+              </label>
+              <input
+                type="text"
+                value={testTeamName}
+                onChange={(e) => setTestTeamName(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Test Team"
+              />
+            </div>
+          </div>
+
+          {/* Test Buttons */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <Button
+              onClick={() => testImageProcessor('health')}
+              disabled={imageProcessorTests.health.status === 'loading'}
+              className={`w-full ${
+                imageProcessorTests.health.status === 'success' 
+                  ? 'bg-green-600 hover:bg-green-700' 
+                  : imageProcessorTests.health.status === 'error'
+                  ? 'bg-red-600 hover:bg-red-700'
+                  : 'bg-blue-600 hover:bg-blue-700'
+              } text-white font-semibold py-2 px-4 rounded-md`}
+            >
+              {imageProcessorTests.health.status === 'loading' ? 'Testing...' : 'Health Check'}
+            </Button>
+            
+            <Button
+              onClick={() => testImageProcessor('stats')}
+              disabled={imageProcessorTests.stats.status === 'loading'}
+              className={`w-full ${
+                imageProcessorTests.stats.status === 'success' 
+                  ? 'bg-green-600 hover:bg-green-700' 
+                  : imageProcessorTests.stats.status === 'error'
+                  ? 'bg-red-600 hover:bg-red-700'
+                  : 'bg-blue-600 hover:bg-blue-700'
+              } text-white font-semibold py-2 px-4 rounded-md`}
+            >
+              {imageProcessorTests.stats.status === 'loading' ? 'Testing...' : 'Get Stats'}
+            </Button>
+            
+            <Button
+              onClick={() => testImageProcessor('upscale')}
+              disabled={imageProcessorTests.upscale.status === 'loading'}
+              className={`w-full ${
+                imageProcessorTests.upscale.status === 'success' 
+                  ? 'bg-green-600 hover:bg-green-700' 
+                  : imageProcessorTests.upscale.status === 'error'
+                  ? 'bg-red-600 hover:bg-red-700'
+                  : 'bg-blue-600 hover:bg-blue-700'
+              } text-white font-semibold py-2 px-4 rounded-md`}
+            >
+              {imageProcessorTests.upscale.status === 'loading' ? 'Testing...' : 'Test Upscale'}
+            </Button>
+            
+            <Button
+              onClick={() => testImageProcessor('asset-pack')}
+              disabled={imageProcessorTests['asset-pack'].status === 'loading'}
+              className={`w-full ${
+                imageProcessorTests['asset-pack'].status === 'success' 
+                  ? 'bg-green-600 hover:bg-green-700' 
+                  : imageProcessorTests['asset-pack'].status === 'error'
+                  ? 'bg-red-600 hover:bg-red-700'
+                  : 'bg-blue-600 hover:bg-blue-700'
+              } text-white font-semibold py-2 px-4 rounded-md`}
+            >
+              {imageProcessorTests['asset-pack'].status === 'loading' ? 'Testing...' : 'Test Asset Pack'}
+            </Button>
+          </div>
+
+          {/* Test Results */}
+          <div className="space-y-4">
+            {Object.entries(imageProcessorTests).map(([testType, test]) => (
+              <div key={testType} className="border rounded-lg p-4">
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="text-lg font-medium text-gray-900 capitalize">
+                    {testType.replace('-', ' ')} Test
+                  </h3>
+                  <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                    test.status === 'success' 
+                      ? 'bg-green-100 text-green-800'
+                      : test.status === 'error'
+                      ? 'bg-red-100 text-red-800'
+                      : test.status === 'loading'
+                      ? 'bg-yellow-100 text-yellow-800'
+                      : 'bg-gray-100 text-gray-800'
+                  }`}>
+                    {test.status}
+                  </span>
+                </div>
+                
+                {test.error && (
+                  <div className="text-red-600 text-sm mb-2">
+                    Error: {test.error}
+                  </div>
+                )}
+                
+                {test.result && (
+                  <div className="bg-gray-50 p-3 rounded text-sm">
+                    <pre className="whitespace-pre-wrap overflow-x-auto">
+                      {JSON.stringify(test.result, null, 2)}
+                    </pre>
+                  </div>
+                )}
               </div>
             ))}
           </div>

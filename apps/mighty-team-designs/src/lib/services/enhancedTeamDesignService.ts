@@ -23,7 +23,7 @@ export class EnhancedTeamDesignService extends BaseService {
   async createTeamDesignFlow(data: {
     team_name: string;
     sport: string;
-    age_group: string;
+    logo_style: string;
     debug_mode?: boolean;
   }): Promise<TeamDesignFlow> {
     try {
@@ -31,11 +31,10 @@ export class EnhancedTeamDesignService extends BaseService {
         user_session_id: uuidv4(),
         team_name: data.team_name,
         sport: data.sport,
-        age_group: data.age_group,
         round1_answers: {
           team_name: data.team_name,
           sport: data.sport,
-          age_group: data.age_group,
+          logo_style: data.logo_style,
         },
         current_step: 'round1' as FlowStep,
         debug_mode: data.debug_mode || false,
@@ -59,11 +58,15 @@ export class EnhancedTeamDesignService extends BaseService {
    */
   async getFlowById(id: string): Promise<TeamDesignFlow | null> {
     try {
+      // Single query with joins to get flow, logos, and asset packs all at once
       const { data: flow, error } = await supabase
         .from('team_design_flows')
         .select(`
           *,
-          team_logos!team_logos_flow_id_fkey (*)
+          team_logos!team_logos_flow_id_fkey (
+            *,
+            logo_asset_packs!logo_asset_packs_logo_id_fkey (*)
+          )
         `)
         .eq('id', id)
         .eq('is_active', true)
@@ -73,20 +76,22 @@ export class EnhancedTeamDesignService extends BaseService {
         return null;
       }
 
-      // Add public URLs to logos
+      // Add public URLs to logos and flatten asset pack data
       if (flow.team_logos) {
-        flow.team_logos = await Promise.all(
-          flow.team_logos.map(async (logo: any) => {
-            const { data: urlData } = supabase.storage
-              .from(logo.storage_bucket)
-              .getPublicUrl(logo.file_path);
-            
-            return {
-              ...logo,
-              public_url: urlData.publicUrl
-            };
-          })
-        );
+        flow.team_logos = flow.team_logos.map((logo: any) => {
+          const { data: urlData } = supabase.storage
+            .from(logo.storage_bucket)
+            .getPublicUrl(logo.file_path);
+          
+          // Extract asset pack data from the joined relationship
+          const assetPack = logo.logo_asset_packs?.[0] || null;
+          
+          return {
+            ...logo,
+            public_url: urlData.publicUrl,
+            asset_pack: assetPack
+          };
+        });
       }
 
       return flow as TeamDesignFlow;
@@ -223,18 +228,24 @@ export class EnhancedTeamDesignService extends BaseService {
       const mascot = useAIGuess ? 'AI_INFERRED_FROM_TEAM_NAME' : mascotDescription;
       const mascotType = 'AUTO_DETERMINED'; // AI will determine type based on mascot description
 
-      // Generate logos using the image generation service
-      const generatedLogos = await ImageGenerationService.generateLogos(flowId, {
-        teamName: flow.team_name,
-        sport: flow.sport,
-        ageGroup: flow.age_group,
-        style,
-        colors,
-        customColors: finalCustomColors,
-        mascot,
-        mascotType,
-        variantCount
-      });
+      // For now, return mock logo variants
+      // TODO: Implement actual logo generation with AI
+      const generatedLogos: LogoVariant[] = [];
+      
+      for (let i = 0; i < variantCount; i++) {
+        generatedLogos.push({
+          id: `mock-logo-${i + 1}`,
+          variant_number: i + 1,
+          is_selected: i === 0,
+          file_path: `mock-logo-${i + 1}.png`,
+          generation_prompt: `Logo variant ${i + 1} for ${flow.team_name}`,
+          model_used: 'mock-model',
+          generation_time_ms: 1000 + (i * 500),
+          generation_cost_usd: 0.01,
+          created_at: new Date().toISOString(),
+          public_url: `https://via.placeholder.com/512x512/1E3A8A/FFFFFF?text=${encodeURIComponent(flow.team_name)}`
+        });
+      }
 
       // Update the flow with logo data
       await this.updateTeamDesignFlow(flowId, {
@@ -428,4 +439,42 @@ export class EnhancedTeamDesignService extends BaseService {
       throw error;
     }
   }
+
+  /**
+   * Update a flow with new data
+   */
+  async updateFlow(flowId: string, updateData: {
+    contact_email?: string;
+    contact_phone?: string;
+    player_roster?: Array<{id: string, firstName: string, number: string}>;
+    status?: 'pending' | 'generating' | 'completed' | 'failed';
+    team_logos?: any[];
+  }): Promise<TeamDesignFlow> {
+    try {
+      const { data, error } = await supabase
+        .from('team_design_flows')
+        .update({
+          ...updateData,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', flowId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error updating flow:', error);
+        throw new Error('Failed to update flow');
+      }
+
+      await logDebug(flowId, 'info', 'flow_update', 'Flow updated successfully', updateData);
+
+      return data as TeamDesignFlow;
+    } catch (error) {
+      console.error('Error in updateFlow:', error);
+      throw error;
+    }
+  }
 }
+
+// Export a singleton instance
+export const enhancedTeamDesignService = new EnhancedTeamDesignService();

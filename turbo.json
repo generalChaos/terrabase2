@@ -3,12 +3,57 @@
     "dev": {
       "cache": false,
       "persistent": true,
-      "dependsOn": ["^build"]
+      "dependsOn": ["^build"],
+      "env": [
+        "NODE_ENV", 
+        "NEXT_PUBLIC_*", 
+        "PYTHONPATH",
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "OPENAI_API_KEY",
+        "IMAGE_PROCESSOR_BASE_URL",
+        "IMAGE_PROCESSOR_API_KEY",
+        "DATABASE_URL",
+        "STORAGE_TYPE",
+        "LOCAL_STORAGE_PATH",
+        "LOCAL_STORAGE_BASE_URL",
+        "ADMIN_PASSWORD",
+        "NEXT_PUBLIC_DEBUG_MODE",
+        "NEXT_PUBLIC_APP_ENV",
+        "NEXT_PUBLIC_CORS_ORIGINS"
+      ]
     },
     "build": {
       "dependsOn": ["^build"],
       "outputs": ["dist/**", ".next/**", "build/**", "__pycache__/**"],
-      "env": ["NODE_ENV", "NEXT_PUBLIC_*", "PYTHONPATH"]
+      "env": [
+        "NODE_ENV", 
+        "NEXT_PUBLIC_*", 
+        "PYTHONPATH",
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "OPENAI_API_KEY",
+        "IMAGE_PROCESSOR_BASE_URL",
+        "IMAGE_PROCESSOR_API_KEY",
+        "DATABASE_URL",
+        "STORAGE_TYPE",
+        "LOCAL_STORAGE_PATH",
+        "LOCAL_STORAGE_BASE_URL",
+        "ADMIN_PASSWORD",
+        "NEXT_PUBLIC_DEBUG_MODE",
+        "NEXT_PUBLIC_APP_ENV",
+        "NEXT_PUBLIC_CORS_ORIGINS",
+        "DATABASE_POOL_SIZE",
+        "DATABASE_POOL_TIMEOUT",
+        "LOG_LEVEL",
+        "ENABLE_REQUEST_LOGGING",
+        "RATE_LIMIT_REQUESTS_PER_MINUTE",
+        "RATE_LIMIT_WINDOW_MS",
+        "MAX_FILE_SIZE_MB",
+        "MAX_FILES_PER_REQUEST",
+        "CACHE_TTL_SECONDS",
+        "ENABLE_REDIS_CACHE",
+        "ENABLE_ANALYTICS",
+        "SENTRY_DSN"
+      ]
     },
     "deploy:image-processor": {
       "cache": false,

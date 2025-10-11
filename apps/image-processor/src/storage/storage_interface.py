@@ -256,7 +256,7 @@ def create_storage_client() -> StorageInterface:
     
     elif storage_type == StorageType.SUPABASE.value:
         try:
-            from database.supabase_client import SupabaseClient
+            from src.database.supabase_client import SupabaseClient
             logger.info("Using Supabase storage")
             return SupabaseClient()
         except ImportError:

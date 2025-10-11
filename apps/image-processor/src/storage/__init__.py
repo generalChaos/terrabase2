@@ -11,7 +11,7 @@ from .storage_interface import (
     create_storage_client,
     storage_client
 )
-from .storage_service import StorageService, storage_service
+from .storage_service_simple import StorageService, storage
 
 __all__ = [
     "StorageInterface",
@@ -21,5 +21,5 @@ __all__ = [
     "create_storage_client",
     "storage_client",
     "StorageService",
-    "storage_service"
+    "storage"
 ]

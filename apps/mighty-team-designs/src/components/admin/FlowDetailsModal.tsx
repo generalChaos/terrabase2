@@ -6,20 +6,85 @@ import { Button } from '@/components/ui/Button';
 
 interface FlowDetails {
   id: string;
+  user_session_id: string;
   team_name: string;
   sport: string;
   age_group: string;
   current_step: string;
   debug_mode: boolean;
-  round1_answers: {
-    team_name: string;
-    sport: string;
-    age_group: string;
-  };
-  round2_questions: any[];
-  round2_answers: any[];
-  logo_variants: any[];
-  selected_logo_id: string | null;
+  is_active: boolean;
+  round1_answers: Record<string, any>;
+  round2_questions: Question[];
+  round2_answers: QuestionAnswer[];
+  logo_prompt?: string;
+  logo_variants: LogoVariant[];
+  selected_logo_id?: string;
+  logo_generated_at?: string;
+  contact_email?: string;
+  contact_phone?: string;
+  player_roster?: Array<{id: string, firstName: string, number: string}>;
+  team_logos?: TeamLogo[];
+  created_at: string;
+  updated_at: string;
+}
+
+interface Question {
+  id: string;
+  text: string;
+  type: 'multiple_choice' | 'text';
+  options?: string[];
+  selected: number | string;
+  required: boolean;
+}
+
+interface QuestionAnswer {
+  question_id: string;
+  answer: string;
+}
+
+interface LogoVariant {
+  id: string;
+  variant_number: number;
+  is_selected: boolean;
+  file_path: string;
+  generation_prompt: string;
+  model_used: string;
+  generation_time_ms: number;
+  generation_cost_usd: number;
+  created_at: string;
+  public_url?: string;
+  asset_pack?: AssetPack | null;
+}
+
+interface TeamLogo {
+  id: string;
+  flow_id: string;
+  file_path: string;
+  file_size?: number;
+  mime_type?: string;
+  storage_bucket: string;
+  variant_number: number;
+  is_selected: boolean;
+  generation_prompt: string;
+  model_used: string;
+  generation_time_ms: number;
+  generation_cost_usd: number;
+  created_at: string;
+  updated_at: string;
+  public_url?: string;
+  asset_pack?: AssetPack | null;
+}
+
+interface AssetPack {
+  id: string;
+  flow_id: string;
+  logo_id: string;
+  asset_pack_id: string;
+  clean_logo_url: string;
+  tshirt_front_url: string;
+  tshirt_back_url: string;
+  banner_url?: string;
+  processing_time_ms: number;
   created_at: string;
   updated_at: string;
 }
@@ -34,6 +99,7 @@ export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalPr
   const [flowDetails, setFlowDetails] = useState<FlowDetails | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [regeneratingAssets, setRegeneratingAssets] = useState(false);
 
   const loadFlowDetails = useCallback(async () => {
     if (!flowId) return;
@@ -48,6 +114,9 @@ export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalPr
       }
 
       const result = await response.json();
+      console.log('🔍 FlowDetailsModal: Raw flow data received:', result.data);
+      console.log('🔍 FlowDetailsModal: round2_questions:', result.data.round2_questions);
+      console.log('🔍 FlowDetailsModal: round2_answers:', result.data.round2_answers);
       setFlowDetails(result.data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load flow details');
@@ -76,6 +145,65 @@ export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalPr
         return 'bg-yellow-100 text-yellow-800';
       default:
         return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const handleRegenerateAssets = async () => {
+    if (!flowDetails || !flowDetails.selected_logo_id) {
+      setError('No selected logo found for asset generation');
+      return;
+    }
+
+    try {
+      setRegeneratingAssets(true);
+      setError(null);
+
+      // Find the selected logo
+      const selectedLogo = (flowDetails.logo_variants || flowDetails.team_logos || []).find(
+        (logo: LogoVariant | TeamLogo) => logo.is_selected
+      );
+
+      if (!selectedLogo || !selectedLogo.public_url) {
+        setError('Selected logo not found or has no public URL');
+        return;
+      }
+
+      // Call the asset pack generation API
+      const response = await fetch('/api/asset-packs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          flow_id: flowDetails.id,
+          logo_url: selectedLogo.public_url,
+          team_name: flowDetails.team_name,
+          players: flowDetails.player_roster || [
+            { number: 1, name: "Captain" },
+            { number: 2, name: "Vice Captain" },
+            { number: 3, name: "Starter" },
+            { number: 4, name: "Starter" },
+            { number: 5, name: "Starter" }
+          ]
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to regenerate assets');
+      }
+
+      const result = await response.json();
+      console.log('✅ Assets regenerated successfully:', result);
+
+      // Reload flow details to get updated asset pack data
+      await loadFlowDetails();
+
+    } catch (err) {
+      console.error('❌ Error regenerating assets:', err);
+      setError(err instanceof Error ? err.message : 'Failed to regenerate assets');
+    } finally {
+      setRegeneratingAssets(false);
     }
   };
 
@@ -134,49 +262,11 @@ export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalPr
 
           {flowDetails && (
             <div className="space-y-6">
-              {/* Selected Logo Preview */}
-              {flowDetails.logo_variants && flowDetails.logo_variants.length > 0 && (
-                <div className="bg-gradient-to-r from-purple-50 to-blue-50 p-6 rounded-lg border-2 border-purple-200">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">Selected Logo</h3>
-                  <div className="flex items-center space-x-6">
-                    {(() => {
-                      const selectedLogo = flowDetails.logo_variants.find((logo: any) => logo.is_selected);
-                      if (selectedLogo && selectedLogo.public_url) {
-                        return (
-                          <>
-                            <div className="flex-shrink-0">
-                              <div className="w-24 h-24 bg-white rounded-lg shadow-md flex items-center justify-center p-2">
-                                <Image
-                                  src={selectedLogo.public_url}
-                                  alt="Selected logo"
-                                  width={80}
-                                  height={80}
-                                  className="max-w-full max-h-full object-contain"
-                                  unoptimized
-                                />
-                              </div>
-                            </div>
-                            <div className="flex-1">
-                              <h4 className="text-lg font-semibold text-gray-900">
-                                {flowDetails.team_name} Logo
-                              </h4>
-                              <p className="text-sm text-gray-600 mb-2">
-                                Variant {selectedLogo.variant_number} • {selectedLogo.model_used}
-                              </p>
-                              <div className="flex space-x-4 text-xs text-gray-500">
-                                <span>Generated in {selectedLogo.generation_time_ms}ms</span>
-                                <span>Cost: ${selectedLogo.generation_cost_usd?.toFixed(4)}</span>
-                              </div>
-                            </div>
-                            <div className="flex-shrink-0 space-x-2">
-                              <a
-                                href={selectedLogo.public_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold py-2 px-4 rounded-lg transition-colors"
-                              >
-                                View Full Size
-                              </a>
+              {/* Flow Overview */}
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg border-2 border-blue-200">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-semibold text-gray-900">Flow Overview</h3>
+                  <div className="flex space-x-2">
                               <a
                                 href={`/results/${flowDetails.id}`}
                                 target="_blank"
@@ -186,48 +276,48 @@ export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalPr
                                 View Results Page
                               </a>
                             </div>
-                          </>
-                        );
-                      } else {
-                        return (
-                          <div className="text-center text-gray-500 py-8">
-                            <div className="text-4xl mb-2">🎨</div>
-                            <p>No logo selected yet</p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <span className="text-sm font-medium text-gray-500">Team Name:</span>
+                    <p className="text-lg font-semibold text-gray-900">{flowDetails.team_name}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-gray-500">Sport:</span>
+                    <p className="text-lg font-semibold text-gray-900">{flowDetails.sport}</p>
                           </div>
-                        );
-                      }
-                    })()}
+                  <div>
+                    <span className="text-sm font-medium text-gray-500">Status:</span>
+                    <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${getStepColor(flowDetails.current_step)}`}>
+                      {flowDetails.current_step}
+                    </span>
                   </div>
                 </div>
-              )}
+              </div>
 
-              {/* Basic Info */}
+              {/* Basic Information */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="bg-gray-50 p-4 rounded-lg">
-                  <h3 className="text-lg font-medium text-gray-900 mb-3">Basic Information</h3>
+                  <h3 className="text-lg font-medium text-gray-900 mb-3">Flow Details</h3>
                   <div className="space-y-2">
                     <div>
-                      <span className="text-sm font-medium text-gray-500">Team Name:</span>
-                      <span className="ml-2 text-sm text-gray-900">{flowDetails.team_name}</span>
+                      <span className="text-sm font-medium text-gray-500">Flow ID:</span>
+                      <span className="ml-2 text-xs text-gray-600 font-mono">{flowDetails.id}</span>
                     </div>
                     <div>
-                      <span className="text-sm font-medium text-gray-500">Sport:</span>
-                      <span className="ml-2 text-sm text-gray-900">{flowDetails.sport}</span>
-                    </div>
-                    <div>
-                      <span className="text-sm font-medium text-gray-500">Age Group:</span>
-                      <span className="ml-2 text-sm text-gray-900">{flowDetails.age_group}</span>
-                    </div>
-                    <div>
-                      <span className="text-sm font-medium text-gray-500">Status:</span>
-                      <span className={`ml-2 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStepColor(flowDetails.current_step)}`}>
-                        {flowDetails.current_step}
-                      </span>
+                      <span className="text-sm font-medium text-gray-500">Session ID:</span>
+                      <span className="ml-2 text-xs text-gray-600 font-mono">{flowDetails.user_session_id}</span>
                     </div>
                     <div>
                       <span className="text-sm font-medium text-gray-500">Debug Mode:</span>
                       <span className="ml-2 text-sm text-gray-900">
                         {flowDetails.debug_mode ? 'Yes' : 'No'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium text-gray-500">Active:</span>
+                      <span className="ml-2 text-sm text-gray-900">
+                        {flowDetails.is_active ? 'Yes' : 'No'}
                       </span>
                     </div>
                   </div>
@@ -248,12 +338,14 @@ export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalPr
                         {formatDate(flowDetails.updated_at)}
                       </span>
                     </div>
+                    {flowDetails.logo_generated_at && (
                     <div>
-                      <span className="text-sm font-medium text-gray-500">Flow ID:</span>
-                      <span className="ml-2 text-xs text-gray-600 font-mono">
-                        {flowDetails.id}
+                        <span className="text-sm font-medium text-gray-500">Logo Generated:</span>
+                        <span className="ml-2 text-sm text-gray-900">
+                          {formatDate(flowDetails.logo_generated_at)}
                       </span>
                     </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -261,49 +353,131 @@ export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalPr
               {/* Round 1 Answers */}
               <div className="bg-blue-50 p-4 rounded-lg">
                 <h3 className="text-lg font-medium text-gray-900 mb-3">Round 1 Answers</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <span className="text-sm font-medium text-gray-500">Team Name:</span>
-                    <p className="text-sm text-gray-900">{flowDetails.round1_answers?.team_name || 'N/A'}</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {Object.entries(flowDetails.round1_answers || {}).map(([key, value]) => (
+                    <div key={key}>
+                      <span className="text-sm font-medium text-gray-500 capitalize">
+                        {key.replace(/_/g, ' ')}:
+                      </span>
+                      <p className="text-sm text-gray-900">{String(value) || 'N/A'}</p>
                   </div>
-                  <div>
-                    <span className="text-sm font-medium text-gray-500">Sport:</span>
-                    <p className="text-sm text-gray-900">{flowDetails.round1_answers?.sport || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <span className="text-sm font-medium text-gray-500">Age Group:</span>
-                    <p className="text-sm text-gray-900">{flowDetails.round1_answers?.age_group || 'N/A'}</p>
-                  </div>
+                  ))}
                 </div>
               </div>
 
               {/* Round 2 Questions & Answers */}
               {flowDetails.round2_questions && flowDetails.round2_questions.length > 0 && (
                 <div className="bg-green-50 p-4 rounded-lg">
-                  <h3 className="text-lg font-medium text-gray-900 mb-3">Round 2 Questions & Answers</h3>
+                  <h3 className="text-lg font-medium text-gray-900 mb-3">
+                    Round 2 Questions & Answers ({flowDetails.round2_questions.length} questions)
+                  </h3>
+                  
+                  {/* Debug info for round2_answers */}
+                  <div className="mb-4 p-3 bg-yellow-100 rounded text-sm">
+                    <p><strong>Debug - Round 2 Answers Structure:</strong></p>
+                    <p>Questions count: {flowDetails.round2_questions?.length || 0}</p>
+                    <p>Answers count: {flowDetails.round2_answers?.length || 0}</p>
+                    <p>Answers type: {Array.isArray(flowDetails.round2_answers) ? 'Array' : typeof flowDetails.round2_answers}</p>
+                    <p>Answers exists: {flowDetails.round2_answers ? 'Yes' : 'No'}</p>
+                    <p>Answers null/undefined: {flowDetails.round2_answers === null ? 'Null' : flowDetails.round2_answers === undefined ? 'Undefined' : 'Neither'}</p>
+                    <details className="mt-2">
+                      <summary className="cursor-pointer text-blue-600 hover:text-blue-800">View raw answers data</summary>
+                      <pre className="mt-2 text-xs bg-white p-2 rounded overflow-auto max-h-32">
+                        {JSON.stringify(flowDetails.round2_answers, null, 2)}
+                      </pre>
+                    </details>
+                    <details className="mt-2">
+                      <summary className="cursor-pointer text-blue-600 hover:text-blue-800">View raw questions data</summary>
+                      <pre className="mt-2 text-xs bg-white p-2 rounded overflow-auto max-h-32">
+                        {JSON.stringify(flowDetails.round2_questions, null, 2)}
+                      </pre>
+                    </details>
+                  </div>
+                  
                   <div className="space-y-4">
-                    {flowDetails.round2_questions.map((question: any, index: number) => {
-                      const answer = flowDetails.round2_answers?.find((a: any) => a.question_id === question.id);
+                    {flowDetails.round2_questions.map((question: Question, index: number) => {
+                      // Try to find answer in different possible structures
+                      let answer = null;
+                      let answerText = '';
+                      
+                      if (Array.isArray(flowDetails.round2_answers)) {
+                        // Look for QuestionAnswer structure
+                        const questionAnswer = flowDetails.round2_answers.find((a: any) => a.question_id === question.id);
+                        if (questionAnswer) {
+                          answer = questionAnswer;
+                          answerText = questionAnswer.answer;
+                        } else {
+                          // Check if round2_answers contains Question objects with selected field
+                          const questionWithAnswer = flowDetails.round2_answers.find((q: any) => q.id === question.id);
+                          if (questionWithAnswer && (questionWithAnswer as any).selected !== undefined) {
+                            answer = questionWithAnswer;
+                            if ((questionWithAnswer as any).type === 'text') {
+                              answerText = (questionWithAnswer as any).selected as string;
+                            } else if ((questionWithAnswer as any).type === 'multiple_choice' && (questionWithAnswer as any).options) {
+                              const selectedIndex = (questionWithAnswer as any).selected as number;
+                              answerText = (questionWithAnswer as any).options[selectedIndex] || '';
+                            }
+                          }
+                        }
+                      }
+                      
                       return (
-                        <div key={question.id} className="border border-green-200 rounded-md p-3">
-                          <div className="flex justify-between items-start mb-2">
+                        <div key={question.id} className="border border-green-200 rounded-md p-4 bg-white">
+                          <div className="flex justify-between items-start mb-3">
                             <h4 className="text-sm font-medium text-gray-900">
                               Q{index + 1}: {question.text}
                             </h4>
-                            <span className="text-xs text-gray-500">
-                              {question.type}
+                            <div className="flex space-x-2">
+                              <span className={`text-xs px-2 py-1 rounded-full ${
+                                question.type === 'multiple_choice' 
+                                  ? 'bg-blue-100 text-blue-800' 
+                                  : 'bg-green-100 text-green-800'
+                              }`}>
+                                {question.type.replace('_', ' ')}
+                              </span>
+                              {question.required && (
+                                <span className="text-xs px-2 py-1 rounded-full bg-red-100 text-red-800">
+                                  Required
                             </span>
-                          </div>
-                          <div className="space-y-1">
-                            <div className="text-sm text-gray-600">
-                              Options: {question.options?.join(', ')}
+                              )}
                             </div>
-                            {answer && (
-                              <div className="text-sm text-green-700 font-medium">
-                                Answer: {answer.answer || 'No answer provided'}
+                          </div>
+                          
+                          {question.options && question.options.length > 0 && (
+                            <div className="mb-3">
+                              <p className="text-xs font-medium text-gray-500 mb-1">Options:</p>
+                              <div className="flex flex-wrap gap-1">
+                                {question.options.map((option, optIndex) => (
+                                  <span 
+                                    key={optIndex}
+                                    className={`text-xs px-2 py-1 rounded ${
+                                      question.selected === optIndex 
+                                        ? 'bg-green-200 text-green-800 font-medium' 
+                                        : 'bg-gray-100 text-gray-600'
+                                    }`}
+                                  >
+                                    {option}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {answer && answerText ? (
+                            <div className="bg-green-100 p-3 rounded">
+                              <p className="text-xs font-medium text-gray-500 mb-1">Answer:</p>
+                              <p className="text-sm text-green-800 font-medium">
+                                {answerText}
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="bg-gray-100 p-3 rounded">
+                              <p className="text-xs font-medium text-gray-500 mb-1">Answer:</p>
+                              <p className="text-sm text-gray-600 italic">
+                                No answer provided
+                              </p>
                               </div>
                             )}
-                          </div>
                         </div>
                       );
                     })}
@@ -311,12 +485,69 @@ export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalPr
                 </div>
               )}
 
-              {/* Logo Variants */}
-              {flowDetails.logo_variants && flowDetails.logo_variants.length > 0 && (
+              {/* Contact Information */}
+              {(flowDetails.contact_email || flowDetails.contact_phone) && (
+                <div className="bg-indigo-50 p-4 rounded-lg">
+                  <h3 className="text-lg font-medium text-gray-900 mb-3">Contact Information</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {flowDetails.contact_email && (
+                      <div>
+                        <span className="text-sm font-medium text-gray-500">Email:</span>
+                        <p className="text-sm text-gray-900">{flowDetails.contact_email}</p>
+                      </div>
+                    )}
+                    {flowDetails.contact_phone && (
+                      <div>
+                        <span className="text-sm font-medium text-gray-500">Phone:</span>
+                        <p className="text-sm text-gray-900">{flowDetails.contact_phone}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Player Roster */}
+              {flowDetails.player_roster && flowDetails.player_roster.length > 0 && (
+                <div className="bg-orange-50 p-4 rounded-lg">
+                  <h3 className="text-lg font-medium text-gray-900 mb-3">
+                    Player Roster ({flowDetails.player_roster.length} players)
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {flowDetails.player_roster.map((player, index) => (
+                      <div key={player.id} className="bg-white p-3 rounded border border-orange-200">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-8 h-8 bg-orange-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                            {player.number}
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">{player.firstName}</p>
+                            <p className="text-xs text-gray-500">#{player.number}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Logo Prompt */}
+              {flowDetails.logo_prompt && (
+                <div className="bg-yellow-50 p-4 rounded-lg">
+                  <h3 className="text-lg font-medium text-gray-900 mb-3">Logo Generation Prompt</h3>
+                  <div className="bg-white p-3 rounded border border-yellow-200">
+                    <p className="text-sm text-gray-700">{flowDetails.logo_prompt}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Generated Logos */}
+              {(flowDetails.logo_variants && flowDetails.logo_variants.length > 0) || (flowDetails.team_logos && flowDetails.team_logos.length > 0) ? (
                 <div className="bg-purple-50 p-4 rounded-lg">
-                  <h3 className="text-lg font-medium text-gray-900 mb-3">Generated Logos</h3>
+                  <h3 className="text-lg font-medium text-gray-900 mb-3">
+                    Generated Logos ({flowDetails.logo_variants?.length || flowDetails.team_logos?.length || 0} variants)
+                  </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {flowDetails.logo_variants.map((logo: any, index: number) => (
+                    {(flowDetails.logo_variants || flowDetails.team_logos || []).map((logo: LogoVariant | TeamLogo, index: number) => (
                       <div 
                         key={logo.id} 
                         className={`relative border-2 rounded-lg p-4 transition-all duration-200 ${
@@ -379,6 +610,12 @@ export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalPr
                               <span>Cost:</span>
                               <span>${logo.generation_cost_usd?.toFixed(4)}</span>
                             </div>
+                            {(logo as any).file_size && (
+                              <div className="flex justify-between">
+                                <span>Size:</span>
+                                <span>{((logo as any).file_size / 1024).toFixed(1)}KB</span>
+                              </div>
+                            )}
                           </div>
 
                           {logo.public_url && (
@@ -393,12 +630,254 @@ export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalPr
                               </a>
                             </div>
                           )}
+
+                          {/* Asset Pack Info */}
+                          {logo.asset_pack && (
+                            <div className="mt-3 pt-2 border-t border-gray-200">
+                              <p className="text-xs font-medium text-gray-500 mb-1">Asset Pack:</p>
+                              <div className="space-y-1 text-xs text-gray-600">
+                                <div className="flex justify-between">
+                                  <span>Processing:</span>
+                                  <span>{logo.asset_pack.processing_time_ms}ms</span>
+                                </div>
+                                {logo.asset_pack.clean_logo_url && (
+                                  <a
+                                    href={logo.asset_pack.clean_logo_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:text-blue-800 underline block"
+                                  >
+                                    Clean Logo →
+                                  </a>
+                                )}
+                                {logo.asset_pack.tshirt_front_url && (
+                                  <a
+                                    href={logo.asset_pack.tshirt_front_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:text-blue-800 underline block"
+                                  >
+                                    T-Shirt Front →
+                                  </a>
+                                )}
+                                {logo.asset_pack.banner_url && (
+                                  <a
+                                    href={logo.asset_pack.banner_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:text-blue-800 underline block"
+                                  >
+                                    Banner →
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))}
                   </div>
                 </div>
+              ) : (
+                <div className="bg-gray-50 p-4 rounded-lg text-center">
+                  <div className="text-4xl mb-2">🎨</div>
+                  <p className="text-gray-500">No logos generated yet</p>
+                </div>
               )}
+
+              {/* Asset Pack Section */}
+              <div className="bg-gradient-to-r from-orange-50 to-red-50 p-4 rounded-lg border-2 border-orange-200">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-medium text-gray-900">Asset Pack</h3>
+                  <button
+                    onClick={handleRegenerateAssets}
+                    disabled={regeneratingAssets || !flowDetails.selected_logo_id}
+                    className={`px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${
+                      regeneratingAssets || !flowDetails.selected_logo_id
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : 'bg-orange-600 hover:bg-orange-700 text-white'
+                    }`}
+                  >
+                    {regeneratingAssets ? (
+                      <div className="flex items-center space-x-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        <span>Regenerating...</span>
+                      </div>
+                    ) : (
+                      'Regenerate Assets'
+                    )}
+                  </button>
+                </div>
+
+                {/* Check if any logos have asset packs */}
+                {(() => {
+                  const logosWithAssets = (flowDetails.logo_variants || flowDetails.team_logos || []).filter(
+                    (logo: LogoVariant | TeamLogo) => logo.asset_pack
+                  );
+
+                  if (logosWithAssets.length === 0) {
+                    return (
+                      <div className="text-center py-8">
+                        <div className="text-4xl mb-2">📦</div>
+                        <p className="text-gray-500 mb-2">No asset packs generated yet</p>
+                        <p className="text-sm text-gray-400">
+                          {flowDetails.selected_logo_id 
+                            ? 'Click "Regenerate Assets" to create asset pack' 
+                            : 'Select a logo first to generate assets'
+                          }
+                        </p>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="space-y-4">
+                      {logosWithAssets.map((logo: LogoVariant | TeamLogo) => (
+                        <div key={logo.id} className="bg-white p-4 rounded-lg border border-orange-200">
+                          <div className="flex items-center justify-between mb-3">
+                            <h4 className="text-sm font-medium text-gray-900">
+                              Asset Pack for Variant {logo.variant_number}
+                            </h4>
+                            {logo.is_selected && (
+                              <span className="text-xs bg-orange-500 text-white px-2 py-1 rounded-full">
+                                Selected Logo
+                              </span>
+                            )}
+                          </div>
+
+                          {logo.asset_pack && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                              {/* Clean Logo */}
+                              {logo.asset_pack.clean_logo_url && (
+                                <div className="text-center">
+                                  <div className="aspect-square bg-gray-100 rounded-lg mb-2 flex items-center justify-center p-2">
+                                    <Image
+                                      src={logo.asset_pack.clean_logo_url}
+                                      alt="Clean Logo"
+                                      width={100}
+                                      height={100}
+                                      className="max-w-full max-h-full object-contain"
+                                      unoptimized
+                                    />
+                                  </div>
+                                  <p className="text-xs font-medium text-gray-700 mb-1">Clean Logo</p>
+                                  <a
+                                    href={logo.asset_pack.clean_logo_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:text-blue-800 underline text-xs"
+                                  >
+                                    View Full Size →
+                                  </a>
+                                </div>
+                              )}
+
+                              {/* T-Shirt Front */}
+                              {logo.asset_pack.tshirt_front_url && (
+                                <div className="text-center">
+                                  <div className="aspect-square bg-gray-100 rounded-lg mb-2 flex items-center justify-center p-2">
+                                    <Image
+                                      src={logo.asset_pack.tshirt_front_url}
+                                      alt="T-Shirt Front"
+                                      width={100}
+                                      height={100}
+                                      className="max-w-full max-h-full object-contain"
+                                      unoptimized
+                                    />
+                                  </div>
+                                  <p className="text-xs font-medium text-gray-700 mb-1">T-Shirt Front</p>
+                                  <a
+                                    href={logo.asset_pack.tshirt_front_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:text-blue-800 underline text-xs"
+                                  >
+                                    View Full Size →
+                                  </a>
+                                </div>
+                              )}
+
+                              {/* T-Shirt Back */}
+                              {logo.asset_pack.tshirt_back_url && (
+                                <div className="text-center">
+                                  <div className="aspect-square bg-gray-100 rounded-lg mb-2 flex items-center justify-center p-2">
+                                    <Image
+                                      src={logo.asset_pack.tshirt_back_url}
+                                      alt="T-Shirt Back"
+                                      width={100}
+                                      height={100}
+                                      className="max-w-full max-h-full object-contain"
+                                      unoptimized
+                                    />
+                                  </div>
+                                  <p className="text-xs font-medium text-gray-700 mb-1">T-Shirt Back</p>
+                                  <a
+                                    href={logo.asset_pack.tshirt_back_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:text-blue-800 underline text-xs"
+                                  >
+                                    View Full Size →
+                                  </a>
+                                </div>
+                              )}
+
+                              {/* Banner */}
+                              {logo.asset_pack.banner_url && (
+                                <div className="text-center">
+                                  <div className="aspect-square bg-gray-100 rounded-lg mb-2 flex items-center justify-center p-2">
+                                    <Image
+                                      src={logo.asset_pack.banner_url}
+                                      alt="Banner"
+                                      width={100}
+                                      height={100}
+                                      className="max-w-full max-h-full object-contain"
+                                      unoptimized
+                                    />
+                                  </div>
+                                  <p className="text-xs font-medium text-gray-700 mb-1">Banner</p>
+                                  <a
+                                    href={logo.asset_pack.banner_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:text-blue-800 underline text-xs"
+                                  >
+                                    View Full Size →
+                                  </a>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Asset Pack Metadata */}
+                          {logo.asset_pack && (
+                            <div className="mt-4 pt-3 border-t border-gray-200">
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs text-gray-600">
+                                <div>
+                                  <span className="font-medium">Processing Time:</span>
+                                  <p>{logo.asset_pack.processing_time_ms}ms</p>
+                                </div>
+                                <div>
+                                  <span className="font-medium">Created:</span>
+                                  <p>{formatDate(logo.asset_pack.created_at)}</p>
+                                </div>
+                                <div>
+                                  <span className="font-medium">Asset Pack ID:</span>
+                                  <p className="font-mono text-xs">{logo.asset_pack.asset_pack_id}</p>
+                                </div>
+                                <div>
+                                  <span className="font-medium">Logo ID:</span>
+                                  <p className="font-mono text-xs">{logo.asset_pack.logo_id}</p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
 
               {/* Debug Information */}
               {flowDetails.debug_mode && (
