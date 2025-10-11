@@ -539,7 +539,7 @@ Generate detailed prompt for gpt-image-1.`;
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          logo_url: logoUrl,
+          logo_id: logoId, // Use logo_id instead of logo_url to get flow_id from database
           team_name: 'Team', // We'll get this from the flow data
           players: [
             { number: 1, name: "Captain" },
