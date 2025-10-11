@@ -1,3 +1,7 @@
 [deploy]
 healthcheckPath = "/health"
 healthcheckTimeout = 300
+
+[env]
+STORAGE_TYPE = "local"
+SUPABASE_ENABLED = "false"
