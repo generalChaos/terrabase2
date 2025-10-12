@@ -34,10 +34,13 @@ import os
 
 # Supabase configuration
 SUPABASE_URL = os.getenv("SUPABASE_URL", "http://127.0.0.1:54321")
-SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+# Try multiple environment variable names for the service key
+SUPABASE_SERVICE_KEY = (os.getenv("SUPABASE_SERVICE_KEY") or 
+                       os.getenv("SUPABASE_SERVICE_ROLE_KEY") or 
+                       os.getenv("SUPABASE_ANON_KEY"))
 
 if not SUPABASE_SERVICE_KEY:
-    raise ValueError("SUPABASE_SERVICE_ROLE_KEY environment variable is required")
+    raise ValueError("SUPABASE_SERVICE_KEY or SUPABASE_SERVICE_ROLE_KEY environment variable is required")
 
 supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 

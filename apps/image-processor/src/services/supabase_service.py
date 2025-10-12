@@ -17,10 +17,13 @@ class SupabaseService:
     
     def __init__(self):
         self.supabase_url = os.getenv("SUPABASE_URL", "http://127.0.0.1:54321")
-        self.supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+        # Try multiple environment variable names for the service key
+        self.supabase_key = (os.getenv("SUPABASE_SERVICE_KEY") or 
+                           os.getenv("SUPABASE_SERVICE_ROLE_KEY") or 
+                           os.getenv("SUPABASE_ANON_KEY"))
         
         if not self.supabase_key:
-            raise ValueError("SUPABASE_SERVICE_ROLE_KEY environment variable is required")
+            raise ValueError("SUPABASE_SERVICE_KEY or SUPABASE_SERVICE_ROLE_KEY environment variable is required")
         
         self.client = create_client(self.supabase_url, self.supabase_key)
         logger.info(f"Supabase client initialized for {self.supabase_url}")
