@@ -45,7 +45,9 @@ export class ImageGenerationService {
 
 STYLE: ${options.style}
 COLORS: ${options.colors}
+CUSTOM COLORS: ${options.customColors || ''}
 MASCOT: ${options.mascot}
+MASCOT TYPE: ${options.mascotType || 'AUTO_DETERMINED'}
 
 ART STYLE REQUIREMENTS:
 - Use illustrative art style with bold, clean lines

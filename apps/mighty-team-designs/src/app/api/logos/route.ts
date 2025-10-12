@@ -12,6 +12,8 @@ const GenerateLogoSchema = z.object({
   logo_style: z.string(),
   colors: z.string(),
   mascot: z.string(),
+  custom_colors: z.string().optional(),
+  mascot_type: z.string().optional(),
   variant_count: z.number().min(1).max(3).optional().default(1)
 });
 
@@ -24,6 +26,8 @@ export async function POST(request: NextRequest) {
     // Use the direct color and mascot descriptions from the frontend
     const colorDescription = validatedData.colors;
     const mascotDescription = validatedData.mascot;
+    const customColors = validatedData.custom_colors || '';
+    const mascotType = validatedData.mascot_type || 'AUTO_DETERMINED';
 
     console.log('=== API ROUTE DEBUG ===');
     console.log('📥 Received request body:', JSON.stringify({
@@ -33,12 +37,15 @@ export async function POST(request: NextRequest) {
       logo_style: validatedData.logo_style,
       colors: validatedData.colors,
       mascot: validatedData.mascot,
+      custom_colors: validatedData.custom_colors,
+      mascot_type: validatedData.mascot_type,
       variant_count: validatedData.variant_count
     }, null, 2));
     
     console.log('🎨 Color Description:', colorDescription);
+    console.log('🎨 Custom Colors:', customColors);
     console.log('🦅 Mascot Description:', mascotDescription);
-
+    console.log('🦅 Mascot Type:', mascotType);
 
     // Generate logos using the real image generation service
     const generatedLogos = await ImageGenerationService.generateLogos(validatedData.flow_id, {
@@ -46,7 +53,9 @@ export async function POST(request: NextRequest) {
       sport: validatedData.sport,
       style: validatedData.logo_style,
       colors: colorDescription,
+      customColors: customColors,
       mascot: mascotDescription,
+      mascotType: mascotType,
       variantCount: validatedData.variant_count
     });
 
