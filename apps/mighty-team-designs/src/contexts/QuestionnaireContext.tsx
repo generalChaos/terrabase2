@@ -318,12 +318,22 @@ export function QuestionnaireProvider({ children }: { children: React.ReactNode 
         ? selectedMascot.description
         : state.customMascotInput || 'hawk';
 
+      // Determine if custom colors are being used
+      const isCustomColor = selectedColor?.id === 'custom_colors' || !selectedColor;
+      const customColors = isCustomColor ? (state.customColorInput || '') : '';
+
+      // Determine if custom mascot is being used
+      const isCustomMascot = selectedMascot?.id === 'custom_mascot' || !selectedMascot;
+      const customMascotDescription = isCustomMascot ? (state.customMascotInput || '') : '';
+
       console.log('📤 Sending to API:');
       console.log('  - Team Name:', state.round1Answers.team_name);
       console.log('  - Sport:', state.round1Answers.sport);
       console.log('  - Logo Style:', state.round1Answers.logo_style);
       console.log('  - Colors:', colorDescription);
+      console.log('  - Custom Colors:', customColors);
       console.log('  - Mascot:', mascotDescription);
+      console.log('  - Custom Mascot:', customMascotDescription);
 
       const response = await fetch('/api/logos', {
         method: 'POST',
@@ -334,7 +344,9 @@ export function QuestionnaireProvider({ children }: { children: React.ReactNode 
           sport: state.round1Answers.sport,
           logo_style: state.round1Answers.logo_style,
           colors: colorDescription,
+          custom_colors: customColors,
           mascot: mascotDescription,
+          mascot_type: 'AUTO_DETERMINED',
           variant_count: 3
         })
       });

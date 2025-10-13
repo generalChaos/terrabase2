@@ -305,13 +305,33 @@ export class TeamDesignService {
       const colorOptions = round2Answers.find(a => a.id === 'colors')?.options || ['Team colors', 'Custom colors', 'Classic colors'];
       const mascotOptions = round2Answers.find(a => a.id === 'mascot')?.options || ['Yes', 'No', 'Text only'];
 
+      // Extract custom colors and mascot description
+      const customColorsQuestion = round2Answers.find(a => a.id === 'custom_colors');
+      const mascotDescriptionQuestion = round2Answers.find(a => a.id === 'mascot_description');
+      
+      const customColors = typeof customColorsQuestion?.selected === 'string' ? customColorsQuestion.selected : '';
+      const mascotDescription = typeof mascotDescriptionQuestion?.selected === 'string' ? mascotDescriptionQuestion.selected : '';
+
+      // Determine final values for prompt
+      const finalStyle = styleOptions[style as number];
+      const finalColors = colorOptions[colors as number];
+      const finalCustomColors = finalColors === 'Input custom colors' ? customColors : '';
+      
+      // Determine mascot based on user choice
+      const useAIGuess = mascotOptions[mascot as number] === 'Yes, use our guess';
+      const finalMascot = useAIGuess ? 'AI_INFERRED_FROM_TEAM_NAME' : mascotDescription;
+      const mascotType = 'AUTO_DETERMINED'; // AI will determine type based on mascot description
+
       // Prepare the prompt with team data
       const promptText = prompt.prompt_text
         .replace('{team}', teamName)
         .replace('{sport}', sport)
-        .replace('{style}', styleOptions[style as number])
-        .replace('{colors}', colorOptions[colors as number])
-        .replace('{mascot}', mascotOptions[mascot as number]);
+        .replace('{style}', finalStyle)
+        .replace('{colors}', finalColors)
+        .replace('{custom_colors}', finalCustomColors)
+        .replace('{mascot}', finalMascot)
+        .replace('{mascot_type}', mascotType)
+        .replace('{age_group}', ageGroup);
 
       const startTime = Date.now();
       const generatedLogos: LogoVariant[] = [];
