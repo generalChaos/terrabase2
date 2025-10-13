@@ -313,18 +313,17 @@ export function QuestionnaireProvider({ children }: { children: React.ReactNode 
         ? selectedColor.name  // Use the name like "Blue & White" instead of description
         : state.customColorInput || 'blue and white';
 
+      // Determine if custom mascot is being used
+      const isCustomMascot = state.selectedMascot === 'custom_mascot';
+      
       // Create mascot description
-      const mascotDescription = selectedMascot 
-        ? selectedMascot.description
-        : state.customMascotInput || 'hawk';
+      const mascotDescription = isCustomMascot 
+        ? state.customMascotInput || 'hawk'
+        : selectedMascot?.description || 'hawk';
 
       // Determine if custom colors are being used
       const isCustomColor = selectedColor?.id === 'custom_colors' || !selectedColor;
       const customColors = isCustomColor ? (state.customColorInput || '') : '';
-
-      // Determine if custom mascot is being used
-      const isCustomMascot = selectedMascot?.id === 'custom_mascot' || !selectedMascot;
-      const customMascotDescription = isCustomMascot ? (state.customMascotInput || '') : '';
 
       console.log('📤 Sending to API:');
       console.log('  - Team Name:', state.round1Answers.team_name);
@@ -333,7 +332,8 @@ export function QuestionnaireProvider({ children }: { children: React.ReactNode 
       console.log('  - Colors:', colorDescription);
       console.log('  - Custom Colors:', customColors);
       console.log('  - Mascot:', mascotDescription);
-      console.log('  - Custom Mascot:', customMascotDescription);
+      console.log('  - Is Custom Mascot:', isCustomMascot);
+      console.log('  - Custom Mascot Input:', state.customMascotInput);
 
       const response = await fetch('/api/logos', {
         method: 'POST',

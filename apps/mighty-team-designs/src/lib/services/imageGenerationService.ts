@@ -65,10 +65,11 @@ TEXT REQUIREMENTS:
 - Clean typography with sharp edges
 
 BACKGROUND GUIDELINES:
-- Always include a solid background color for the logo
-- The logo design should be contained within a solid background shape
-- Only the area outside the logo background should be transparent
-- Clean, solid background with no texture or noise
+- Create the logo with a completely transparent background
+- No solid background color needed - use transparent background
+- The entire logo should be on transparent background
+- Ensure the logo design works well on any background color
+- Clean, professional appearance without background artifacts
 
 REQUIREMENTS:
 - High contrast for uniforms and jerseys
@@ -351,8 +352,9 @@ Generate detailed prompt for gpt-image-1.`;
         prompt: promptText,
         n,
         size,
-        quality
-        // Note: gpt-image-1 doesn't support response_format parameter
+        quality,
+        output_format: 'png',          // Required for transparency
+        background: 'transparent'       // Explicitly set transparent background
       });
       
       console.log('✅ OpenAI API response received');
@@ -364,7 +366,7 @@ Generate detailed prompt for gpt-image-1.`;
         throw new Error('No image data received from OpenAI');
       }
 
-      // gpt-image-1 returns URL format, not base64
+      // gpt-image-1 returns URL format with transparent PNG
       console.log('🖼️ Processing image data...');
       console.log('Image data keys:', Object.keys(imageData));
       console.log('Has URL:', !!imageData.url);
@@ -382,7 +384,7 @@ Generate detailed prompt for gpt-image-1.`;
         imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
         console.log('✅ Image fetched successfully, size:', imageBuffer.length, 'bytes');
       } else if (imageData.b64_json) {
-        console.log('📥 Using base64 data');
+        console.log('📥 Using base64 data (fallback)');
         // If base64 format (fallback)
         imageBuffer = Buffer.from(imageData.b64_json, 'base64');
         console.log('✅ Base64 decoded, size:', imageBuffer.length, 'bytes');
