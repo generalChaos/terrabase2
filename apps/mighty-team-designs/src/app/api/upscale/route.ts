@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
       console.log('🔍 Python service call completed');
     } catch (fetchError) {
       console.error('❌ Fetch error:', fetchError);
-      throw new Error(`Failed to connect to Python service: ${fetchError.message}`);
+      throw new Error(`Failed to connect to Python service: ${fetchError instanceof Error ? fetchError.message : 'Unknown error'}`);
     }
 
     console.log('🔍 Python upscaling response status:', pythonResponse.status);

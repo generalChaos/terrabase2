@@ -806,11 +806,11 @@ export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalPr
                               <div className="space-y-1 text-xs text-gray-600">
                                 <div className="flex justify-between">
                                   <span>Processing:</span>
-                                  <span>{logo.asset_pack.processing_time_ms}ms</span>
+                                  <span>{logo.asset_pack?.processing_time_ms || 0}ms</span>
                                 </div>
-                                {logo.asset_pack.clean_logo_url && (
+                                {logo.asset_pack?.clean_logo_url && (
                                   <a
-                                    href={logo.asset_pack.clean_logo_url}
+                                    href={logo.asset_pack?.clean_logo_url}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="text-blue-600 hover:text-blue-800 underline block"
@@ -818,9 +818,9 @@ export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalPr
                                     Clean Logo →
                                   </a>
                                 )}
-                                {logo.asset_pack.tshirt_front_url && (
+                                {logo.asset_pack?.tshirt_front_url && (
                                   <a
-                                    href={logo.asset_pack.tshirt_front_url}
+                                    href={logo.asset_pack?.tshirt_front_url}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="text-blue-600 hover:text-blue-800 underline block"
@@ -828,9 +828,9 @@ export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalPr
                                     T-Shirt Front →
                                   </a>
                                 )}
-                                {logo.asset_pack.banner_url && (
+                                {logo.asset_pack?.banner_url && (
                                   <a
-                                    href={logo.asset_pack.banner_url}
+                                    href={logo.asset_pack?.banner_url}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="text-blue-600 hover:text-blue-800 underline block"
@@ -936,11 +936,11 @@ export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalPr
                           {logo.asset_pack && (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                               {/* Clean Logo */}
-                              {logo.asset_pack.clean_logo_url && (
+                              {logo.asset_pack?.clean_logo_url && (
                                 <div className="text-center">
                                   <div className="aspect-square bg-gray-100 rounded-lg mb-2 flex items-center justify-center p-2">
                                     <Image
-                                      src={logo.asset_pack.clean_logo_url}
+                                      src={logo.asset_pack?.clean_logo_url}
                                       alt="Clean Logo"
                                       width={100}
                                       height={100}
@@ -951,7 +951,7 @@ export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalPr
                                   <p className="text-xs font-medium text-gray-700 mb-1">Clean Logo</p>
                                   <div className="flex space-x-2">
                                     <a
-                                      href={logo.asset_pack.clean_logo_url}
+                                      href={logo.asset_pack?.clean_logo_url}
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       className="text-blue-600 hover:text-blue-800 underline text-xs"
@@ -960,10 +960,11 @@ export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalPr
                                     </a>
                                     <button
                                       onClick={() => downloadAssetPackItem(
-                                        logo.asset_pack.clean_logo_url,
+                                        logo.asset_pack?.clean_logo_url || '',
                                         `${flowDetails.team_name}-clean-logo.png`
                                       )}
                                       className="text-green-600 hover:text-green-800 text-xs"
+                                      disabled={!logo.asset_pack?.clean_logo_url}
                                     >
                                       Download
                                     </button>
@@ -972,11 +973,11 @@ export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalPr
                               )}
 
                               {/* T-Shirt Front */}
-                              {logo.asset_pack.tshirt_front_url && (
+                              {logo.asset_pack?.tshirt_front_url && (
                                 <div className="text-center">
                                   <div className="aspect-square bg-gray-100 rounded-lg mb-2 flex items-center justify-center p-2">
                                     <Image
-                                      src={logo.asset_pack.tshirt_front_url}
+                                      src={logo.asset_pack?.tshirt_front_url}
                                       alt="T-Shirt Front"
                                       width={100}
                                       height={100}
@@ -987,7 +988,7 @@ export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalPr
                                   <p className="text-xs font-medium text-gray-700 mb-1">T-Shirt Front</p>
                                   <div className="flex space-x-2">
                                     <a
-                                      href={logo.asset_pack.tshirt_front_url}
+                                      href={logo.asset_pack?.tshirt_front_url}
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       className="text-blue-600 hover:text-blue-800 underline text-xs"
@@ -996,7 +997,7 @@ export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalPr
                                     </a>
                                     <button
                                       onClick={() => downloadAssetPackItem(
-                                        logo.asset_pack.tshirt_front_url,
+                                        logo.asset_pack?.tshirt_front_url || '',
                                         `${flowDetails.team_name}-tshirt-front.png`
                                       )}
                                       className="text-green-600 hover:text-green-800 text-xs"
@@ -1008,11 +1009,11 @@ export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalPr
                               )}
 
                               {/* T-Shirt Back */}
-                              {logo.asset_pack.tshirt_back_url && (
+                              {logo.asset_pack?.tshirt_back_url && (
                                 <div className="text-center">
                                   <div className="aspect-square bg-gray-100 rounded-lg mb-2 flex items-center justify-center p-2">
                                     <Image
-                                      src={logo.asset_pack.tshirt_back_url}
+                                      src={logo.asset_pack?.tshirt_back_url}
                                       alt="T-Shirt Back"
                                       width={100}
                                       height={100}
@@ -1023,7 +1024,7 @@ export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalPr
                                   <p className="text-xs font-medium text-gray-700 mb-1">T-Shirt Back</p>
                                   <div className="flex space-x-2">
                                     <a
-                                      href={logo.asset_pack.tshirt_back_url}
+                                      href={logo.asset_pack?.tshirt_back_url}
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       className="text-blue-600 hover:text-blue-800 underline text-xs"
@@ -1032,7 +1033,7 @@ export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalPr
                                     </a>
                                     <button
                                       onClick={() => downloadAssetPackItem(
-                                        logo.asset_pack.tshirt_back_url,
+                                        logo.asset_pack?.tshirt_back_url || '',
                                         `${flowDetails.team_name}-tshirt-back.png`
                                       )}
                                       className="text-green-600 hover:text-green-800 text-xs"
@@ -1044,11 +1045,11 @@ export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalPr
                               )}
 
                               {/* Banner */}
-                              {logo.asset_pack.banner_url && (
+                              {logo.asset_pack?.banner_url && (
                                 <div className="text-center">
                                   <div className="aspect-square bg-gray-100 rounded-lg mb-2 flex items-center justify-center p-2">
                                     <Image
-                                      src={logo.asset_pack.banner_url}
+                                      src={logo.asset_pack?.banner_url}
                                       alt="Banner"
                                       width={100}
                                       height={100}
@@ -1059,7 +1060,7 @@ export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalPr
                                   <p className="text-xs font-medium text-gray-700 mb-1">Banner</p>
                                   <div className="flex space-x-2">
                                     <a
-                                      href={logo.asset_pack.banner_url}
+                                      href={logo.asset_pack?.banner_url}
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       className="text-blue-600 hover:text-blue-800 underline text-xs"
@@ -1068,7 +1069,7 @@ export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalPr
                                     </a>
                                     <button
                                       onClick={() => downloadAssetPackItem(
-                                        logo.asset_pack.banner_url,
+                                        logo.asset_pack?.banner_url || '',
                                         `${flowDetails.team_name}-banner.png`
                                       )}
                                       className="text-green-600 hover:text-green-800 text-xs"
@@ -1087,11 +1088,11 @@ export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalPr
                               <h5 className="text-sm font-medium text-gray-900 mb-3">Color Analysis</h5>
                               
                               {/* Role-based Colors */}
-                              {logo.asset_pack.colors.roles && (
+                              {logo.asset_pack?.colors?.roles && (
                                 <div className="mb-4">
                                   <h6 className="text-xs font-medium text-gray-700 mb-2">Color Roles</h6>
                                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                    {Object.entries(logo.asset_pack.colors.roles).map(([role, colorData]) => (
+                                    {Object.entries(logo.asset_pack?.colors?.roles || {}).map(([role, colorData]) => (
                                       <div key={role} className="bg-gray-50 p-2 rounded border">
                                         <div className="flex items-center space-x-2 mb-1">
                                           <div 
@@ -1104,9 +1105,9 @@ export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalPr
                                           <div>{colorData.hex}</div>
                                           <div>{colorData.percent.toFixed(1)}%</div>
                                         </div>
-                                        {logo.asset_pack.colors.confidence_scores && (
+                                        {logo.asset_pack?.colors?.confidence_scores && (
                                           <div className="text-xs text-gray-500 mt-1">
-                                            Confidence: {Math.round(logo.asset_pack.colors.confidence_scores[role as keyof typeof logo.asset_pack.colors.confidence_scores] * 100)}%
+                                            Confidence: {Math.round(((logo.asset_pack?.colors?.confidence_scores as any)?.[role] || 0) * 100)}%
                                           </div>
                                         )}
                                       </div>
@@ -1114,11 +1115,11 @@ export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalPr
                                   </div>
                                   
                                   {/* Assignment Reasons */}
-                                  {logo.asset_pack.colors.assignment_reasons && (
+                                  {logo.asset_pack?.colors?.assignment_reasons && (
                                     <div className="mt-3">
                                       <h6 className="text-xs font-medium text-gray-700 mb-2">Assignment Reasons</h6>
                                       <div className="space-y-1">
-                                        {Object.entries(logo.asset_pack.colors.assignment_reasons).map(([role, reason]) => (
+                                        {Object.entries(logo.asset_pack?.colors?.assignment_reasons || {}).map(([role, reason]) => (
                                           <div key={role} className="text-xs text-gray-600">
                                             <span className="font-medium capitalize">{role}:</span> {reason}
                                           </div>
@@ -1133,23 +1134,23 @@ export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalPr
                               <div className="mb-4">
                                 <h6 className="text-xs font-medium text-gray-700 mb-2">Raw Color Data</h6>
                                 <div className="flex flex-wrap gap-1 mb-2">
-                                  {logo.asset_pack.colors.colors.slice(0, 8).map((color, index) => (
+                                  {logo.asset_pack?.colors?.colors?.slice(0, 8).map((color, index) => (
                                     <div
                                       key={index}
                                       className="w-6 h-6 rounded border border-gray-300"
                                       style={{ backgroundColor: color }}
-                                      title={`${color} (${logo.asset_pack.colors.percentages[index]?.toFixed(1)}%)`}
+                                      title={`${color} (${logo.asset_pack?.colors?.percentages?.[index]?.toFixed(1) || 0}%)`}
                                     ></div>
                                   ))}
-                                  {logo.asset_pack.colors.colors.length > 8 && (
+                                  {(logo.asset_pack?.colors?.colors?.length || 0) > 8 && (
                                     <div className="w-6 h-6 rounded border border-gray-300 bg-gray-100 flex items-center justify-center text-xs text-gray-500">
-                                      +{logo.asset_pack.colors.colors.length - 8}
+                                      +{(logo.asset_pack?.colors?.colors?.length || 0) - 8}
                                     </div>
                                   )}
                                 </div>
                                 <div className="text-xs text-gray-600">
-                                  Total colors: {logo.asset_pack.colors.colors.length} | 
-                                  Pixels analyzed: {logo.asset_pack.colors.total_pixels_analyzed.toLocaleString()}
+                                  Total colors: {logo.asset_pack?.colors?.colors?.length || 0} | 
+                                  Pixels analyzed: {(logo.asset_pack?.colors?.total_pixels_analyzed || 0).toLocaleString()}
                                 </div>
                               </div>
                             </div>
@@ -1161,19 +1162,19 @@ export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalPr
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs text-gray-600">
                                 <div>
                                   <span className="font-medium">Processing Time:</span>
-                                  <p>{logo.asset_pack.processing_time_ms}ms</p>
+                                  <p>{logo.asset_pack?.processing_time_ms || 0}ms</p>
                                 </div>
                                 <div>
                                   <span className="font-medium">Created:</span>
-                                  <p>{formatDate(logo.asset_pack.created_at)}</p>
+                                  <p>{formatDate(logo.asset_pack?.created_at || '')}</p>
                                 </div>
                                 <div>
                                   <span className="font-medium">Asset Pack ID:</span>
-                                  <p className="font-mono text-xs">{logo.asset_pack.asset_pack_id}</p>
+                                  <p className="font-mono text-xs">{logo.asset_pack?.asset_pack_id || 'N/A'}</p>
                                 </div>
                                 <div>
                                   <span className="font-medium">Logo ID:</span>
-                                  <p className="font-mono text-xs">{logo.asset_pack.logo_id}</p>
+                                  <p className="font-mono text-xs">{logo.asset_pack?.logo_id || 'N/A'}</p>
                                 </div>
                               </div>
                             </div>

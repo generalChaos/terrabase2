@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/Button';
 import { ColorPaletteDemo } from '@/components/ColorPaletteDemo';
@@ -369,7 +369,8 @@ export default function ColorAnalyzerPage() {
       hasRunInitialAnalysis.current = true;
       testColorAnalyzer();
     }
-  }, [componentId, imageUrl, testColorAnalyzer]); // Include all dependencies
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [componentId, imageUrl]); // testColorAnalyzer is defined after this useEffect
 
   // Handle sample image selection
   const handleSampleImage = (url: string) => {
@@ -382,7 +383,7 @@ export default function ColorAnalyzerPage() {
   };
 
   // Color Analyzer Test Function
-  const testColorAnalyzer = async () => {
+  const testColorAnalyzer = useCallback(async () => {
     globalRequestCounter++;
     console.log(`🔍 [${componentId}] testColorAnalyzer called (request #${globalRequestCounter}), current status:`, colorAnalyzerTest.status);
     
@@ -485,7 +486,7 @@ export default function ColorAnalyzerPage() {
         error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
-  };
+  }, [componentId, imageUrl, colorAnalyzerTest.status, maxColors, maxSize]);
 
   return (
     <ThemeProvider>

@@ -28,7 +28,7 @@ export async function POST(
       );
     }
 
-    const teamLogos = flow.team_logos || [];
+    const teamLogos = flow.logo_variants || [];
     console.log(`🎨 Found ${teamLogos.length} logos to process`);
 
     const results = [];

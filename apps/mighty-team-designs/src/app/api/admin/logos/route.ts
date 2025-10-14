@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
     const transformedLogos = logos?.map(logo => ({
       id: logo.id,
       public_url: logo.public_url,
-      team_name: logo.flows?.team_name || 'Unknown Team',
+      team_name: logo.flows?.[0]?.team_name || 'Unknown Team',
       variant_number: logo.variant_number,
       created_at: logo.created_at
     })) || [];
