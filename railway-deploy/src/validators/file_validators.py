@@ -15,7 +15,7 @@ class FileValidator:
     """File validation utilities for size, format, and content"""
     
     # File size limits (in bytes)
-    MAX_IMAGE_SIZE = int(os.getenv("MAX_IMAGE_SIZE_BYTES", "10485760"))  # 10MB default
+    MAX_IMAGE_SIZE = int(os.getenv("MAX_IMAGE_SIZE_BYTES", "26214400"))  # 25MB default
     MAX_LOGO_SIZE = int(os.getenv("MAX_LOGO_SIZE_BYTES", "5242880"))     # 5MB default
     MAX_BANNER_SIZE = int(os.getenv("MAX_BANNER_SIZE_BYTES", "15728640")) # 15MB default
     

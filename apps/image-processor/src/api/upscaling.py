@@ -10,7 +10,7 @@ import time
 
 from src.services.upscaler import ImageUpscaler
 from src.validators import InputValidator, ValidationError, FileValidator
-from src.storage import storage_client
+from src.storage import storage
 from src.custom_logging import logger
 
 router = APIRouter()
@@ -50,17 +50,8 @@ async def upscale_image(request: UpscaleRequest):
     start_time = time.time()
     
     try:
-        # Log the request
-        await storage_client.log_processing_request(
-            request_id=request_id,
-            endpoint="upscale",
-            image_url=str(request.image_url),
-            parameters={
-                "scale_factor": request.scale_factor,
-                "output_format": request.output_format,
-                "quality": request.quality
-            }
-        )
+        # Log the request (storage logging not available)
+        logger.info(f"Starting upscale request: {request_id}")
         
         # Validate input parameters
         InputValidator.validate_image_url(str(request.image_url), "image_url")
@@ -81,8 +72,9 @@ async def upscale_image(request: UpscaleRequest):
             )
         else:
             # For HTTP/HTTPS URLs, validate remote file
+            # Use "banner" type for upscaling to allow larger files (15MB vs 10MB)
             is_valid, error_msg, validation_info = FileValidator.validate_remote_file_for_processing(
-                image_url, "image"
+                image_url, "banner"
             )
         
         if not is_valid:
@@ -104,14 +96,8 @@ async def upscale_image(request: UpscaleRequest):
         processing_time_ms = int((time.time() - start_time) * 1000)
         
         if result["success"]:
-            # Log success
-            await storage_client.log_processing_result(
-                request_id=request_id,
-                processing_time_ms=processing_time_ms,
-                file_size_bytes=result.get("file_size_bytes"),
-                output_url=result.get("upscaled_path"),
-                endpoint="upscale"
-            )
+            # Log success (storage logging not available)
+            logger.info(f"Upscaling completed successfully: {request_id}")
             
             logger.info("Image upscaling completed successfully",
                        request_id=request_id,
@@ -127,13 +113,8 @@ async def upscale_image(request: UpscaleRequest):
                 file_size_bytes=result.get("file_size_bytes")
             )
         else:
-            # Log failure
-            await storage_client.log_processing_result(
-                request_id=request_id,
-                error_message=result["error"],
-                processing_time_ms=processing_time_ms,
-                endpoint="upscale"
-            )
+            # Log failure (storage logging not available)
+            logger.error(f"Upscaling failed: {result['error']}")
             
             logger.error("Image upscaling failed",
                         request_id=request_id,
@@ -151,13 +132,8 @@ async def upscale_image(request: UpscaleRequest):
     except ValidationError as e:
         processing_time_ms = int((time.time() - start_time) * 1000)
         
-        await storage_client.log_validation_error(
-            request_id=request_id,
-            field=e.field or "unknown",
-            error_message=e.message,
-            value=getattr(request, e.field, None) if e.field else None,
-            endpoint="upscale"
-        )
+        # Log validation error (storage logging not available)
+        logger.error(f"Validation error in upscale: {e.message}")
         
         raise HTTPException(
             status_code=400,
@@ -171,12 +147,8 @@ async def upscale_image(request: UpscaleRequest):
     except Exception as e:
         processing_time_ms = int((time.time() - start_time) * 1000)
         
-        await storage_client.log_processing_result(
-            request_id=request_id,
-            error_message=str(e),
-            processing_time_ms=processing_time_ms,
-            endpoint="upscale"
-        )
+        # Log processing error (storage logging not available)
+        logger.error(f"Upscaling failed: {str(e)}")
         
         logger.error("Unexpected error during upscaling",
                     request_id=request_id,

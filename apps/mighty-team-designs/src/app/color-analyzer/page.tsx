@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import { Button } from '@/components/ui/Button';
 import { ColorPaletteDemo } from '@/components/ColorPaletteDemo';
 import { ThemedContainer, ThemedButton, ThemedText } from '@/components/ThemedContainer';
@@ -368,7 +369,7 @@ export default function ColorAnalyzerPage() {
       hasRunInitialAnalysis.current = true;
       testColorAnalyzer();
     }
-  }, []); // Empty dependency array means this runs once on mount
+  }, [componentId, imageUrl, testColorAnalyzer]); // Include all dependencies
 
   // Handle sample image selection
   const handleSampleImage = (url: string) => {
@@ -618,9 +619,11 @@ export default function ColorAnalyzerPage() {
                 </ThemedText>
                 <ThemedContainer variant="surface" className="p-4">
                   <div className="relative">
-                    <img 
+                    <Image 
                       src={imageUrl} 
                       alt="Image being analyzed"
+                      width={400}
+                      height={300}
                       className="max-w-full max-h-96 mx-auto rounded shadow-sm border border-gray-200"
                       onError={(e) => {
                         e.currentTarget.style.display = 'none';

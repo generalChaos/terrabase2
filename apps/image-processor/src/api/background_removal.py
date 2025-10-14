@@ -167,7 +167,7 @@ async def remove_background_simple(request: SimpleBackgroundRemovalRequest) -> d
             }
         
         # Upload to storage
-        from src.storage import storage_client
+        from src.storage import storage
         
         # Read the processed image
         import os

@@ -23,13 +23,13 @@ class InputValidator:
     # File size limits (in bytes)
     MAX_IMAGE_SIZE = 10 * 1024 * 1024  # 10MB
     MAX_LOGO_SIZE = 5 * 1024 * 1024    # 5MB
-    MAX_BANNER_SIZE = 15 * 1024 * 1024  # 15MB
+    MAX_BANNER_SIZE = 30 * 1024 * 1024  # 30MB
     
     # Supported image formats
     SUPPORTED_IMAGE_FORMATS = {'.jpg', '.jpeg', '.png', '.webp', '.bmp', '.tiff'}
     
     # URL patterns
-    ALLOWED_URL_SCHEMES = {'http', 'https', 'file'}
+    ALLOWED_URL_SCHEMES = {'http', 'https', 'file', 'data'}
     
     @staticmethod
     def validate_url(url: str, field_name: str = "url") -> str:
@@ -37,8 +37,10 @@ class InputValidator:
         if not url or not isinstance(url, str):
             raise ValidationError(f"{field_name} is required and must be a string", field_name)
         
-        if len(url) > 2048:  # Reasonable URL length limit
-            raise ValidationError(f"{field_name} is too long (max 2048 characters)", field_name)
+        # Allow longer URLs for data URLs (base64 encoded images can be very long)
+        max_length = 26214400 if url.startswith('data:') else 2048  # 25MB for data URLs, 2KB for regular URLs
+        if len(url) > max_length:
+            raise ValidationError(f"{field_name} is too long (max {max_length} characters)", field_name)
         
         try:
             parsed = urlparse(url)

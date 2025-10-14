@@ -131,7 +131,7 @@ This document summarizes all the improvements made to the Python Image Processor
 ### Environment Variables Added
 ```bash
 # File Validation
-MAX_IMAGE_SIZE_BYTES=10485760      # 10MB
+MAX_IMAGE_SIZE_BYTES=26214400      # 25MB
 MAX_LOGO_SIZE_BYTES=5242880        # 5MB  
 MAX_BANNER_SIZE_BYTES=15728640     # 15MB
 MAX_IMAGE_WIDTH=8192
