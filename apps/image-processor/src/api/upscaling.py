@@ -10,7 +10,7 @@ import time
 
 from src.services.upscaler import ImageUpscaler
 from src.validators import InputValidator, ValidationError, FileValidator
-from src.storage import storage
+from src.storage import storage_client
 from src.custom_logging import logger
 
 router = APIRouter()
@@ -51,7 +51,7 @@ async def upscale_image(request: UpscaleRequest):
     
     try:
         # Log the request
-        await storage.log_request(
+        await storage_client.log_processing_request(
             request_id=request_id,
             endpoint="upscale",
             image_url=str(request.image_url),
@@ -105,7 +105,7 @@ async def upscale_image(request: UpscaleRequest):
         
         if result["success"]:
             # Log success
-            await storage.log_success(
+            await storage_client.log_processing_result(
                 request_id=request_id,
                 processing_time_ms=processing_time_ms,
                 file_size_bytes=result.get("file_size_bytes"),
@@ -128,7 +128,7 @@ async def upscale_image(request: UpscaleRequest):
             )
         else:
             # Log failure
-            await storage.log_failure(
+            await storage_client.log_processing_result(
                 request_id=request_id,
                 error_message=result["error"],
                 processing_time_ms=processing_time_ms,
@@ -151,7 +151,7 @@ async def upscale_image(request: UpscaleRequest):
     except ValidationError as e:
         processing_time_ms = int((time.time() - start_time) * 1000)
         
-        await storage.log_validation_error(
+        await storage_client.log_validation_error(
             request_id=request_id,
             field=e.field or "unknown",
             error_message=e.message,
@@ -171,7 +171,7 @@ async def upscale_image(request: UpscaleRequest):
     except Exception as e:
         processing_time_ms = int((time.time() - start_time) * 1000)
         
-        await storage.log_failure(
+        await storage_client.log_processing_result(
             request_id=request_id,
             error_message=str(e),
             processing_time_ms=processing_time_ms,

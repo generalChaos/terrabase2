@@ -33,8 +33,9 @@ class AIBackgroundRemover:
         if self._rembg_session is None:
             try:
                 from rembg import new_session, remove
-                # Use the most accurate model for logos
-                self._rembg_session = new_session('u2net')  # Best for general objects
+                # Use a model that's good for logos and preserves details
+                # u2netp is lighter and often better at preserving fine details like white elements
+                self._rembg_session = new_session('u2netp')  # Better for preserving details in logos
                 self._remove_func = remove
                 logger.info("AI background removal model loaded successfully")
             except ImportError:
@@ -229,7 +230,7 @@ class AIBackgroundRemover:
             }
     
     def _cleanup_ai_result(self, image: Image.Image) -> Image.Image:
-        """Clean up AI result with additional processing"""
+        """Clean up AI result with additional processing, preserving white elements"""
         try:
             # Convert to numpy array
             img_array = np.array(image)
@@ -237,17 +238,36 @@ class AIBackgroundRemover:
             # If image has alpha channel, work with it
             if img_array.shape[2] == 4:
                 alpha = img_array[:, :, 3]
+                rgb = img_array[:, :, :3]
                 
-                # Remove very transparent pixels (likely artifacts)
-                alpha[alpha < 30] = 0
+                # Identify white/light elements that should be preserved
+                # White elements are those with high RGB values (close to 255)
+                white_threshold = 200  # Pixels with RGB values above this are considered white
+                is_white = np.all(rgb >= white_threshold, axis=2)
                 
-                # Smooth alpha channel
-                alpha = cv2.GaussianBlur(alpha, (3, 3), 0)
+                # Only remove very transparent pixels that are NOT white elements
+                # This prevents removing white elements that might have some transparency
+                should_remove = (alpha < 30) & (~is_white)
+                alpha[should_remove] = 0
                 
-                # Apply morphological operations to clean up
-                kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2, 2))
-                alpha = cv2.morphologyEx(alpha, cv2.MORPH_CLOSE, kernel)
-                alpha = cv2.morphologyEx(alpha, cv2.MORPH_OPEN, kernel)
+                # For white elements, ensure they have sufficient alpha
+                # This prevents white elements from being made transparent
+                white_alpha_min = 180  # Minimum alpha for white elements
+                white_needs_alpha = is_white & (alpha < white_alpha_min)
+                alpha[white_needs_alpha] = white_alpha_min
+                
+                # Smooth alpha channel only for non-white areas to avoid affecting white elements
+                non_white_mask = ~is_white
+                if np.any(non_white_mask):
+                    alpha_smooth = cv2.GaussianBlur(alpha, (3, 3), 0)
+                    alpha[non_white_mask] = alpha_smooth[non_white_mask]
+                
+                # Apply morphological operations only to non-white areas
+                if np.any(non_white_mask):
+                    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2, 2))
+                    alpha_clean = cv2.morphologyEx(alpha, cv2.MORPH_CLOSE, kernel)
+                    alpha_clean = cv2.morphologyEx(alpha_clean, cv2.MORPH_OPEN, kernel)
+                    alpha[non_white_mask] = alpha_clean[non_white_mask]
                 
                 img_array[:, :, 3] = alpha
             

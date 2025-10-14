@@ -36,6 +36,7 @@ interface ImageProcessorTest {
   error?: string;
 }
 
+
 export default function AdminDashboard() {
   const [data, setData] = useState<AdminData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -54,6 +55,7 @@ export default function AdminDashboard() {
   });
   const [testImageUrl, setTestImageUrl] = useState('file:///Users/ricovelasco/Documents/devprojects/party-game/apps/image-processor/test-input/logos/king-cobra-youth-soccer-logo.png');
   const [testTeamName, setTestTeamName] = useState('Test Team');
+
 
   const authenticate = async () => {
     try {
@@ -184,6 +186,7 @@ export default function AdminDashboard() {
       }));
     }
   };
+
 
   if (!authenticated) {
     return (
@@ -660,6 +663,7 @@ export default function AdminDashboard() {
             ))}
           </div>
         </div>
+
       </div>
 
       {/* Flow Details Modal */}

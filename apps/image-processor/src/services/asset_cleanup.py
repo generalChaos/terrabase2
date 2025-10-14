@@ -10,11 +10,12 @@ import time
 from PIL import Image, ImageEnhance, ImageFilter
 import cv2
 import numpy as np
+from io import BytesIO
 
 from src.services.ai_background_remover import AIBackgroundRemover
 from src.services.preprocessor import ImagePreprocessor
-from src.utils.filename_utils import generate_pipeline_filename
-from src.storage.storage_service_simple import StorageService
+from src.utils.filename_utils import generate_pipeline_filename, generate_processing_filename
+from src.storage import storage
 import logging
 
 logger = logging.getLogger(__name__)
@@ -27,7 +28,7 @@ class AssetCleanupService:
         self.output_dir = os.getenv("OUTPUT_DIR", "./output")
         self.ai_remover = AIBackgroundRemover()
         self.preprocessor = ImagePreprocessor()
-        self.storage = StorageService()
+        self.storage = storage
         
         # Only create directories if not using Supabase
         storage_type = os.getenv("STORAGE_TYPE", "supabase")
@@ -121,20 +122,13 @@ class AssetCleanupService:
         try:
             # logger.info("Starting logo cleanup", logo_url=logo_url)
             
-            # Step 1: AI Background Removal
-            # logger.info("Step 1: AI background removal")
-            print(f"DEBUG: Starting AI background removal for {logo_url}")
-            bg_result = await self.ai_remover.remove_background_hybrid(logo_url)
-            print(f"DEBUG: Background removal result: {bg_result}")
-            if not bg_result["success"]:
-                return {
-                    "success": False,
-                    "error": f"Background removal failed: {bg_result['error']}"
-                }
+            # Step 1: Skip background removal for AI-generated logos
+            # AI-generated logos should already have transparent backgrounds
+            print(f"DEBUG: Skipping background removal for AI-generated logo: {logo_url}")
+            logo_image = await self._download_image(logo_url)
             
-            print(f"DEBUG: Accessing output_url from bg_result")
-            bg_removed_path = bg_result["output_url"]
-            print(f"DEBUG: Got bg_removed_path: {bg_removed_path}")
+            # Save the original image as the "cleaned" version without any background removal
+            bg_removed_path = await self._save_original_as_cleaned(logo_image, logo_url)
             
             # Step 2: Python-based Enhancement
             # logger.info("Step 2: Python enhancement")
@@ -244,3 +238,59 @@ class AssetCleanupService:
             # logger.error("Python enhancement failed", error_message=str(e))
             # Return original if enhancement fails
             return image_path
+
+    def _has_transparent_background(self, image: Image.Image) -> bool:
+        """Check if image already has transparent background"""
+        try:
+            # Check if image has alpha channel
+            if image.mode not in ('RGBA', 'LA'):
+                return False
+            
+            # Convert to RGBA if it's LA
+            if image.mode == 'LA':
+                image = image.convert('RGBA')
+            
+            # Get alpha channel
+            alpha = image.split()[-1]
+            
+            # Check if there are any fully transparent pixels (alpha = 0)
+            # This indicates the image has transparency
+            transparent_pixels = sum(1 for pixel in alpha.getdata() if pixel == 0)
+            total_pixels = alpha.size[0] * alpha.size[1]
+            
+            # If more than 5% of pixels are transparent, consider it to have transparent background
+            transparency_ratio = transparent_pixels / total_pixels
+            has_transparency = transparency_ratio > 0.05
+            
+            logger.info(f"Transparency check: {transparent_pixels}/{total_pixels} transparent pixels ({transparency_ratio:.2%})")
+            return has_transparency
+            
+        except Exception as e:
+            logger.warning(f"Transparency check failed: {str(e)}")
+            return False
+
+    async def _download_image(self, image_url: str) -> Image.Image:
+        """Download image from URL"""
+        try:
+            import requests
+            response = requests.get(image_url, timeout=30)
+            response.raise_for_status()
+            return Image.open(BytesIO(response.content))
+        except Exception as e:
+            logger.error(f"Failed to download image: {e}")
+            raise
+
+    async def _save_original_as_cleaned(self, image: Image.Image, original_url: str) -> str:
+        """Save original image as cleaned version when it already has transparency"""
+        try:
+            # Generate filename from original URL
+            filename = generate_processing_filename(original_url, "clean", "png")
+            output_path = os.path.join(self.output_dir, filename)
+            
+            # Save the image
+            image.save(output_path, "PNG")
+            logger.info(f"Saved original transparent image as cleaned: {output_path}")
+            return output_path
+        except Exception as e:
+            logger.error(f"Failed to save original as cleaned: {e}")
+            raise

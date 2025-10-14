@@ -5,7 +5,8 @@ const SUPABASE_URL = 'http://127.0.0.1:54321';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0';
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-const FLOW_ID = '0273070c-cb0b-4369-a6d2-3a2af2c1420e';
+// Allow passing FLOW_ID via CLI arg or env; fallback to default
+const FLOW_ID = process.argv[2] || process.env.FLOW_ID || '0273070c-cb0b-4369-a6d2-3a2af2c1420e';
 
 async function regenerateWithImprovedColors() {
   console.log(`🎨 Regenerating asset packs with improved color analysis for flow: ${FLOW_ID}`);
@@ -16,16 +17,16 @@ async function regenerateWithImprovedColors() {
     const flowResponse = await fetch(`http://localhost:3003/api/flows/${FLOW_ID}`);
     const flowData = await flowResponse.json();
 
-    if (!flowData.success || !flowData.flow) {
+    if (!flowData.success || !flowData.data) {
       throw new Error(`Failed to fetch flow data: ${flowData.error || 'Unknown error'}`);
     }
-    console.log('✅ Flow data retrieved:', flowData.flow.team_name);
+    console.log('✅ Flow data retrieved:', flowData.data.team_name);
 
     // 2. Get the logos
     const { data: logos, error: logosError } = await supabase
       .from('team_logos')
       .select('*')
-      .in('id', flowData.flow.logo_variants);
+      .in('id', flowData.data.logo_variants);
 
     if (logosError) {
       throw new Error(`Error fetching logos: ${logosError.message}`);
@@ -48,7 +49,7 @@ async function regenerateWithImprovedColors() {
         body: JSON.stringify({
           logo_id: logo.id,
           logo_url: logo.public_url,
-          team_name: flowData.flow.team_name || 'Team',
+          team_name: flowData.data.team_name || 'Team',
           players: [
             { number: 1, name: 'Captain' },
             { number: 2, name: 'Vice Captain' },

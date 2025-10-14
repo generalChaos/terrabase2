@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse
 import os
 from pathlib import Path
-from src.storage.storage_service import storage
+from src.storage import storage_client
 
 router = APIRouter()
 
@@ -66,8 +66,8 @@ async def get_storage_info():
     """
     Get storage configuration and status
     """
-    config = storage.get_config()
-    is_available = await storage.is_available()
+    config = storage_client.get_config()
+    is_available = await storage_client.is_available()
     
     return {
         "config": config,

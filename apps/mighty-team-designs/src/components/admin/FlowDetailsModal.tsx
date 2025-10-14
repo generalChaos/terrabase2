@@ -100,6 +100,7 @@ export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalPr
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [regeneratingAssets, setRegeneratingAssets] = useState(false);
+  const [regeneratingColors, setRegeneratingColors] = useState(false);
 
   const loadFlowDetails = useCallback(async () => {
     if (!flowId) return;
@@ -204,6 +205,43 @@ export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalPr
       setError(err instanceof Error ? err.message : 'Failed to regenerate assets');
     } finally {
       setRegeneratingAssets(false);
+    }
+  };
+
+  const handleRegenerateColors = async () => {
+    if (!flowDetails) {
+      setError('No flow details found');
+      return;
+    }
+
+    try {
+      setRegeneratingColors(true);
+      setError(null);
+
+      // Call the regenerate colors API
+      const response = await fetch(`/api/flows/${flowDetails.id}/regenerate-colors`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to regenerate colors');
+      }
+
+      const result = await response.json();
+      console.log('✅ Colors regenerated successfully:', result);
+
+      // Reload flow details to get updated color data
+      await loadFlowDetails();
+
+    } catch (err) {
+      console.error('❌ Error regenerating colors:', err);
+      setError(err instanceof Error ? err.message : 'Failed to regenerate colors');
+    } finally {
+      setRegeneratingColors(false);
     }
   };
 
@@ -689,24 +727,44 @@ export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalPr
               <div className="bg-gradient-to-r from-orange-50 to-red-50 p-4 rounded-lg border-2 border-orange-200">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-medium text-gray-900">Asset Pack</h3>
-                  <button
-                    onClick={handleRegenerateAssets}
-                    disabled={regeneratingAssets || !flowDetails.selected_logo_id}
-                    className={`px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${
-                      regeneratingAssets || !flowDetails.selected_logo_id
-                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        : 'bg-orange-600 hover:bg-orange-700 text-white'
-                    }`}
-                  >
-                    {regeneratingAssets ? (
-                      <div className="flex items-center space-x-2">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                        <span>Regenerating...</span>
-                      </div>
-                    ) : (
-                      'Regenerate Assets'
-                    )}
-                  </button>
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={handleRegenerateColors}
+                      disabled={regeneratingColors}
+                      className={`px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${
+                        regeneratingColors
+                          ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                          : 'bg-purple-600 hover:bg-purple-700 text-white'
+                      }`}
+                    >
+                      {regeneratingColors ? (
+                        <div className="flex items-center space-x-2">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                          <span>Regenerating Colors...</span>
+                        </div>
+                      ) : (
+                        'Regenerate Colors'
+                      )}
+                    </button>
+                    <button
+                      onClick={handleRegenerateAssets}
+                      disabled={regeneratingAssets || !flowDetails.selected_logo_id}
+                      className={`px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${
+                        regeneratingAssets || !flowDetails.selected_logo_id
+                          ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                          : 'bg-orange-600 hover:bg-orange-700 text-white'
+                      }`}
+                    >
+                      {regeneratingAssets ? (
+                        <div className="flex items-center space-x-2">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                          <span>Regenerating...</span>
+                        </div>
+                      ) : (
+                        'Regenerate Assets'
+                      )}
+                    </button>
+                  </div>
                 </div>
 
                 {/* Check if any logos have asset packs */}

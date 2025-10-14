@@ -12,7 +12,7 @@ import time
 from src.services.asset_cleanup import AssetCleanupService
 from src.services.logo_overlay import LogoOverlayService
 from src.validators import InputValidator, ValidationError, FileValidator
-from src.storage import storage
+from src.storage import storage_client
 from src.custom_logging import logger
 
 router = APIRouter()

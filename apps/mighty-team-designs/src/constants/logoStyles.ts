@@ -13,7 +13,7 @@ export const LOGO_STYLES: LogoStyle[] = [
     id: 'fun-and-friendly',
     name: 'Fun & Friendly',
     description: 'Bright, colorful, cartoon-like designs perfect for youth teams',
-    image: '/styles/example-logo-fun-and-friendly.png',
+    image: '/styles/lsc-example-logo-fun-and-friendly.png',
     characteristics: [
       'Rounded shapes',
       'Bright colors', 
@@ -27,7 +27,7 @@ export const LOGO_STYLES: LogoStyle[] = [
     id: 'bold-and-competitive',
     name: 'Bold & Competitive',
     description: 'Strong, confident, professional designs for competitive teams',
-    image: '/styles/example-logo-bold-and-competative.png',
+    image: '/styles/lsc-example-logo-bold-and-competative.png',
     characteristics: [
       'Sharp lines',
       'Strong typography',
@@ -41,7 +41,7 @@ export const LOGO_STYLES: LogoStyle[] = [
     id: 'dynamic-and-fierce',
     name: 'Dynamic & Fierce',
     description: 'Aggressive, energetic, action-oriented designs for high-energy sports',
-    image: '/styles/example-logo-dynamic-and-fierce.png',
+    image: '/styles/lsc-example-logo-dynamic-and-fierce.png.png',
     characteristics: [
       'Angular shapes',
       'Dynamic elements',
@@ -55,7 +55,7 @@ export const LOGO_STYLES: LogoStyle[] = [
     id: 'classic-and-iconic',
     name: 'Classic & Iconic',
     description: 'Timeless, traditional, heritage-inspired designs for established teams',
-    image: '/styles/example-logo-classic-and-iconic.png',
+    image: '/styles/lsc-example-logo-classic-and-iconic.png',
     characteristics: [
       'Clean lines',
       'Classic fonts',

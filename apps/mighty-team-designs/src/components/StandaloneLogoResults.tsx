@@ -197,16 +197,30 @@ export default function StandaloneLogoResults({ flowData, onLogoSelect }: Standa
     console.log('🎨 DEBUG: selectedLogoData.asset_pack:', selectedLogoData.asset_pack);
     console.log('🎨 DEBUG: asset_pack.colors:', selectedLogoData.asset_pack?.colors);
     
+    // Use role-based colors if available (preferred method)
+    if (selectedLogoData.asset_pack?.colors?.roles) {
+      const roles = selectedLogoData.asset_pack.colors.roles;
+      console.log('🎨 Using role-based colors from asset pack:', roles);
+      const colors = {
+        primary: roles.primary?.hex || '#6B7280',
+        secondary: roles.accent?.hex || roles.surface?.hex || '#9CA3AF',
+        tertiary: roles.surface?.hex || roles.accent?.hex || '#D1D5DB'
+      };
+      console.log('🎨 Final team colors from roles:', colors);
+      return colors;
+    }
+    
+    // Fallback to simple color array if roles not available
     if (selectedLogoData.asset_pack?.colors?.colors && selectedLogoData.asset_pack.colors.colors.length >= 2) {
       const extractedColors = selectedLogoData.asset_pack.colors.colors;
-      console.log('🎨 Using extracted colors from asset pack:', extractedColors);
+      console.log('🎨 Using extracted colors array from asset pack:', extractedColors);
       console.log('🎨 Asset pack colors object:', selectedLogoData.asset_pack.colors);
       const colors = {
         primary: extractedColors[0], // Most frequent color
         secondary: extractedColors[1], // Second most frequent color
         tertiary: extractedColors[2] || extractedColors[0] + '60' // Third most frequent color or primary with transparency
       };
-      console.log('🎨 Final team colors:', colors);
+      console.log('🎨 Final team colors from array:', colors);
       return colors;
     } else {
       console.log('🎨 DEBUG: No extracted colors found, falling back to prompt parsing');
@@ -414,15 +428,16 @@ export default function StandaloneLogoResults({ flowData, onLogoSelect }: Standa
           }
         }}
       >
-      <div className="aspect-square p-2">
+      <div className="aspect-square p-3">
         {logo.asset_pack?.clean_logo_url ? (
-          <div>
+          <div className="w-full h-full relative">
             <Image
               src={logo.asset_pack.clean_logo_url}
-              alt={`Logo variant ${logo.variant_number}`}
-              width={100}
-              height={100}
-              className="w-full h-full object-contain"
+              alt="Team logo"
+              fill
+              className="object-contain"
+              quality={95}
+              sizes="(max-width: 768px) 150px, 200px"
               onLoad={() => console.log(`✅ Clean logo ${logo.variant_number} loaded successfully from:`, logo.asset_pack?.clean_logo_url)}
               onError={(e) => {
                 console.error(`❌ Failed to load clean logo ${logo.variant_number} from:`, logo.asset_pack?.clean_logo_url);
@@ -431,13 +446,14 @@ export default function StandaloneLogoResults({ flowData, onLogoSelect }: Standa
             />
           </div>
         ) : logo.public_url ? (
-          <div>
+          <div className="w-full h-full relative">
             <Image
               src={logo.public_url}
-              alt={`Logo variant ${logo.variant_number}`}
-              width={100}
-              height={100}
-              className="w-full h-full object-contain"
+              alt="Team logo"
+              fill
+              className="object-contain"
+              quality={95}
+              sizes="(max-width: 768px) 150px, 200px"
               onLoad={() => console.log(`✅ Logo ${logo.variant_number} loaded successfully from:`, logo.public_url)}
               onError={(e) => {
                 console.error(`❌ Failed to load logo ${logo.variant_number} from:`, logo.public_url);
@@ -447,17 +463,10 @@ export default function StandaloneLogoResults({ flowData, onLogoSelect }: Standa
           </div>
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gray-100 rounded">
-            <div className="text-gray-400 text-xs">No Logo</div>
+            <div className="text-gray-400 text-xs">Loading...</div>
           </div>
         )}
       </div>
-      {isSelected && logo.public_url && (
-        <div className="absolute top-1 right-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
-          <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-          </svg>
-        </div>
-      )}
     </div>
     );
   };
@@ -821,7 +830,7 @@ export default function StandaloneLogoResults({ flowData, onLogoSelect }: Standa
           
           {/* Logo Options */}
           <div className="mb-4 sm:mb-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {generatedLogos.map((logo) => (
                 <LogoCard
                   key={logo.id}

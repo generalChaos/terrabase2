@@ -1,8 +1,9 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import { Inter, Chakra_Petch } from 'next/font/google'
 import './globals.css'
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
+const chakra = Chakra_Petch({ subsets: ['latin'], weight: ['600'], variable: '--font-chakra' })
 
 export const metadata: Metadata = {
   title: 'Mighty Team Designs - Generate Professional Team Logos',
@@ -19,8 +20,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <body className={inter.className}>
+    <html lang="en" className={`${inter.variable} ${chakra.variable}`}>
+      <body className="font-sans">
         {children}
       </body>
     </html>

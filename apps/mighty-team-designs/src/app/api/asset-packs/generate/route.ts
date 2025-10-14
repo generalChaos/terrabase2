@@ -7,38 +7,40 @@ export async function POST(request: NextRequest) {
     const { flow_id, logo_url, team_name, players } = body;
     
     console.log('🎨 Asset Pack Generation API: Received request for flow:', flow_id);
-    console.log('🎨 Logo URL:', logo_url);
-    console.log('🎨 Team Name:', team_name);
     
-    // Download the image data from Supabase storage
-    let imageData: Buffer;
-    try {
-      const imageResponse = await fetch(logo_url);
-      if (!imageResponse.ok) {
-        throw new Error(`Failed to download image: ${imageResponse.status} ${imageResponse.statusText}`);
+    // If no logo_url provided, fetch it from flow data
+    let actualLogoUrl = logo_url;
+    let actualTeamName = team_name;
+    
+    if (!actualLogoUrl || !actualTeamName) {
+      console.log('📥 Fetching flow data to get logo URL and team name...');
+      const flowResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3003'}/api/flows/${flow_id}`);
+      const flowData = await flowResponse.json();
+      
+      if (!flowData.success || !flowData.data) {
+        throw new Error(`Failed to fetch flow data: ${flowData.error || 'Unknown error'}`);
       }
-      imageData = Buffer.from(await imageResponse.arrayBuffer());
-      console.log('✅ Image downloaded successfully, size:', imageData.length, 'bytes');
-    } catch (error) {
-      console.error('❌ Failed to download image:', error);
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Failed to download logo image',
-          details: error instanceof Error ? error.message : 'Unknown error'
-        },
-        { status: 400 }
-      );
+      
+      const flow = flowData.data;
+      actualTeamName = flow.team_name || 'Team';
+      
+      // Get the selected logo or first logo
+      const selectedLogo = flow.team_logos?.find((logo: any) => logo.is_selected) || flow.team_logos?.[0];
+      if (!selectedLogo?.public_url) {
+        throw new Error('No logo found in flow data');
+      }
+      
+      actualLogoUrl = selectedLogo.public_url;
+      console.log('✅ Using logo URL from flow data:', actualLogoUrl);
     }
     
-    // Convert image data to base64 for transmission
-    const base64Image = imageData.toString('base64');
-    const dataUrl = `data:image/png;base64,${base64Image}`;
+    console.log('🎨 Logo URL:', actualLogoUrl);
+    console.log('🎨 Team Name:', actualTeamName);
     
-    // Call the Python server with the image data
+    // Call the Python server with the logo URL
     const pythonRequestBody = {
-      logo_data_url: dataUrl,
-      team_name: team_name,
+      logo_url: actualLogoUrl,
+      team_name: actualTeamName,
       players: players || [
         { number: 1, name: "Captain" },
         { number: 2, name: "Vice Captain" },
