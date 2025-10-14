@@ -30,18 +30,12 @@ export interface GeneratedLogo {
 
 export class ImageGenerationService {
   /**
-   * Generate team logos using OpenAI's gpt-image-1
+   * Generate style-specific prompt for logo generation
    */
-  static async generateTeamLogos(
-    flowId: string,
-    options: LogoGenerationOptions
-  ): Promise<GeneratedLogo[]> {
-    const startTime = Date.now();
-    const generatedLogos: GeneratedLogo[] = [];
-
-    try {
-      // For now, use a simple hardcoded prompt to test AI generation
-      const promptText = `Create a ${options.style} ${options.sport} team logo for "${options.teamName}" that includes both a mascot/icon and the team name text.
+  private static generateStyleSpecificPrompt(options: LogoGenerationOptions): string {
+    const styleInstructions = this.getStyleInstructions(options.style);
+    
+    return `Create a ${options.style} ${options.sport} team logo for "${options.teamName}" that includes both a mascot/icon and the team name text.
 
 STYLE: ${options.style}
 COLORS: ${options.colors}
@@ -49,13 +43,7 @@ CUSTOM COLORS: ${options.customColors || ''}
 MASCOT: ${options.mascot}
 MASCOT TYPE: ${options.mascotType || 'AUTO_DETERMINED'}
 
-ART STYLE REQUIREMENTS:
-- Use illustrative art style with bold, clean lines
-- Minimize visual artifacts and noise
-- Sharp, crisp edges and defined shapes
-- Clean vector-style appearance
-- Professional illustration quality
-- Avoid blurry or pixelated elements
+${styleInstructions}
 
 TEXT REQUIREMENTS:
 - MUST include the team name "${options.teamName}" prominently in the logo
@@ -80,6 +68,149 @@ REQUIREMENTS:
 - Clean, illustrative style with minimal artifacts
 
 Generate detailed prompt for gpt-image-1.`;
+  }
+
+  /**
+   * Get style-specific instructions based on the selected style
+   */
+  private static getStyleInstructions(style: string): string {
+    const styleMap: Record<string, string> = {
+      'Fun & playful': `
+STYLE CHARACTERISTICS:
+- Bright, colorful, cartoon-like designs
+- Rounded shapes and soft edges
+- Friendly, approachable mascots
+- Playful typography with curves
+- Bright, energetic colors
+- Kid-friendly appearance
+
+Design elements to include:
+- Rounded, soft shapes
+- Bright, cheerful colors
+- Friendly mascot expressions
+- Playful, bouncy typography
+- Fun, energetic feel
+- Youth-appropriate design`,
+      
+      'Serious & tough': `
+STYLE CHARACTERISTICS:
+- Strong, confident, professional designs
+- Sharp, angular lines
+- Bold, determined mascots
+- Strong, impactful typography
+- Deep, serious colors
+- Professional appearance
+
+Design elements to include:
+- Sharp, angular shapes
+- Strong, bold colors
+- Confident mascot poses
+- Bold, impactful typography
+- Professional, serious feel
+- Competitive appearance`,
+      
+      'Friendly & approachable': `
+STYLE CHARACTERISTICS:
+- Warm, welcoming designs
+- Balanced shapes (not too sharp, not too round)
+- Friendly, smiling mascots
+- Clean, readable typography
+- Warm, inviting colors
+- Approachable appearance
+
+Design elements to include:
+- Balanced, harmonious shapes
+- Warm, inviting colors
+- Friendly mascot expressions
+- Clean, readable typography
+- Welcoming, inclusive feel
+- Community-focused design`,
+      
+      'Professional': `
+STYLE CHARACTERISTICS:
+- Clean, corporate-style designs
+- Geometric, precise shapes
+- Professional, business-like mascots
+- Clean, modern typography
+- Corporate color schemes
+- Business-appropriate appearance
+
+Design elements to include:
+- Clean, geometric shapes
+- Professional color schemes
+- Business-appropriate mascots
+- Clean, modern typography
+- Corporate, professional feel
+- Business-ready design`,
+      
+      'Bold & Competitive': `
+STYLE CHARACTERISTICS:
+- Strong, confident, professional designs
+- Sharp lines and strong angles
+- Bold, determined mascots
+- Strong, impactful typography
+- Deep, competitive colors
+- Athletic appearance
+
+Design elements to include:
+- Sharp, strong lines
+- Bold, competitive colors
+- Confident mascot poses
+- Strong, impactful typography
+- Athletic, competitive feel
+- Professional sports look`,
+      
+      'Dynamic & Fierce': `
+STYLE CHARACTERISTICS:
+- Aggressive, energetic, action-oriented designs
+- Angular, dynamic shapes
+- Fierce, intense mascots
+- Bold, energetic typography
+- High-contrast, intense colors
+- High-energy appearance
+
+Design elements to include:
+- Angular, aggressive shapes
+- Bold, energetic colors
+- Action-oriented mascots
+- Dynamic, flowing typography
+- High-energy, fierce feel
+- Intense, competitive look`,
+      
+      'Classic & Iconic': `
+STYLE CHARACTERISTICS:
+- Timeless, traditional, heritage-inspired designs
+- Clean, classic lines
+- Traditional, established mascots
+- Classic, readable typography
+- Traditional color combinations
+- Heritage appearance
+
+Design elements to include:
+- Clean, simple lines
+- Traditional color combinations
+- Classic mascot designs
+- Timeless typography
+- Heritage, traditional feel
+- Established, iconic look`
+    };
+
+    return styleMap[style] || styleMap['Classic & Iconic'];
+  }
+
+  /**
+   * Generate team logos using OpenAI's gpt-image-1
+   */
+  static async generateTeamLogos(
+    flowId: string,
+    options: LogoGenerationOptions
+  ): Promise<GeneratedLogo[]> {
+    const startTime = Date.now();
+    const generatedLogos: GeneratedLogo[] = [];
+
+    try {
+      // Generate style-specific prompt
+      const promptText = this.generateStyleSpecificPrompt(options);
 
       console.log('=== PROMPT GENERATION DEBUG ===');
       console.log('📝 Generated prompt text:');

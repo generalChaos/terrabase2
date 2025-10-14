@@ -87,6 +87,30 @@ interface AssetPack {
   processing_time_ms: number;
   created_at: string;
   updated_at: string;
+  colors?: {
+    colors: string[];
+    frequencies: number[];
+    percentages: number[];
+    total_pixels_analyzed: number;
+    roles?: {
+      background: { hex: string; percent: number };
+      surface: { hex: string; percent: number };
+      primary: { hex: string; percent: number };
+      accent: { hex: string; percent: number };
+    };
+    confidence_scores?: {
+      background: number;
+      surface: number;
+      primary: number;
+      accent: number;
+    };
+    assignment_reasons?: {
+      background: string;
+      surface: string;
+      primary: string;
+      accent: string;
+    };
+  };
 }
 
 interface FlowDetailsModalProps {
@@ -95,11 +119,29 @@ interface FlowDetailsModalProps {
   onClose: () => void;
 }
 
+interface UpscaleResult {
+  success: boolean;
+  original_url: string;
+  upscaled_url: string;
+  scale_factor: number;
+  processing_time_ms: number;
+  file_size_bytes: number;
+  error?: string;
+}
+
 export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalProps) {
   const [flowDetails, setFlowDetails] = useState<FlowDetails | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [regeneratingAssets, setRegeneratingAssets] = useState(false);
+  const [regeneratingColors, setRegeneratingColors] = useState(false);
+  const [upscaling, setUpscaling] = useState<string | null>(null);
+  const [upscaleResult, setUpscaleResult] = useState<UpscaleResult | null>(null);
+  const [upscaleSettings, setUpscaleSettings] = useState({
+    scale_factor: 4,
+    output_format: 'png',
+    quality: 95
+  });
 
   const loadFlowDetails = useCallback(async () => {
     if (!flowId) return;
@@ -159,7 +201,7 @@ export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalPr
       setError(null);
 
       // Find the selected logo
-      const selectedLogo = (flowDetails.logo_variants || flowDetails.team_logos || []).find(
+      const selectedLogo = (flowDetails.team_logos || flowDetails.logo_variants || []).find(
         (logo: LogoVariant | TeamLogo) => logo.is_selected
       );
 
@@ -204,6 +246,132 @@ export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalPr
       setError(err instanceof Error ? err.message : 'Failed to regenerate assets');
     } finally {
       setRegeneratingAssets(false);
+    }
+  };
+
+  const handleRegenerateColors = async () => {
+    if (!flowDetails) {
+      setError('No flow details found');
+      return;
+    }
+
+    try {
+      setRegeneratingColors(true);
+      setError(null);
+
+      // Call the regenerate colors API
+      const response = await fetch(`/api/flows/${flowDetails.id}/regenerate-colors`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to regenerate colors');
+      }
+
+      const result = await response.json();
+      console.log('✅ Colors regenerated successfully:', result);
+
+      // Reload flow details to get updated color data
+      await loadFlowDetails();
+
+    } catch (err) {
+      console.error('❌ Error regenerating colors:', err);
+      setError(err instanceof Error ? err.message : 'Failed to regenerate colors');
+    } finally {
+      setRegeneratingColors(false);
+    }
+  };
+
+  const handleUpscale = async (logo: LogoVariant | TeamLogo) => {
+    if (!logo.public_url) {
+      setError('Logo has no public URL');
+      return;
+    }
+
+    setUpscaling(logo.id);
+    setUpscaleResult(null);
+
+    try {
+      const response = await fetch('/api/admin/upscale', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          image_url: logo.public_url,
+          scale_factor: upscaleSettings.scale_factor,
+          output_format: upscaleSettings.output_format,
+          quality: upscaleSettings.quality
+        })
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setUpscaleResult(result.data);
+      } else {
+        console.error('Upscaling failed:', result.error);
+        setUpscaleResult({
+          success: false,
+          original_url: logo.public_url,
+          upscaled_url: '',
+          scale_factor: upscaleSettings.scale_factor,
+          processing_time_ms: 0,
+          file_size_bytes: 0,
+          error: result.error
+        });
+      }
+    } catch (error) {
+      console.error('Error upscaling image:', error);
+      setUpscaleResult({
+        success: false,
+        original_url: logo.public_url,
+        upscaled_url: '',
+        scale_factor: upscaleSettings.scale_factor,
+        processing_time_ms: 0,
+        file_size_bytes: 0,
+        error: 'Network error'
+      });
+    } finally {
+      setUpscaling(null);
+    }
+  };
+
+  const downloadUpscaledImage = async (url: string, filename: string) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(downloadUrl);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Error downloading image:', error);
+    }
+  };
+
+  const downloadAssetPackItem = async (url: string, filename: string) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(downloadUrl);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Error downloading asset pack item:', error);
     }
   };
 
@@ -541,13 +709,13 @@ export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalPr
               )}
 
               {/* Generated Logos */}
-              {(flowDetails.logo_variants && flowDetails.logo_variants.length > 0) || (flowDetails.team_logos && flowDetails.team_logos.length > 0) ? (
+              {(flowDetails.team_logos && flowDetails.team_logos.length > 0) || (flowDetails.logo_variants && flowDetails.logo_variants.length > 0) ? (
                 <div className="bg-purple-50 p-4 rounded-lg">
                   <h3 className="text-lg font-medium text-gray-900 mb-3">
-                    Generated Logos ({flowDetails.logo_variants?.length || flowDetails.team_logos?.length || 0} variants)
+                    Generated Logos ({flowDetails.team_logos?.length || flowDetails.logo_variants?.length || 0} variants)
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {(flowDetails.logo_variants || flowDetails.team_logos || []).map((logo: LogoVariant | TeamLogo, index: number) => (
+                    {(flowDetails.team_logos || flowDetails.logo_variants || []).map((logo: LogoVariant | TeamLogo, index: number) => (
                       <div 
                         key={logo.id} 
                         className={`relative border-2 rounded-lg p-4 transition-all duration-200 ${
@@ -638,11 +806,11 @@ export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalPr
                               <div className="space-y-1 text-xs text-gray-600">
                                 <div className="flex justify-between">
                                   <span>Processing:</span>
-                                  <span>{logo.asset_pack.processing_time_ms}ms</span>
+                                  <span>{logo.asset_pack?.processing_time_ms || 0}ms</span>
                                 </div>
-                                {logo.asset_pack.clean_logo_url && (
+                                {logo.asset_pack?.clean_logo_url && (
                                   <a
-                                    href={logo.asset_pack.clean_logo_url}
+                                    href={logo.asset_pack?.clean_logo_url}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="text-blue-600 hover:text-blue-800 underline block"
@@ -650,9 +818,9 @@ export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalPr
                                     Clean Logo →
                                   </a>
                                 )}
-                                {logo.asset_pack.tshirt_front_url && (
+                                {logo.asset_pack?.tshirt_front_url && (
                                   <a
-                                    href={logo.asset_pack.tshirt_front_url}
+                                    href={logo.asset_pack?.tshirt_front_url}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="text-blue-600 hover:text-blue-800 underline block"
@@ -660,9 +828,9 @@ export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalPr
                                     T-Shirt Front →
                                   </a>
                                 )}
-                                {logo.asset_pack.banner_url && (
+                                {logo.asset_pack?.banner_url && (
                                   <a
-                                    href={logo.asset_pack.banner_url}
+                                    href={logo.asset_pack?.banner_url}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="text-blue-600 hover:text-blue-800 underline block"
@@ -689,29 +857,49 @@ export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalPr
               <div className="bg-gradient-to-r from-orange-50 to-red-50 p-4 rounded-lg border-2 border-orange-200">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-medium text-gray-900">Asset Pack</h3>
-                  <button
-                    onClick={handleRegenerateAssets}
-                    disabled={regeneratingAssets || !flowDetails.selected_logo_id}
-                    className={`px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${
-                      regeneratingAssets || !flowDetails.selected_logo_id
-                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        : 'bg-orange-600 hover:bg-orange-700 text-white'
-                    }`}
-                  >
-                    {regeneratingAssets ? (
-                      <div className="flex items-center space-x-2">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                        <span>Regenerating...</span>
-                      </div>
-                    ) : (
-                      'Regenerate Assets'
-                    )}
-                  </button>
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={handleRegenerateColors}
+                      disabled={regeneratingColors}
+                      className={`px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${
+                        regeneratingColors
+                          ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                          : 'bg-purple-600 hover:bg-purple-700 text-white'
+                      }`}
+                    >
+                      {regeneratingColors ? (
+                        <div className="flex items-center space-x-2">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                          <span>Regenerating Colors...</span>
+                        </div>
+                      ) : (
+                        'Regenerate Colors'
+                      )}
+                    </button>
+                    <button
+                      onClick={handleRegenerateAssets}
+                      disabled={regeneratingAssets || !flowDetails.selected_logo_id}
+                      className={`px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${
+                        regeneratingAssets || !flowDetails.selected_logo_id
+                          ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                          : 'bg-orange-600 hover:bg-orange-700 text-white'
+                      }`}
+                    >
+                      {regeneratingAssets ? (
+                        <div className="flex items-center space-x-2">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                          <span>Regenerating...</span>
+                        </div>
+                      ) : (
+                        'Regenerate Assets'
+                      )}
+                    </button>
+                  </div>
                 </div>
 
                 {/* Check if any logos have asset packs */}
                 {(() => {
-                  const logosWithAssets = (flowDetails.logo_variants || flowDetails.team_logos || []).filter(
+                  const logosWithAssets = (flowDetails.team_logos || flowDetails.logo_variants || []).filter(
                     (logo: LogoVariant | TeamLogo) => logo.asset_pack
                   );
 
@@ -748,11 +936,11 @@ export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalPr
                           {logo.asset_pack && (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                               {/* Clean Logo */}
-                              {logo.asset_pack.clean_logo_url && (
+                              {logo.asset_pack?.clean_logo_url && (
                                 <div className="text-center">
                                   <div className="aspect-square bg-gray-100 rounded-lg mb-2 flex items-center justify-center p-2">
                                     <Image
-                                      src={logo.asset_pack.clean_logo_url}
+                                      src={logo.asset_pack?.clean_logo_url}
                                       alt="Clean Logo"
                                       width={100}
                                       height={100}
@@ -761,23 +949,35 @@ export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalPr
                                     />
                                   </div>
                                   <p className="text-xs font-medium text-gray-700 mb-1">Clean Logo</p>
-                                  <a
-                                    href={logo.asset_pack.clean_logo_url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-blue-600 hover:text-blue-800 underline text-xs"
-                                  >
-                                    View Full Size →
-                                  </a>
+                                  <div className="flex space-x-2">
+                                    <a
+                                      href={logo.asset_pack?.clean_logo_url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-blue-600 hover:text-blue-800 underline text-xs"
+                                    >
+                                      View →
+                                    </a>
+                                    <button
+                                      onClick={() => downloadAssetPackItem(
+                                        logo.asset_pack?.clean_logo_url || '',
+                                        `${flowDetails.team_name}-clean-logo.png`
+                                      )}
+                                      className="text-green-600 hover:text-green-800 text-xs"
+                                      disabled={!logo.asset_pack?.clean_logo_url}
+                                    >
+                                      Download
+                                    </button>
+                                  </div>
                                 </div>
                               )}
 
                               {/* T-Shirt Front */}
-                              {logo.asset_pack.tshirt_front_url && (
+                              {logo.asset_pack?.tshirt_front_url && (
                                 <div className="text-center">
                                   <div className="aspect-square bg-gray-100 rounded-lg mb-2 flex items-center justify-center p-2">
                                     <Image
-                                      src={logo.asset_pack.tshirt_front_url}
+                                      src={logo.asset_pack?.tshirt_front_url}
                                       alt="T-Shirt Front"
                                       width={100}
                                       height={100}
@@ -786,23 +986,34 @@ export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalPr
                                     />
                                   </div>
                                   <p className="text-xs font-medium text-gray-700 mb-1">T-Shirt Front</p>
-                                  <a
-                                    href={logo.asset_pack.tshirt_front_url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-blue-600 hover:text-blue-800 underline text-xs"
-                                  >
-                                    View Full Size →
-                                  </a>
+                                  <div className="flex space-x-2">
+                                    <a
+                                      href={logo.asset_pack?.tshirt_front_url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-blue-600 hover:text-blue-800 underline text-xs"
+                                    >
+                                      View →
+                                    </a>
+                                    <button
+                                      onClick={() => downloadAssetPackItem(
+                                        logo.asset_pack?.tshirt_front_url || '',
+                                        `${flowDetails.team_name}-tshirt-front.png`
+                                      )}
+                                      className="text-green-600 hover:text-green-800 text-xs"
+                                    >
+                                      Download
+                                    </button>
+                                  </div>
                                 </div>
                               )}
 
                               {/* T-Shirt Back */}
-                              {logo.asset_pack.tshirt_back_url && (
+                              {logo.asset_pack?.tshirt_back_url && (
                                 <div className="text-center">
                                   <div className="aspect-square bg-gray-100 rounded-lg mb-2 flex items-center justify-center p-2">
                                     <Image
-                                      src={logo.asset_pack.tshirt_back_url}
+                                      src={logo.asset_pack?.tshirt_back_url}
                                       alt="T-Shirt Back"
                                       width={100}
                                       height={100}
@@ -811,23 +1022,34 @@ export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalPr
                                     />
                                   </div>
                                   <p className="text-xs font-medium text-gray-700 mb-1">T-Shirt Back</p>
-                                  <a
-                                    href={logo.asset_pack.tshirt_back_url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-blue-600 hover:text-blue-800 underline text-xs"
-                                  >
-                                    View Full Size →
-                                  </a>
+                                  <div className="flex space-x-2">
+                                    <a
+                                      href={logo.asset_pack?.tshirt_back_url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-blue-600 hover:text-blue-800 underline text-xs"
+                                    >
+                                      View →
+                                    </a>
+                                    <button
+                                      onClick={() => downloadAssetPackItem(
+                                        logo.asset_pack?.tshirt_back_url || '',
+                                        `${flowDetails.team_name}-tshirt-back.png`
+                                      )}
+                                      className="text-green-600 hover:text-green-800 text-xs"
+                                    >
+                                      Download
+                                    </button>
+                                  </div>
                                 </div>
                               )}
 
                               {/* Banner */}
-                              {logo.asset_pack.banner_url && (
+                              {logo.asset_pack?.banner_url && (
                                 <div className="text-center">
                                   <div className="aspect-square bg-gray-100 rounded-lg mb-2 flex items-center justify-center p-2">
                                     <Image
-                                      src={logo.asset_pack.banner_url}
+                                      src={logo.asset_pack?.banner_url}
                                       alt="Banner"
                                       width={100}
                                       height={100}
@@ -836,16 +1058,101 @@ export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalPr
                                     />
                                   </div>
                                   <p className="text-xs font-medium text-gray-700 mb-1">Banner</p>
-                                  <a
-                                    href={logo.asset_pack.banner_url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-blue-600 hover:text-blue-800 underline text-xs"
-                                  >
-                                    View Full Size →
-                                  </a>
+                                  <div className="flex space-x-2">
+                                    <a
+                                      href={logo.asset_pack?.banner_url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-blue-600 hover:text-blue-800 underline text-xs"
+                                    >
+                                      View →
+                                    </a>
+                                    <button
+                                      onClick={() => downloadAssetPackItem(
+                                        logo.asset_pack?.banner_url || '',
+                                        `${flowDetails.team_name}-banner.png`
+                                      )}
+                                      className="text-green-600 hover:text-green-800 text-xs"
+                                    >
+                                      Download
+                                    </button>
+                                  </div>
                                 </div>
                               )}
+                            </div>
+                          )}
+
+                          {/* Color Analysis */}
+                          {logo.asset_pack?.colors && (
+                            <div className="mt-4 pt-3 border-t border-gray-200">
+                              <h5 className="text-sm font-medium text-gray-900 mb-3">Color Analysis</h5>
+                              
+                              {/* Role-based Colors */}
+                              {logo.asset_pack?.colors?.roles && (
+                                <div className="mb-4">
+                                  <h6 className="text-xs font-medium text-gray-700 mb-2">Color Roles</h6>
+                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                    {Object.entries(logo.asset_pack?.colors?.roles || {}).map(([role, colorData]) => (
+                                      <div key={role} className="bg-gray-50 p-2 rounded border">
+                                        <div className="flex items-center space-x-2 mb-1">
+                                          <div 
+                                            className="w-4 h-4 rounded border border-gray-300"
+                                            style={{ backgroundColor: colorData.hex }}
+                                          ></div>
+                                          <span className="text-xs font-medium capitalize">{role}</span>
+                                        </div>
+                                        <div className="text-xs text-gray-600">
+                                          <div>{colorData.hex}</div>
+                                          <div>{colorData.percent.toFixed(1)}%</div>
+                                        </div>
+                                        {logo.asset_pack?.colors?.confidence_scores && (
+                                          <div className="text-xs text-gray-500 mt-1">
+                                            Confidence: {Math.round(((logo.asset_pack?.colors?.confidence_scores as any)?.[role] || 0) * 100)}%
+                                          </div>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                  
+                                  {/* Assignment Reasons */}
+                                  {logo.asset_pack?.colors?.assignment_reasons && (
+                                    <div className="mt-3">
+                                      <h6 className="text-xs font-medium text-gray-700 mb-2">Assignment Reasons</h6>
+                                      <div className="space-y-1">
+                                        {Object.entries(logo.asset_pack?.colors?.assignment_reasons || {}).map(([role, reason]) => (
+                                          <div key={role} className="text-xs text-gray-600">
+                                            <span className="font-medium capitalize">{role}:</span> {reason}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+
+                              {/* Raw Color Data */}
+                              <div className="mb-4">
+                                <h6 className="text-xs font-medium text-gray-700 mb-2">Raw Color Data</h6>
+                                <div className="flex flex-wrap gap-1 mb-2">
+                                  {logo.asset_pack?.colors?.colors?.slice(0, 8).map((color, index) => (
+                                    <div
+                                      key={index}
+                                      className="w-6 h-6 rounded border border-gray-300"
+                                      style={{ backgroundColor: color }}
+                                      title={`${color} (${logo.asset_pack?.colors?.percentages?.[index]?.toFixed(1) || 0}%)`}
+                                    ></div>
+                                  ))}
+                                  {(logo.asset_pack?.colors?.colors?.length || 0) > 8 && (
+                                    <div className="w-6 h-6 rounded border border-gray-300 bg-gray-100 flex items-center justify-center text-xs text-gray-500">
+                                      +{(logo.asset_pack?.colors?.colors?.length || 0) - 8}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="text-xs text-gray-600">
+                                  Total colors: {logo.asset_pack?.colors?.colors?.length || 0} | 
+                                  Pixels analyzed: {(logo.asset_pack?.colors?.total_pixels_analyzed || 0).toLocaleString()}
+                                </div>
+                              </div>
                             </div>
                           )}
 
@@ -855,19 +1162,19 @@ export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalPr
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs text-gray-600">
                                 <div>
                                   <span className="font-medium">Processing Time:</span>
-                                  <p>{logo.asset_pack.processing_time_ms}ms</p>
+                                  <p>{logo.asset_pack?.processing_time_ms || 0}ms</p>
                                 </div>
                                 <div>
                                   <span className="font-medium">Created:</span>
-                                  <p>{formatDate(logo.asset_pack.created_at)}</p>
+                                  <p>{formatDate(logo.asset_pack?.created_at || '')}</p>
                                 </div>
                                 <div>
                                   <span className="font-medium">Asset Pack ID:</span>
-                                  <p className="font-mono text-xs">{logo.asset_pack.asset_pack_id}</p>
+                                  <p className="font-mono text-xs">{logo.asset_pack?.asset_pack_id || 'N/A'}</p>
                                 </div>
                                 <div>
                                   <span className="font-medium">Logo ID:</span>
-                                  <p className="font-mono text-xs">{logo.asset_pack.logo_id}</p>
+                                  <p className="font-mono text-xs">{logo.asset_pack?.logo_id || 'N/A'}</p>
                                 </div>
                               </div>
                             </div>
@@ -877,6 +1184,172 @@ export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalPr
                     </div>
                   );
                 })()}
+              </div>
+
+              {/* Upscaling Tool */}
+              <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-lg border-2 border-purple-200">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-medium text-gray-900">Logo Upscaling Tool</h3>
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => setUpscaleResult(null)}
+                      className="px-3 py-1 bg-gray-100 text-gray-700 rounded text-sm hover:bg-gray-200"
+                    >
+                      Clear Results
+                    </button>
+                  </div>
+                </div>
+
+                {/* Upscaling Settings */}
+                <div className="bg-white p-4 rounded-lg border border-purple-200 mb-4">
+                  <h4 className="text-sm font-medium text-gray-900 mb-3">Upscaling Settings</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        Scale Factor
+                      </label>
+                      <select
+                        value={upscaleSettings.scale_factor}
+                        onChange={(e) => setUpscaleSettings(prev => ({ ...prev, scale_factor: Number(e.target.value) }))}
+                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500"
+                      >
+                        <option value={2}>2x</option>
+                        <option value={4}>4x</option>
+                        <option value={8}>8x</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        Output Format
+                      </label>
+                      <select
+                        value={upscaleSettings.output_format}
+                        onChange={(e) => setUpscaleSettings(prev => ({ ...prev, output_format: e.target.value }))}
+                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500"
+                      >
+                        <option value="png">PNG</option>
+                        <option value="jpg">JPG</option>
+                        <option value="webp">WebP</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        Quality: {upscaleSettings.quality}%
+                      </label>
+                      <input
+                        type="range"
+                        min="1"
+                        max="100"
+                        value={upscaleSettings.quality}
+                        onChange={(e) => setUpscaleSettings(prev => ({ ...prev, quality: Number(e.target.value) }))}
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Upscaling Results */}
+                {upscaleResult && (
+                  <div className="bg-white p-4 rounded-lg border border-purple-200 mb-4">
+                    <h4 className="text-sm font-medium text-gray-900 mb-3">Upscaling Results</h4>
+                    {upscaleResult.success ? (
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <h5 className="text-xs font-medium text-gray-700 mb-2">Original</h5>
+                            <div className="border rounded-lg p-2 bg-gray-50">
+                              <Image
+                                src={upscaleResult.original_url}
+                                alt="Original logo"
+                                width={150}
+                                height={150}
+                                className="mx-auto object-contain"
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <h5 className="text-xs font-medium text-gray-700 mb-2">Upscaled ({upscaleResult.scale_factor}x)</h5>
+                            <div className="border rounded-lg p-2 bg-gray-50">
+                              <Image
+                                src={upscaleResult.upscaled_url}
+                                alt="Upscaled logo"
+                                width={150 * upscaleResult.scale_factor}
+                                height={150 * upscaleResult.scale_factor}
+                                className="mx-auto object-contain"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-xs font-medium text-green-800">Upscaling completed successfully!</p>
+                              <p className="text-xs text-green-600">
+                                Processing time: {upscaleResult.processing_time_ms}ms | 
+                                File size: {Math.round(upscaleResult.file_size_bytes / 1024)}KB
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => downloadUpscaledImage(
+                                upscaleResult.upscaled_url,
+                                `upscaled-logo-${upscaleResult.scale_factor}x.${upscaleSettings.output_format}`
+                              )}
+                              className="bg-green-600 text-white text-xs px-3 py-1 rounded hover:bg-green-700"
+                            >
+                              Download
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                        <p className="text-xs font-medium text-red-800">Upscaling failed</p>
+                        <p className="text-xs text-red-600">{upscaleResult.error}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Logo Selection for Upscaling */}
+                <div className="bg-white p-4 rounded-lg border border-purple-200">
+                  <h4 className="text-sm font-medium text-gray-900 mb-3">Select Logo to Upscale</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                    {(flowDetails.team_logos || flowDetails.logo_variants || []).map((logo: LogoVariant | TeamLogo) => (
+                      <div
+                        key={logo.id}
+                        className="border border-gray-200 rounded-lg p-2 hover:border-purple-300 transition-colors cursor-pointer"
+                        onClick={() => handleUpscale(logo)}
+                      >
+                        <div className="aspect-square bg-gray-100 rounded mb-2 flex items-center justify-center p-1">
+                          {logo.public_url ? (
+                            <Image
+                              src={logo.public_url}
+                              alt={`Logo variant ${logo.variant_number}`}
+                              width={80}
+                              height={80}
+                              className="max-w-full max-h-full object-contain"
+                            />
+                          ) : (
+                            <div className="text-gray-400 text-xs">No image</div>
+                          )}
+                        </div>
+                        <div className="text-center">
+                          <p className="text-xs font-medium text-gray-900">Variant {logo.variant_number}</p>
+                          <button
+                            disabled={upscaling === logo.id}
+                            className={`text-xs px-2 py-1 rounded mt-1 ${
+                              upscaling === logo.id
+                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                : 'bg-purple-600 text-white hover:bg-purple-700'
+                            }`}
+                          >
+                            {upscaling === logo.id ? 'Upscaling...' : `Upscale ${upscaleSettings.scale_factor}x`}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
 
               {/* Debug Information */}

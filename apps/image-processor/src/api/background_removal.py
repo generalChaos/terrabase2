@@ -166,9 +166,8 @@ async def remove_background_simple(request: SimpleBackgroundRemovalRequest) -> d
                 "original_url": request.image_url
             }
         
-        # Upload to Supabase storage
-        from src.storage.storage_service_simple import StorageService
-        storage = StorageService()
+        # Upload to storage
+        from src.storage import storage
         
         # Read the processed image
         import os

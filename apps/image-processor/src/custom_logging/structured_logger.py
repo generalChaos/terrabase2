@@ -118,10 +118,20 @@ class ImageProcessorLogger:
     
     def log_request_start(self, method: str, url: str, client_ip: str = None, user_agent: str = None, **kwargs):
         """Log request start with context"""
+        # Truncate long URLs (especially data URLs) to avoid log spam
+        truncated_url = url
+        if len(url) > 200:
+            if url.startswith('data:'):
+                # For data URLs, show just the data: part and first 50 chars of data
+                truncated_url = url[:100] + "...[truncated data URL]"
+            else:
+                # For regular URLs, truncate to 200 chars
+                truncated_url = url[:200] + "..."
+        
         self.info(
             "Request started",
             method=method,
-            url=url,
+            url=truncated_url,
             client_ip=client_ip,
             user_agent=user_agent,
             **kwargs
@@ -129,10 +139,20 @@ class ImageProcessorLogger:
     
     def log_request_end(self, method: str, url: str, status_code: int, process_time: float, **kwargs):
         """Log request completion with context"""
+        # Truncate long URLs (especially data URLs) to avoid log spam
+        truncated_url = url
+        if len(url) > 200:
+            if url.startswith('data:'):
+                # For data URLs, show just the data: part and first 50 chars of data
+                truncated_url = url[:100] + "...[truncated data URL]"
+            else:
+                # For regular URLs, truncate to 200 chars
+                truncated_url = url[:200] + "..."
+        
         self.info(
             "Request completed",
             method=method,
-            url=url,
+            url=truncated_url,
             status_code=status_code,
             process_time=round(process_time, 3),
             **kwargs
@@ -140,10 +160,20 @@ class ImageProcessorLogger:
     
     def log_request_error(self, method: str, url: str, error: str, error_type: str, process_time: float, **kwargs):
         """Log request error with context"""
+        # Truncate long URLs (especially data URLs) to avoid log spam
+        truncated_url = url
+        if len(url) > 200:
+            if url.startswith('data:'):
+                # For data URLs, show just the data: part and first 50 chars of data
+                truncated_url = url[:100] + "...[truncated data URL]"
+            else:
+                # For regular URLs, truncate to 200 chars
+                truncated_url = url[:200] + "..."
+        
         self.error(
             "Request failed",
             method=method,
-            url=url,
+            url=truncated_url,
             error=error,
             error_type=error_type,
             process_time=round(process_time, 3),

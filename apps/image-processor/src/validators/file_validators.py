@@ -15,9 +15,9 @@ class FileValidator:
     """File validation utilities for size, format, and content"""
     
     # File size limits (in bytes)
-    MAX_IMAGE_SIZE = int(os.getenv("MAX_IMAGE_SIZE_BYTES", "10485760"))  # 10MB default
+    MAX_IMAGE_SIZE = int(os.getenv("MAX_IMAGE_SIZE_BYTES", "26214400"))  # 25MB default
     MAX_LOGO_SIZE = int(os.getenv("MAX_LOGO_SIZE_BYTES", "5242880"))     # 5MB default
-    MAX_BANNER_SIZE = int(os.getenv("MAX_BANNER_SIZE_BYTES", "15728640")) # 15MB default
+    MAX_BANNER_SIZE = int(os.getenv("MAX_BANNER_SIZE_BYTES", "31457280")) # 30MB default
     
     # Image dimension limits
     MAX_IMAGE_WIDTH = int(os.getenv("MAX_IMAGE_WIDTH", "8192"))
@@ -148,7 +148,28 @@ class FileValidator:
             Tuple of (is_valid, error_message, file_size)
         """
         try:
-            # Make a HEAD request to get file size
+            # Handle data URLs differently - they don't support HEAD requests
+            if url.startswith('data:'):
+                # For data URLs, calculate size from the base64 content
+                try:
+                    # Extract the base64 part after the comma
+                    if ',' in url:
+                        header, data = url.split(',', 1)
+                        # Calculate approximate size (base64 is ~4/3 the size of original)
+                        file_size = int(len(data) * 3 / 4)
+                    else:
+                        return False, "Invalid data URL format", 0
+                    
+                    max_allowed = max_size or FileValidator.MAX_IMAGE_SIZE
+                    
+                    if file_size > max_allowed:
+                        return False, f"Data URL size {file_size} bytes exceeds maximum {max_allowed} bytes", file_size
+                    
+                    return True, "", file_size
+                except Exception as e:
+                    return False, f"Error parsing data URL: {str(e)}", 0
+            
+            # Make a HEAD request to get file size for regular URLs
             response = requests.head(url, timeout=10, allow_redirects=True)
             response.raise_for_status()
             
@@ -244,8 +265,19 @@ class FileValidator:
         try:
             # Check URL scheme first
             parsed_url = urlparse(url)
-            if parsed_url.scheme not in ['http', 'https', 'file']:
+            if parsed_url.scheme not in ['http', 'https', 'file', 'data']:
                 return False, f"Unsupported URL scheme: {parsed_url.scheme}", validation_info
+            
+            # For data URLs, skip size validation as it's handled in validate_remote_file_size
+            if url.startswith('data:'):
+                # Just validate that it's a proper data URL format
+                if ',' not in url:
+                    return False, "Invalid data URL format", validation_info
+                
+                # For data URLs, we'll let the upscaling service handle the actual processing
+                # and just return success here
+                validation_info["file_size"] = 0  # Unknown size for data URLs
+                return True, "", validation_info
             
             # Determine max size based on file type
             max_sizes = {

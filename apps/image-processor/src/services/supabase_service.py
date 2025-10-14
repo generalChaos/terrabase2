@@ -23,13 +23,17 @@ class SupabaseService:
                            os.getenv("SUPABASE_ANON_KEY"))
         
         if not self.supabase_key:
-            raise ValueError("SUPABASE_SERVICE_KEY or SUPABASE_SERVICE_ROLE_KEY environment variable is required")
-        
-        self.client = create_client(self.supabase_url, self.supabase_key)
-        logger.info(f"Supabase client initialized for {self.supabase_url}")
+            logger.warning("SUPABASE_SERVICE_KEY or SUPABASE_SERVICE_ROLE_KEY environment variable not found. Supabase features will be disabled.")
+            self.client = None
+        else:
+            self.client = create_client(self.supabase_url, self.supabase_key)
+            logger.info(f"Supabase client initialized for {self.supabase_url}")
     
     async def get_logo_by_id(self, logo_id: str) -> Optional[Dict[str, Any]]:
         """Get logo metadata from database by ID"""
+        if not self.client:
+            logger.warning("Supabase client not available. Cannot get logo by ID.")
+            return None
         try:
             response = self.client.table("team_logos").select("*").eq("id", logo_id).single().execute()
             if response.data:

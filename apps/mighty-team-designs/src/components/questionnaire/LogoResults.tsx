@@ -258,7 +258,7 @@ export default function LogoResults({ onLogoSelect }: LogoResultsProps) {
             <div className="w-full h-full relative">
               <Image
                 src={logo.public_url}
-                alt={`Logo variant ${logo.variant_number}`}
+                alt="Team logo"
                 fill
                 className="object-contain"
                 onLoad={() => console.log(`✅ Logo ${logo.variant_number} loaded successfully`)}
@@ -267,21 +267,7 @@ export default function LogoResults({ onLogoSelect }: LogoResultsProps) {
             </div>
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              <div className="text-gray-400 text-xs">No image</div>
-            </div>
-          )}
-        </div>
-        
-        <div className="text-center">
-          <h3 className="font-semibold text-gray-900 mb-1 text-sm">
-            Variant {logo.variant_number}
-          </h3>
-          <p className="text-xs text-gray-500">
-            {logo.public_url ? 'Ready' : 'No image'}
-          </p>
-          {isSelected && logo.public_url && (
-            <div className="mt-1 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-              ✓ Selected
+              <div className="text-gray-400 text-xs">Loading...</div>
             </div>
           )}
         </div>

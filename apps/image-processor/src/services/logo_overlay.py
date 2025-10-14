@@ -10,7 +10,7 @@ import requests
 from PIL import Image, ImageDraw, ImageFont
 from typing import Dict, List, Any, Optional
 from src.utils.filename_utils import generate_pipeline_filename
-from src.storage.storage_service_simple import StorageService
+from src.storage import storage
 
 logger = logging.getLogger(__name__)
 
@@ -20,8 +20,8 @@ class LogoOverlayService:
         self.output_dir = os.getenv("OUTPUT_DIR", "./output")
         self.assets_dir = os.getenv("ASSETS_DIR", "./assets")
         
-        # Always initialize storage service for Supabase
-        self.storage = StorageService()
+        # Initialize storage service
+        self.storage = storage
         
         # Create directories if they don't exist (only if we have write permissions)
         try:

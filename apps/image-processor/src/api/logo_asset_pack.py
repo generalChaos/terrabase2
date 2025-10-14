@@ -60,7 +60,15 @@ class LogoAssetPackService:
             
             # Step 1: Download and process logo
             logo_image = await self._download_image(request.logo_url)
-            clean_logo = await self._remove_background(logo_image)
+            
+            # Check if logo already has transparent background (from gpt-image-1)
+            # If it does, skip background removal to avoid artifacts
+            if self._has_transparent_background(logo_image):
+                logger.info("Logo already has transparent background, skipping background removal")
+                clean_logo = logo_image
+            else:
+                logger.info("Logo has solid background, applying background removal")
+                clean_logo = await self._remove_background(logo_image)
             
             # Step 2: Save clean logo asset
             clean_logo_filename = f"{logo_slug}_clean.{request.output_format}"
@@ -151,6 +159,36 @@ class LogoAssetPackService:
             timestamp = int(time.time() * 1000)
             return f"logo_{timestamp}"
     
+    def _has_transparent_background(self, image: Image.Image) -> bool:
+        """Check if image already has transparent background"""
+        try:
+            # Check if image has alpha channel
+            if image.mode not in ('RGBA', 'LA'):
+                return False
+            
+            # Convert to RGBA if it's LA
+            if image.mode == 'LA':
+                image = image.convert('RGBA')
+            
+            # Get alpha channel
+            alpha = image.split()[-1]
+            
+            # Check if there are any fully transparent pixels (alpha = 0)
+            # This indicates the image has transparency
+            transparent_pixels = sum(1 for pixel in alpha.getdata() if pixel == 0)
+            total_pixels = alpha.size[0] * alpha.size[1]
+            
+            # If more than 5% of pixels are transparent, consider it to have transparent background
+            transparency_ratio = transparent_pixels / total_pixels
+            has_transparency = transparency_ratio > 0.05
+            
+            logger.info(f"Transparency check: {transparent_pixels}/{total_pixels} transparent pixels ({transparency_ratio:.2%})")
+            return has_transparency
+            
+        except Exception as e:
+            logger.warning(f"Transparency check failed: {str(e)}")
+            return False
+
     async def _remove_background(self, logo_image: Image.Image) -> Image.Image:
         """Remove background using AI"""
         try:

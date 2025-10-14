@@ -18,6 +18,7 @@ from src.api.background_removal import router as background_removal_router
 from src.api.tshirt import router as tshirt_router
 from src.api.banner_generator import router as banner_router
 from src.api.color_analysis import analyze_colors_endpoint
+from src.api.color_analysis_v2 import register_routes as register_color_analysis_v2
 from src.models.schemas import HealthResponse
 from src.middleware.request_id import RequestIDMiddleware
 from src.custom_logging import logger
@@ -26,7 +27,7 @@ from pydantic import BaseModel
 from typing import List, Dict, Any
 
 # Load environment variables
-load_dotenv()
+load_dotenv("local.env")
 
 # Initialize Supabase client
 from supabase import create_client
@@ -61,7 +62,7 @@ app.add_middleware(RequestIDMiddleware)
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=os.getenv("CORS_ORIGINS", "http://localhost:3000").split(","),
+    allow_origins=os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:3003").split(","),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -75,6 +76,9 @@ app.include_router(storage_router, prefix="/api/v1", tags=["storage"])
 app.include_router(background_removal_router, prefix="/api/v1", tags=["background-removal"])
 app.include_router(tshirt_router, prefix="/api/v1", tags=["tshirt"])
 app.include_router(banner_router, prefix="/api/v1", tags=["banner"])
+
+# Register color analysis v2 routes
+register_color_analysis_v2(app)
 
 # Add health endpoint under /api/v1 for consistency with frontend
 @app.get("/api/v1/health", response_model=HealthResponse)
