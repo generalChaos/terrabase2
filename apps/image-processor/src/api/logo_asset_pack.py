@@ -61,14 +61,9 @@ class LogoAssetPackService:
             # Step 1: Download and process logo
             logo_image = await self._download_image(request.logo_url)
             
-            # Check if logo already has transparent background (from gpt-image-1)
-            # If it does, skip background removal to avoid artifacts
-            if self._has_transparent_background(logo_image):
-                logger.info("Logo already has transparent background, skipping background removal")
-                clean_logo = logo_image
-            else:
-                logger.info("Logo has solid background, applying background removal")
-                clean_logo = await self._remove_background(logo_image)
+            # Skip all processing for AI-generated logos (they already have transparent backgrounds)
+            logger.info("Skipping background removal for AI-generated logo - using original directly")
+            clean_logo = logo_image
             
             # Step 2: Save clean logo asset
             clean_logo_filename = f"{logo_slug}_clean.{request.output_format}"

@@ -9,7 +9,7 @@ from typing import Optional, List
 import asyncio
 import time
 
-from src.services.asset_cleanup import AssetCleanupService
+# from src.services.asset_cleanup import AssetCleanupService  # Not used - AI logos don't need cleanup
 from src.services.logo_overlay import LogoOverlayService
 from src.validators import InputValidator, ValidationError, FileValidator
 from src.storage import storage_client
@@ -18,7 +18,7 @@ from src.custom_logging import logger
 router = APIRouter()
 
 # Initialize services
-cleanup_service = AssetCleanupService()
+# cleanup_service = AssetCleanupService()  # Not used - AI logos don't need cleanup
 overlay_service = LogoOverlayService()
 
 class Player(BaseModel):
@@ -118,19 +118,10 @@ async def create_asset_pack(request: AssetPackRequest):
                    player_count=len(request.players),
                    logo_url=str(request.logo_url))
         
-        # Step 1: Clean the logo using cleanup service and get Supabase URL
-        logger.info("Step 1: Cleaning logo with Supabase storage", request_id=request_id)
-        cleanup_result = await cleanup_service.cleanup_logo(
-            logo_url=str(request.logo_url),
-            output_format=request.output_format,
-            quality=request.quality
-        )
-        
-        if not cleanup_result["success"]:
-            raise Exception(f"Logo cleanup failed: {cleanup_result['error']}")
-        
-        clean_logo_url = cleanup_result["output_url"]
-        logger.info(f"Cleaned logo URL: {clean_logo_url}")
+        # Step 1: Skip cleanup for AI-generated logos (they already have transparent backgrounds)
+        logger.info("Step 1: Skipping logo cleanup for AI-generated logo - using original directly", request_id=request_id)
+        clean_logo_url = str(request.logo_url)
+        logger.info(f"Using original logo as clean logo: {clean_logo_url}")
         
         # Step 2: Create t-shirt front with logo
         logger.info("Step 2: Creating t-shirt front", request_id=request_id)
@@ -225,22 +216,10 @@ async def asset_pack_clean_only(request: AssetPackRequest):
                    team_name=request.team_name,
                    logo_url=str(request.logo_url))
         
-        # Step 1: Clean the logo using cleanup service and get Supabase URL
-        logger.info("Step 1: Cleaning logo with Supabase storage", request_id=request_id)
-        from src.services.asset_cleanup import AssetCleanupService
-        cleanup_service = AssetCleanupService()
-        
-        cleanup_result = await cleanup_service.cleanup_logo(
-            logo_url=str(request.logo_url),
-            output_format=request.output_format,
-            quality=request.quality
-        )
-        
-        if not cleanup_result["success"]:
-            raise Exception(f"Logo cleanup failed: {cleanup_result['error']}")
-        
-        clean_logo_url = cleanup_result["output_url"]
-        logger.info(f"Cleaned logo URL: {clean_logo_url}")
+        # Step 1: Skip cleanup for AI-generated logos (they already have transparent backgrounds)
+        logger.info("Step 1: Skipping logo cleanup for AI-generated logo - using original directly", request_id=request_id)
+        clean_logo_url = str(request.logo_url)
+        logger.info(f"Using original logo as clean logo: {clean_logo_url}")
         
         processing_time_ms = int((time.time() - start_time) * 1000)
         

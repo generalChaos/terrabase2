@@ -705,8 +705,15 @@ Design elements to include:
           processing_time_ms: result.processing_time_ms || 0
         };
 
-        // Save asset pack to database
+        // Save asset pack to database (replace existing if any)
         try {
+          // First, delete any existing asset pack for this logo
+          await supabase
+            .from('logo_asset_packs')
+            .delete()
+            .eq('logo_id', logoId);
+
+          // Then insert the new asset pack
           const { data: insertedAssetPack, error: assetPackError } = await supabase
             .from('logo_asset_packs')
             .insert({

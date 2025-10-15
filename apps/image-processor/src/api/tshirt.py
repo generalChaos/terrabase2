@@ -9,14 +9,14 @@ from typing import List, Optional
 from pydantic import BaseModel, Field
 from fastapi import APIRouter, HTTPException
 from src.services.logo_overlay import LogoOverlayService
-from src.services.asset_cleanup import AssetCleanupService
+# from src.services.asset_cleanup import AssetCleanupService  # Not used - AI logos don't need cleanup
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
 # Initialize services
 overlay_service = LogoOverlayService()
-cleanup_service = AssetCleanupService()
+# cleanup_service = AssetCleanupService()  # Not used - AI logos don't need cleanup
 
 class Player(BaseModel):
     """Player model for roster"""

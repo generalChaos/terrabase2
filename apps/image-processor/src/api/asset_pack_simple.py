@@ -9,7 +9,7 @@ from typing import Optional, List
 import asyncio
 import time
 
-from src.services.asset_cleanup import AssetCleanupService
+# from src.services.asset_cleanup import AssetCleanupService  # Not used - AI logos don't need cleanup
 from src.services.logo_overlay import LogoOverlayService
 from src.services.supabase_service import supabase_service
 from src.validators import InputValidator, ValidationError, FileValidator
@@ -18,7 +18,7 @@ from src.api.color_analysis import analyze_image_colors
 router = APIRouter()
 
 # Initialize services
-cleanup_service = AssetCleanupService()
+# cleanup_service = AssetCleanupService()  # Not used - AI logos don't need cleanup
 overlay_service = LogoOverlayService()
 
 class Player(BaseModel):
@@ -123,33 +123,10 @@ async def create_asset_pack(request: AssetPackRequest):
                 error="Either logo_id or logo_url must be provided"
             )
         
-        # Step 1: Clean the logo (remove background, enhance)
-        if logo_source == "image":
-            print(f"DEBUG: Starting logo cleanup from PIL Image")
-            cleanup_result = await cleanup_service.cleanup_logo_from_image(
-                logo_image=logo_image,
-                output_format=request.output_format,
-                quality=request.quality
-            )
-        else:
-            print(f"DEBUG: Starting logo cleanup from URL")
-            cleanup_result = await cleanup_service.cleanup_logo(
-                logo_url=logo_url if request.logo_url else f"http://127.0.0.1:54321/storage/v1/object/public/{logo_data.get('storage_bucket', 'team-logos') if logo_data else 'team-logos'}/{logo_data.get('file_path') if logo_data else ''}",
-                output_format=request.output_format,
-                quality=request.quality
-            )
-        print(f"DEBUG: Cleanup result: {cleanup_result}")
-        
-        if not cleanup_result["success"]:
-            return AssetPackResponse(
-                success=False,
-                team_name=request.team_name,
-                processing_time_ms=int((time.time() - start_time) * 1000),
-                error=f"Logo cleanup failed: {cleanup_result['error']}"
-            )
-        
-        clean_logo_url = cleanup_result["output_url"]
-        print(f"DEBUG: Clean logo URL: {clean_logo_url}")
+        # Step 1: Skip cleanup for AI-generated logos (they already have transparent backgrounds)
+        print(f"DEBUG: Skipping logo cleanup for AI-generated logo - using original directly")
+        clean_logo_url = logo_url if request.logo_url else f"http://127.0.0.1:54321/storage/v1/object/public/{logo_data.get('storage_bucket', 'team-logos') if logo_data else 'team-logos'}/{logo_data.get('file_path') if logo_data else ''}"
+        print(f"DEBUG: Using original logo as clean logo: {clean_logo_url}")
         
         # Step 1.5: Analyze colors from the clean logo
         print(f"DEBUG: Starting color analysis for URL: {clean_logo_url}")
@@ -300,20 +277,10 @@ async def asset_pack_clean_only(request: AssetPackRequest):
               f"team_name={request.team_name}",
               f"logo_url={request.logo_url}")
         
-        # Step 1: Clean the logo using cleanup service and get Supabase URL
-        print(f"DEBUG: Step 1: Cleaning logo with Supabase storage")
-        
-        cleanup_result = await cleanup_service.cleanup_logo(
-            logo_url=str(request.logo_url),
-            output_format=request.output_format,
-            quality=request.quality
-        )
-        
-        if not cleanup_result["success"]:
-            raise Exception(f"Logo cleanup failed: {cleanup_result['error']}")
-        
-        clean_logo_url = cleanup_result["output_url"]
-        print(f"DEBUG: Cleaned logo URL: {clean_logo_url}")
+        # Step 1: Skip cleanup for AI-generated logos (they already have transparent backgrounds)
+        print(f"DEBUG: Step 1: Skipping logo cleanup for AI-generated logo - using original directly")
+        clean_logo_url = str(request.logo_url)
+        print(f"DEBUG: Using original logo as clean logo: {clean_logo_url}")
         
         processing_time_ms = int((time.time() - start_time) * 1000)
         
