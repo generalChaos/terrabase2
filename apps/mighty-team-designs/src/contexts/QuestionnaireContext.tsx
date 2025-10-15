@@ -176,6 +176,12 @@ export function QuestionnaireProvider({ children }: { children: React.ReactNode 
   const [state, dispatch] = useReducer(questionnaireReducer, initialState);
 
   const createFlow = async (data: { team_name: string; sport: string; logo_style: string; debug_mode?: boolean }) => {
+    // Prevent multiple simultaneous flow creation
+    if (state.isLoading) {
+      console.log('Flow creation already in progress, skipping duplicate request');
+      return;
+    }
+
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
       dispatch({ type: 'SET_ERROR', payload: null });
@@ -207,6 +213,8 @@ export function QuestionnaireProvider({ children }: { children: React.ReactNode 
       dispatch({ type: 'SET_CURRENT_STEP', payload: 'round2' });
     } catch (error) {
       dispatch({ type: 'SET_ERROR', payload: error instanceof Error ? error.message : 'Unknown error' });
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
     }
   };
 

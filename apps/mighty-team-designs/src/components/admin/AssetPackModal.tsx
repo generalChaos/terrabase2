@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import { Button } from '@/components/ui/Button';
 
 interface AssetPack {
@@ -88,9 +89,11 @@ export function AssetPackModal({ logo, isOpen, onClose, onGoToResult }: AssetPac
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Original Logo</h3>
             <div className="flex justify-center">
               <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                <img
+                <Image
                   src={logo.public_url}
                   alt={`${logo.flow.team_name} Logo`}
+                  width={256}
+                  height={256}
                   className="max-w-xs max-h-64 object-contain"
                   onError={(e) => {
                     e.currentTarget.src = '/placeholder-logo.png';
@@ -129,9 +132,11 @@ export function AssetPackModal({ logo, isOpen, onClose, onGoToResult }: AssetPac
                           Clean Logo
                         </label>
                         <div className="bg-white rounded border border-gray-200 p-2">
-                          <img
+                          <Image
                             src={assetPack.clean_logo_url}
                             alt="Clean Logo"
+                            width={128}
+                            height={128}
                             className="w-full h-32 object-contain"
                             onError={(e) => {
                               e.currentTarget.src = '/placeholder-logo.png';
@@ -146,9 +151,11 @@ export function AssetPackModal({ logo, isOpen, onClose, onGoToResult }: AssetPac
                           T-shirt Front
                         </label>
                         <div className="bg-white rounded border border-gray-200 p-2">
-                          <img
+                          <Image
                             src={assetPack.tshirt_front_url}
                             alt="T-shirt Front"
+                            width={128}
+                            height={128}
                             className="w-full h-32 object-contain"
                             onError={(e) => {
                               e.currentTarget.src = '/placeholder-logo.png';
@@ -163,9 +170,11 @@ export function AssetPackModal({ logo, isOpen, onClose, onGoToResult }: AssetPac
                           T-shirt Back
                         </label>
                         <div className="bg-white rounded border border-gray-200 p-2">
-                          <img
+                          <Image
                             src={assetPack.tshirt_back_url}
                             alt="T-shirt Back"
+                            width={128}
+                            height={128}
                             className="w-full h-32 object-contain"
                             onError={(e) => {
                               e.currentTarget.src = '/placeholder-logo.png';
@@ -181,9 +190,11 @@ export function AssetPackModal({ logo, isOpen, onClose, onGoToResult }: AssetPac
                             Banner
                           </label>
                           <div className="bg-white rounded border border-gray-200 p-2">
-                            <img
+                            <Image
                               src={assetPack.banner_url}
                               alt="Banner"
+                              width={128}
+                              height={128}
                               className="w-full h-32 object-contain"
                               onError={(e) => {
                                 e.currentTarget.src = '/placeholder-logo.png';
@@ -206,7 +217,7 @@ export function AssetPackModal({ logo, isOpen, onClose, onGoToResult }: AssetPac
               </div>
               <h3 className="text-lg font-medium text-gray-900 mb-2">No Asset Packs</h3>
               <p className="text-gray-500">
-                This logo doesn't have any asset packs generated yet.
+                This logo doesn&apos;t have any asset packs generated yet.
               </p>
             </div>
           )}

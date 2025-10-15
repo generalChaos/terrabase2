@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import { Button } from '@/components/ui/Button';
 import { FlowDetailsModal } from '@/components/admin/FlowDetailsModal';
 import { AssetPackModal } from '@/components/admin/AssetPackModal';
@@ -95,21 +96,61 @@ export default function AdminDashboard() {
   const [activeSection, setActiveSection] = useState<'overview' | 'image-processing' | 'flows' | 'gallery'>('overview');
   const [imageProcessingTab, setImageProcessingTab] = useState<'upscaling' | 'background-removal' | 'logo-preview'>('upscaling');
 
-  // Auto-authenticate in local development
-  useEffect(() => {
-    if (isLocal && !authenticated) {
-      authenticate();
-    }
-  }, [isLocal, authenticated]);
+  const loadData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const headers: Record<string, string> = {};
+      
+      // Only add password header if not in local development
+      if (!isLocal) {
+        headers['x-admin-password'] = password;
+      }
+      
+      const response = await fetch('/api/admin', { headers });
 
-  // Load gallery data when gallery section becomes active
-  useEffect(() => {
-    if (activeSection === 'gallery' && authenticated && galleryLogos.length === 0) {
-      loadGalleryData();
+      if (response.ok) {
+        const result = await response.json();
+        setData(result.data);
+      } else {
+        setError('Failed to load admin data');
+      }
+    } catch (err) {
+      setError('Failed to load admin data');
+    } finally {
+      setLoading(false);
     }
-  }, [activeSection, authenticated, galleryLogos.length]);
+  }, [isLocal, password]);
 
-  const authenticate = async () => {
+  const refreshData = () => {
+    loadData();
+  };
+
+  const loadGalleryData = useCallback(async () => {
+    try {
+      setGalleryLoading(true);
+      const headers: Record<string, string> = {};
+      
+      // Only add password header if not in local development
+      if (!isLocal) {
+        headers['x-admin-password'] = password;
+      }
+      
+      const response = await fetch('/api/admin/gallery', { headers });
+
+      if (response.ok) {
+        const result = await response.json();
+        setGalleryLogos(result.data || []);
+      } else {
+        setError('Failed to load gallery data');
+      }
+    } catch (err) {
+      setError('Failed to load gallery data');
+    } finally {
+      setGalleryLoading(false);
+    }
+  }, [isLocal, password]);
+
+  const authenticate = useCallback(async () => {
     // Skip authentication in local development
     if (isLocal) {
       setAuthenticated(true);
@@ -133,61 +174,7 @@ export default function AdminDashboard() {
     } catch (err) {
       setError('Authentication failed');
     }
-  };
-
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      const headers: Record<string, string> = {};
-      
-      // Only add password header if not in local development
-      if (!isLocal) {
-        headers['x-admin-password'] = password;
-      }
-      
-      const response = await fetch('/api/admin', { headers });
-
-      if (response.ok) {
-        const result = await response.json();
-        setData(result.data);
-      } else {
-        setError('Failed to load admin data');
-      }
-    } catch (err) {
-      setError('Failed to load admin data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const refreshData = () => {
-    loadData();
-  };
-
-  const loadGalleryData = async () => {
-    try {
-      setGalleryLoading(true);
-      const headers: Record<string, string> = {};
-      
-      // Only add password header if not in local development
-      if (!isLocal) {
-        headers['x-admin-password'] = password;
-      }
-      
-      const response = await fetch('/api/admin/gallery', { headers });
-
-      if (response.ok) {
-        const result = await response.json();
-        setGalleryLogos(result.data || []);
-      } else {
-        setError('Failed to load gallery data');
-      }
-    } catch (err) {
-      setError('Failed to load gallery data');
-    } finally {
-      setGalleryLoading(false);
-    }
-  };
+  }, [isLocal, password, loadData]);
 
   const handleFlowClick = (flowId: string) => {
     setSelectedFlowId(flowId);
@@ -347,7 +334,7 @@ export default function AdminDashboard() {
     setBgRemovalResult(null);
 
     try {
-      let imageUrl = bgImageUrl;
+      const imageUrl = bgImageUrl;
       
       if (bgUploadedFile) {
         // Convert file to data URL
@@ -492,6 +479,19 @@ export default function AdminDashboard() {
     { name: 'Brown Savana', hex: '#8B4513' }
   ];
 
+  // Auto-authenticate in local development
+  useEffect(() => {
+    if (isLocal && !authenticated) {
+      authenticate();
+    }
+  }, [isLocal, authenticated, authenticate]);
+
+  // Load gallery data when gallery section becomes active
+  useEffect(() => {
+    if (activeSection === 'gallery' && authenticated && galleryLogos.length === 0) {
+      loadGalleryData();
+    }
+  }, [activeSection, authenticated, galleryLogos.length, loadGalleryData]);
 
   if (!authenticated) {
     return (
@@ -866,9 +866,11 @@ export default function AdminDashboard() {
                       </button>
                     </div>
                     <div className="border rounded-lg p-2 bg-gray-50">
-                      <img
+                      <Image
                         src={imagePreview}
                         alt="Upload preview"
+                        width={128}
+                        height={128}
                         className="max-w-full h-32 object-contain mx-auto"
                       />
                     </div>
@@ -958,9 +960,11 @@ export default function AdminDashboard() {
                     <div>
                       <h4 className="text-sm font-medium text-gray-700 mb-2">Original Image</h4>
                       <div className="border rounded-lg p-2 bg-gray-50">
-                        <img
+                        <Image
                           src={upscaleResult.original_url}
                           alt="Original"
+                          width={128}
+                          height={128}
                           className="max-w-full h-32 object-contain mx-auto"
                         />
                       </div>
@@ -968,9 +972,11 @@ export default function AdminDashboard() {
                     <div>
                       <h4 className="text-sm font-medium text-gray-700 mb-2">Upscaled Image ({upscaleResult.scale_factor}x)</h4>
                       <div className="border rounded-lg p-2 bg-gray-50">
-                        <img
+                        <Image
                           src={upscaleResult.upscaled_url}
                           alt="Upscaled"
+                          width={128}
+                          height={128}
                           className="max-w-full h-32 object-contain mx-auto"
                         />
                       </div>
@@ -1068,9 +1074,11 @@ export default function AdminDashboard() {
                       />
                       {bgImagePreview && (
                         <div className="mt-4">
-                          <img
+                          <Image
                             src={bgImagePreview}
                             alt="Preview"
+                            width={128}
+                            height={128}
                             className="max-w-xs h-32 object-contain border rounded"
                           />
                         </div>
@@ -1135,9 +1143,11 @@ export default function AdminDashboard() {
                           <div>
                             <h4 className="text-sm font-medium text-gray-700 mb-2">Original Image</h4>
                             <div className="border rounded-lg p-2 bg-gray-50">
-                              <img
+                              <Image
                                 src={bgRemovalResult.original_url}
                                 alt="Original"
+                                width={128}
+                                height={128}
                                 className="max-w-full h-32 object-contain mx-auto"
                               />
                             </div>
@@ -1145,9 +1155,11 @@ export default function AdminDashboard() {
                           <div>
                             <h4 className="text-sm font-medium text-gray-700 mb-2">Background Removed</h4>
                             <div className="border rounded-lg p-2 bg-gray-50">
-                              <img
+                              <Image
                                 src={bgRemovalResult.upscaled_url}
                                 alt="Background Removed"
+                                width={128}
+                                height={128}
                                 className="max-w-full h-32 object-contain mx-auto"
                               />
                             </div>
@@ -1235,9 +1247,11 @@ export default function AdminDashboard() {
                             style={{ backgroundColor: color.hex }}
                             onClick={() => setSelectedBgColor(color.hex)}
                           >
-                            <img
+                            <Image
                               src={logoPreviewUrl}
                               alt="Logo preview"
+                              width={64}
+                              height={64}
                               className="max-w-full max-h-full object-contain"
                             />
                           </div>
@@ -1266,9 +1280,11 @@ export default function AdminDashboard() {
                         className="w-64 h-64 rounded-lg border-4 border-gray-300 flex items-center justify-center"
                         style={{ backgroundColor: selectedBgColor }}
                       >
-                        <img
+                        <Image
                           src={logoPreviewUrl}
                           alt="Logo preview"
+                          width={256}
+                          height={256}
                           className="max-w-full max-h-full object-contain"
                         />
                       </div>
@@ -1374,9 +1390,11 @@ export default function AdminDashboard() {
                     className="group cursor-pointer bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors border border-gray-200 hover:border-blue-300"
                   >
                     <div className="aspect-square mb-3 bg-white rounded-lg flex items-center justify-center overflow-hidden">
-                      <img
+                      <Image
                         src={logo.public_url}
                         alt={`${logo.flow.team_name} Logo`}
+                        width={128}
+                        height={128}
                         className="max-w-full max-h-full object-contain"
                         onError={(e) => {
                           e.currentTarget.src = '/placeholder-logo.png';
@@ -1414,7 +1432,7 @@ export default function AdminDashboard() {
                   </svg>
                 </div>
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No logos found</h3>
-                <p className="text-gray-500">Click "Refresh Gallery" to load logos from the database.</p>
+                <p className="text-gray-500">Click &quot;Refresh Gallery&quot; to load logos from the database.</p>
               </div>
             )}
           </div>
