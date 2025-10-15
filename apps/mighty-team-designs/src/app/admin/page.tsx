@@ -961,7 +961,7 @@ export default function AdminDashboard() {
                       <h4 className="text-sm font-medium text-gray-700 mb-2">Original Image</h4>
                       <div className="border rounded-lg p-2 bg-gray-50">
                         <Image
-                          src={upscaleResult.original_url}
+                          src={upscaleResult.original_url || '/placeholder.png'}
                           alt="Original"
                           width={128}
                           height={128}
@@ -973,7 +973,7 @@ export default function AdminDashboard() {
                       <h4 className="text-sm font-medium text-gray-700 mb-2">Upscaled Image ({upscaleResult.scale_factor}x)</h4>
                       <div className="border rounded-lg p-2 bg-gray-50">
                         <Image
-                          src={upscaleResult.upscaled_url}
+                          src={upscaleResult.upscaled_url || '/placeholder.png'}
                           alt="Upscaled"
                           width={128}
                           height={128}
@@ -1144,7 +1144,7 @@ export default function AdminDashboard() {
                             <h4 className="text-sm font-medium text-gray-700 mb-2">Original Image</h4>
                             <div className="border rounded-lg p-2 bg-gray-50">
                               <Image
-                                src={bgRemovalResult.original_url}
+                                src={bgRemovalResult.original_url || '/placeholder.png'}
                                 alt="Original"
                                 width={128}
                                 height={128}
@@ -1156,7 +1156,7 @@ export default function AdminDashboard() {
                             <h4 className="text-sm font-medium text-gray-700 mb-2">Background Removed</h4>
                             <div className="border rounded-lg p-2 bg-gray-50">
                               <Image
-                                src={bgRemovalResult.upscaled_url}
+                                src={bgRemovalResult.upscaled_url || '/placeholder.png'}
                                 alt="Background Removed"
                                 width={128}
                                 height={128}
