@@ -5,15 +5,22 @@ import { logError } from '@/lib/debug';
 // GET /api/admin - Get admin dashboard data
 export async function GET(request: NextRequest) {
   try {
-    // Check for admin authentication (simple env var check)
-    const adminPassword = request.headers.get('x-admin-password');
-    const expectedPassword = process.env.ADMIN_PASSWORD;
+    // Skip authentication in local development
+    const isLocal = process.env.NODE_ENV === 'development' || 
+                   process.env.NEXT_PUBLIC_APP_URL?.includes('localhost') ||
+                   process.env.NEXT_PUBLIC_APP_URL?.includes('127.0.0.1');
 
-    if (!expectedPassword || adminPassword !== expectedPassword) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+    if (!isLocal) {
+      // Check for admin authentication (simple env var check)
+      const adminPassword = request.headers.get('x-admin-password');
+      const expectedPassword = process.env.ADMIN_PASSWORD;
+
+      if (!expectedPassword || adminPassword !== expectedPassword) {
+        return NextResponse.json(
+          { error: 'Unauthorized' },
+          { status: 401 }
+        );
+      }
     }
 
     // Get comprehensive admin data
@@ -74,23 +81,20 @@ async function getQuestionsData() {
     const questions = await serviceManager.questions.getAllQuestionSets();
     
     const bySport: Record<string, number> = {};
-    const byAgeGroup: Record<string, number> = {};
     
     if (questions) {
       questions.forEach((q: any) => {
         bySport[q.sport] = (bySport[q.sport] || 0) + 1;
-        byAgeGroup[q.age_group] = (byAgeGroup[q.age_group] || 0) + 1;
       });
     }
     
     return {
       total,
-      by_sport: bySport,
-      by_age_group: byAgeGroup
+      by_sport: bySport
     };
   } catch (error) {
     console.error('Error getting questions data:', error);
-    return { total: 0, by_sport: {}, by_age_group: {} };
+    return { total: 0, by_sport: {} };
   }
 }
 
@@ -181,15 +185,22 @@ async function getSystemMetricsData() {
 // POST /api/admin/maintenance - Run system maintenance
 export async function POST(request: NextRequest) {
   try {
-    // Check for admin authentication
-    const adminPassword = request.headers.get('x-admin-password');
-    const expectedPassword = process.env.ADMIN_PASSWORD;
+    // Skip authentication in local development
+    const isLocal = process.env.NODE_ENV === 'development' || 
+                   process.env.NEXT_PUBLIC_APP_URL?.includes('localhost') ||
+                   process.env.NEXT_PUBLIC_APP_URL?.includes('127.0.0.1');
 
-    if (!expectedPassword || adminPassword !== expectedPassword) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+    if (!isLocal) {
+      // Check for admin authentication
+      const adminPassword = request.headers.get('x-admin-password');
+      const expectedPassword = process.env.ADMIN_PASSWORD;
+
+      if (!expectedPassword || adminPassword !== expectedPassword) {
+        return NextResponse.json(
+          { error: 'Unauthorized' },
+          { status: 401 }
+        );
+      }
     }
 
     const maintenanceResults = await serviceManager.performMaintenance();

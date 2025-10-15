@@ -1,8 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import { Button } from '@/components/ui/Button';
 import { FlowDetailsModal } from '@/components/admin/FlowDetailsModal';
+import { AssetPackModal } from '@/components/admin/AssetPackModal';
 
 interface AdminData {
   flows: {
@@ -12,7 +14,6 @@ interface AdminData {
   questions: {
     total: number;
     by_sport: Record<string, number>;
-    by_age_group: Record<string, number>;
   };
   logos: {
     total: number;
@@ -46,8 +47,21 @@ export default function AdminDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [password, setPassword] = useState('');
   const [authenticated, setAuthenticated] = useState(false);
+  
+  // Check if running locally
+  const isLocal = process.env.NODE_ENV === 'development' || 
+                 (typeof window !== 'undefined' && 
+                  (window.location.hostname === 'localhost' || 
+                   window.location.hostname === '127.0.0.1'));
   const [selectedFlowId, setSelectedFlowId] = useState<string | null>(null);
   const [showFlowDetails, setShowFlowDetails] = useState(false);
+  
+  // Gallery State
+  const [galleryLogos, setGalleryLogos] = useState<any[]>([]);
+  const [galleryLoading, setGalleryLoading] = useState(false);
+  const [selectedLogo, setSelectedLogo] = useState<any | null>(null);
+  const [showAssetPackModal, setShowAssetPackModal] = useState(false);
+  
   
   // Upscale State
   const [upscaleResult, setUpscaleResult] = useState<UpscaleResult | null>(null);
@@ -63,15 +77,87 @@ export default function AdminDashboard() {
   });
 
 
+  // Background Removal State
+  const [bgRemovalResult, setBgRemovalResult] = useState<UpscaleResult | null>(null);
+  const [bgRemoving, setBgRemoving] = useState(false);
+  const [bgImageUrl, setBgImageUrl] = useState('');
+  const [bgUploadedFile, setBgUploadedFile] = useState<File | null>(null);
+  const [bgImagePreview, setBgImagePreview] = useState<string | null>(null);
+  const [bgInputMethod, setBgInputMethod] = useState<'url' | 'upload'>('url');
+  const [bgRemovalSettings, setBgRemovalSettings] = useState({
+    output_format: 'png',
+    quality: 95
+  });
+
   // Logo Preview State
   const [logoPreviewFile, setLogoPreviewFile] = useState<File | null>(null);
   const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
   const [selectedBgColor, setSelectedBgColor] = useState('#000000');
-  const [activeSection, setActiveSection] = useState<'overview' | 'image-processing' | 'flows'>('overview');
-  const [imageProcessingTab, setImageProcessingTab] = useState<'upscaling' | 'logo-preview'>('upscaling');
+  const [activeSection, setActiveSection] = useState<'overview' | 'image-processing' | 'flows' | 'gallery'>('overview');
+  const [imageProcessingTab, setImageProcessingTab] = useState<'upscaling' | 'background-removal' | 'logo-preview'>('upscaling');
 
+  const loadData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const headers: Record<string, string> = {};
+      
+      // Only add password header if not in local development
+      if (!isLocal) {
+        headers['x-admin-password'] = password;
+      }
+      
+      const response = await fetch('/api/admin', { headers });
 
-  const authenticate = async () => {
+      if (response.ok) {
+        const result = await response.json();
+        setData(result.data);
+      } else {
+        setError('Failed to load admin data');
+      }
+    } catch (err) {
+      setError('Failed to load admin data');
+    } finally {
+      setLoading(false);
+    }
+  }, [isLocal, password]);
+
+  const refreshData = () => {
+    loadData();
+  };
+
+  const loadGalleryData = useCallback(async () => {
+    try {
+      setGalleryLoading(true);
+      const headers: Record<string, string> = {};
+      
+      // Only add password header if not in local development
+      if (!isLocal) {
+        headers['x-admin-password'] = password;
+      }
+      
+      const response = await fetch('/api/admin/gallery', { headers });
+
+      if (response.ok) {
+        const result = await response.json();
+        setGalleryLogos(result.data || []);
+      } else {
+        setError('Failed to load gallery data');
+      }
+    } catch (err) {
+      setError('Failed to load gallery data');
+    } finally {
+      setGalleryLoading(false);
+    }
+  }, [isLocal, password]);
+
+  const authenticate = useCallback(async () => {
+    // Skip authentication in local development
+    if (isLocal) {
+      setAuthenticated(true);
+      loadData();
+      return;
+    }
+
     try {
       const response = await fetch('/api/admin', {
         headers: {
@@ -88,33 +174,7 @@ export default function AdminDashboard() {
     } catch (err) {
       setError('Authentication failed');
     }
-  };
-
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch('/api/admin', {
-        headers: {
-          'x-admin-password': password
-        }
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        setData(result.data);
-      } else {
-        setError('Failed to load admin data');
-      }
-    } catch (err) {
-      setError('Failed to load admin data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const refreshData = () => {
-    loadData();
-  };
+  }, [isLocal, password, loadData]);
 
   const handleFlowClick = (flowId: string) => {
     setSelectedFlowId(flowId);
@@ -125,6 +185,22 @@ export default function AdminDashboard() {
     setShowFlowDetails(false);
     setSelectedFlowId(null);
   };
+
+  const handleLogoClick = (logo: any) => {
+    setSelectedLogo(logo);
+    setShowAssetPackModal(true);
+  };
+
+  const handleCloseAssetPackModal = () => {
+    setShowAssetPackModal(false);
+    setSelectedLogo(null);
+  };
+
+  const handleGoToResult = (flowId: string) => {
+    // Navigate to the result page
+    window.open(`/result/${flowId}`, '_blank');
+  };
+
 
   // File upload handler
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -235,6 +311,110 @@ export default function AdminDashboard() {
     }
   };
 
+  // Background Removal Functions
+  const handleBgFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setBgUploadedFile(file);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setBgImagePreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleBgRemoval = async () => {
+    if (!bgImageUrl && !bgUploadedFile) {
+      alert('Please provide an image URL or upload a file');
+      return;
+    }
+
+    setBgRemoving(true);
+    setBgRemovalResult(null);
+
+    try {
+      const imageUrl = bgImageUrl;
+      
+      if (bgUploadedFile) {
+        // Convert file to data URL
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const dataUrl = e.target?.result as string;
+          performBgRemoval(dataUrl);
+        };
+        reader.readAsDataURL(bgUploadedFile);
+        return;
+      } else {
+        performBgRemoval(imageUrl);
+      }
+    } catch (error) {
+      console.error('Error in background removal:', error);
+      setBgRemovalResult({
+        success: false,
+        error: 'Failed to process image'
+      });
+      setBgRemoving(false);
+    }
+  };
+
+  const performBgRemoval = async (imageUrl: string) => {
+    try {
+      const response = await fetch('/api/remove-background', {
+            method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+            body: JSON.stringify({
+          image_url: imageUrl,
+          output_format: bgRemovalSettings.output_format,
+          quality: bgRemovalSettings.quality
+            })
+          });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setBgRemovalResult({
+          success: true,
+          upscaled_url: result.data.processed_url,
+          original_url: imageUrl,
+          processing_time_ms: result.data.processing_time_ms,
+          file_size_bytes: result.data.file_size_bytes
+        });
+      } else {
+        setBgRemovalResult({
+          success: false,
+          error: result.error || 'Background removal failed'
+        });
+      }
+    } catch (error) {
+      console.error('Background removal error:', error);
+      setBgRemovalResult({
+        success: false,
+        error: 'Failed to remove background'
+      });
+    } finally {
+      setBgRemoving(false);
+    }
+  };
+
+  const downloadBgRemovedImage = async (url: string, filename: string) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(downloadUrl);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Error downloading image:', error);
+    }
+  };
 
   // Logo Preview Functions
   const handleLogoPreviewUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -299,6 +479,19 @@ export default function AdminDashboard() {
     { name: 'Brown Savana', hex: '#8B4513' }
   ];
 
+  // Auto-authenticate in local development
+  useEffect(() => {
+    if (isLocal && !authenticated) {
+      authenticate();
+    }
+  }, [isLocal, authenticated, authenticate]);
+
+  // Load gallery data when gallery section becomes active
+  useEffect(() => {
+    if (activeSection === 'gallery' && authenticated && galleryLogos.length === 0) {
+      loadGalleryData();
+    }
+  }, [activeSection, authenticated, galleryLogos.length, loadGalleryData]);
 
   if (!authenticated) {
     return (
@@ -307,30 +500,48 @@ export default function AdminDashboard() {
           <h1 className="text-2xl font-bold text-gray-900 mb-6 text-center">
             Admin Dashboard
           </h1>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Admin Password
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Enter admin password"
-                onKeyPress={(e) => e.key === 'Enter' && authenticate()}
-              />
+          {isLocal ? (
+            <div className="text-center">
+              <div className="text-green-600 mb-4">
+                <svg className="mx-auto h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <p className="text-gray-600 mb-4">Running in local development mode</p>
+              <p className="text-sm text-gray-500 mb-6">Password protection is disabled for local development</p>
+              <Button
+                onClick={authenticate}
+                className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-md"
+              >
+                Continue to Admin Dashboard
+              </Button>
             </div>
-            {error && (
-              <div className="text-red-600 text-sm">{error}</div>
-            )}
-            <Button
-              onClick={authenticate}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md"
-            >
-              Login
-            </Button>
-          </div>
+          ) : (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Admin Password
+                </label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter admin password"
+                  onKeyPress={(e) => e.key === 'Enter' && authenticate()}
+                />
+              </div>
+              {error && (
+                <div className="text-red-600 text-sm">{error}</div>
+              )}
+              <Button
+                onClick={authenticate}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md"
+              >
+                Login
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -421,6 +632,16 @@ export default function AdminDashboard() {
               }`}
             >
               Flows
+            </button>
+            <button
+              onClick={() => setActiveSection('gallery')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                activeSection === 'gallery'
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+              }`}
+            >
+              Gallery
             </button>
           </nav>
         </div>
@@ -524,6 +745,16 @@ export default function AdminDashboard() {
                   Image Upscaling
                 </button>
                 <button
+                  onClick={() => setImageProcessingTab('background-removal')}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                    imageProcessingTab === 'background-removal'
+                      ? 'bg-purple-100 text-purple-700'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  }`}
+                >
+                  Background Removal
+                </button>
+                <button
                   onClick={() => setImageProcessingTab('logo-preview')}
                   className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                     imageProcessingTab === 'logo-preview'
@@ -538,7 +769,7 @@ export default function AdminDashboard() {
 
             {/* Image Upscaling Tool */}
             {imageProcessingTab === 'upscaling' && (
-              <div className="bg-white p-6 rounded-lg shadow">
+        <div className="bg-white p-6 rounded-lg shadow">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Image Upscaling Tool</h2>
           
           {/* Input Method Selection */}
@@ -580,25 +811,25 @@ export default function AdminDashboard() {
           {/* Image Input */}
           <div className="mb-6">
             {inputMethod === 'url' ? (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                   Image URL
-                </label>
-                <input
-                  type="url"
+              </label>
+              <input
+                type="url"
                   value={imageUrl}
                   onChange={(e) => setImageUrl(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="https://example.com/image.jpg"
-                />
-              </div>
+              />
+            </div>
             ) : (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                   Upload Image
-                </label>
+              </label>
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                  <input
+              <input
                     type="file"
                     accept="image/*"
                     onChange={handleFileUpload}
@@ -635,9 +866,11 @@ export default function AdminDashboard() {
                       </button>
                     </div>
                     <div className="border rounded-lg p-2 bg-gray-50">
-                      <img
+                      <Image
                         src={imagePreview}
                         alt="Upload preview"
+                        width={128}
+                        height={128}
                         className="max-w-full h-32 object-contain mx-auto"
                       />
                     </div>
@@ -727,9 +960,11 @@ export default function AdminDashboard() {
                     <div>
                       <h4 className="text-sm font-medium text-gray-700 mb-2">Original Image</h4>
                       <div className="border rounded-lg p-2 bg-gray-50">
-                        <img
-                          src={upscaleResult.original_url}
+                        <Image
+                          src={upscaleResult.original_url || '/placeholder.png'}
                           alt="Original"
+                          width={128}
+                          height={128}
                           className="max-w-full h-32 object-contain mx-auto"
                         />
                       </div>
@@ -737,9 +972,11 @@ export default function AdminDashboard() {
                     <div>
                       <h4 className="text-sm font-medium text-gray-700 mb-2">Upscaled Image ({upscaleResult.scale_factor}x)</h4>
                       <div className="border rounded-lg p-2 bg-gray-50">
-                        <img
-                          src={upscaleResult.upscaled_url}
+                        <Image
+                          src={upscaleResult.upscaled_url || '/placeholder.png'}
                           alt="Upscaled"
+                          width={128}
+                          height={128}
                           className="max-w-full h-32 object-contain mx-auto"
                         />
                       </div>
@@ -755,7 +992,7 @@ export default function AdminDashboard() {
                           File size: {upscaleResult.file_size_bytes ? Math.round(upscaleResult.file_size_bytes / 1024) : 'Unknown'}KB
                         </p>
                       </div>
-                      <Button
+            <Button
                         onClick={() => downloadUpscaledImage(
                           upscaleResult.upscaled_url!,
                           `upscaled-image-${upscaleResult.scale_factor}x.${upscaleSettings.output_format}`
@@ -763,7 +1000,7 @@ export default function AdminDashboard() {
                         className="bg-green-600 text-white hover:bg-green-700"
                       >
                         Download
-                      </Button>
+            </Button>
                     </div>
                   </div>
                 </div>
@@ -778,6 +1015,191 @@ export default function AdminDashboard() {
         </div>
               )}
 
+            {/* Background Removal Tool */}
+            {imageProcessingTab === 'background-removal' && (
+              <div className="bg-white p-6 rounded-lg shadow">
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">Background Removal Tool</h2>
+                <p className="text-gray-600 mb-6">Remove backgrounds from images using AI</p>
+                
+                {/* Input Method Selection */}
+                <div className="mb-6">
+                  <div className="flex space-x-4 mb-4">
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        name="bgInputMethod"
+                        value="url"
+                        checked={bgInputMethod === 'url'}
+                        onChange={(e) => setBgInputMethod(e.target.value as 'url' | 'upload')}
+                        className="mr-2"
+                      />
+                      Image URL
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        name="bgInputMethod"
+                        value="upload"
+                        checked={bgInputMethod === 'upload'}
+                        onChange={(e) => setBgInputMethod(e.target.value as 'url' | 'upload')}
+                        className="mr-2"
+                      />
+                      Upload File
+                    </label>
+                  </div>
+
+                  {bgInputMethod === 'url' ? (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Image URL
+                      </label>
+                      <input
+                        type="url"
+                        value={bgImageUrl}
+                        onChange={(e) => setBgImageUrl(e.target.value)}
+                        placeholder="https://example.com/image.jpg"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      />
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Upload Image
+                      </label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleBgFileUpload}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      />
+                      {bgImagePreview && (
+                        <div className="mt-4">
+                          <Image
+                            src={bgImagePreview}
+                            alt="Preview"
+                            width={128}
+                            height={128}
+                            className="max-w-xs h-32 object-contain border rounded"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Settings */}
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Settings</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Output Format
+                      </label>
+                      <select
+                        value={bgRemovalSettings.output_format}
+                        onChange={(e) => setBgRemovalSettings(prev => ({ ...prev, output_format: e.target.value as 'png' | 'jpg' | 'webp' }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      >
+                        <option value="png">PNG (with transparency)</option>
+                        <option value="jpg">JPG</option>
+                        <option value="webp">WebP</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Quality: {bgRemovalSettings.quality}%
+                      </label>
+                      <input
+                        type="range"
+                        min="1"
+                        max="100"
+                        value={bgRemovalSettings.quality}
+                        onChange={(e) => setBgRemovalSettings(prev => ({ ...prev, quality: parseInt(e.target.value) }))}
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Process Button */}
+                <div className="mb-6">
+                  <button
+                    onClick={handleBgRemoval}
+                    disabled={bgRemoving || (!bgImageUrl && !bgUploadedFile)}
+                    className="w-full bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {bgRemoving ? 'Removing Background...' : 'Remove Background'}
+                  </button>
+          </div>
+
+                {/* Results */}
+                {bgRemovalResult && (
+                  <div className="border-t pt-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Results</h3>
+                    
+                    {bgRemovalResult.success ? (
+          <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <h4 className="text-sm font-medium text-gray-700 mb-2">Original Image</h4>
+                            <div className="border rounded-lg p-2 bg-gray-50">
+                              <Image
+                                src={bgRemovalResult.original_url || '/placeholder.png'}
+                                alt="Original"
+                                width={128}
+                                height={128}
+                                className="max-w-full h-32 object-contain mx-auto"
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <h4 className="text-sm font-medium text-gray-700 mb-2">Background Removed</h4>
+                            <div className="border rounded-lg p-2 bg-gray-50">
+                              <Image
+                                src={bgRemovalResult.upscaled_url || '/placeholder.png'}
+                                alt="Background Removed"
+                                width={128}
+                                height={128}
+                                className="max-w-full h-32 object-contain mx-auto"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="bg-green-50 border border-green-200 rounded-md p-4">
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <p className="text-sm text-green-800">
+                                Background removed successfully!
+                              </p>
+                              <p className="text-xs text-green-600 mt-1">
+                                Processing time: {bgRemovalResult.processing_time_ms}ms
+                                {bgRemovalResult.file_size_bytes && ` • Size: ${(bgRemovalResult.file_size_bytes / 1024 / 1024).toFixed(2)}MB`}
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => downloadBgRemovedImage(
+                                bgRemovalResult.upscaled_url!,
+                                `background-removed-${Date.now()}.${bgRemovalSettings.output_format}`
+                              )}
+                              className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 text-sm"
+                            >
+                              Download
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="bg-red-50 border border-red-200 rounded-md p-4">
+                        <p className="text-sm text-red-800">
+                          Background removal failed: {bgRemovalResult.error}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Logo Preview Tool */}
             {imageProcessingTab === 'logo-preview' && (
@@ -807,12 +1229,12 @@ export default function AdminDashboard() {
                       </svg>
                       <span className="text-sm text-gray-600">
                         {logoPreviewFile ? logoPreviewFile.name : 'Click to upload logo'}
-                      </span>
+                  </span>
                       <span className="text-xs text-gray-500 mt-1">PNG, JPG, GIF up to 10MB</span>
                     </label>
                   </div>
                 </div>
-
+                
                 {/* Logo Preview */}
                 {logoPreviewUrl && (
                   <div className="mb-6">
@@ -825,9 +1247,11 @@ export default function AdminDashboard() {
                             style={{ backgroundColor: color.hex }}
                             onClick={() => setSelectedBgColor(color.hex)}
                           >
-                            <img
+                            <Image
                               src={logoPreviewUrl}
                               alt="Logo preview"
+                              width={64}
+                              height={64}
                               className="max-w-full max-h-full object-contain"
                             />
                           </div>
@@ -846,7 +1270,7 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                 )}
-
+                
                 {/* Selected Color Preview */}
                 {logoPreviewUrl && (
                   <div className="mt-6">
@@ -856,9 +1280,11 @@ export default function AdminDashboard() {
                         className="w-64 h-64 rounded-lg border-4 border-gray-300 flex items-center justify-center"
                         style={{ backgroundColor: selectedBgColor }}
                       >
-                        <img
+                        <Image
                           src={logoPreviewUrl}
                           alt="Logo preview"
+                          width={256}
+                          height={256}
                           className="max-w-full max-h-full object-contain"
                         />
                       </div>
@@ -911,7 +1337,6 @@ export default function AdminDashboard() {
                       {flow.sport}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {flow.age_group}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
@@ -932,8 +1357,86 @@ export default function AdminDashboard() {
               </tbody>
             </table>
           </div>
-                  </div>
+        </div>
                 )}
+
+        {activeSection === 'gallery' && (
+          <div className="bg-white p-6 rounded-lg shadow">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-semibold text-gray-900">Logo Gallery</h2>
+              <div className="flex space-x-4">
+                <Button
+                  onClick={loadGalleryData}
+                  disabled={galleryLoading}
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md disabled:opacity-50"
+                >
+                  {galleryLoading ? 'Loading...' : 'Refresh Gallery'}
+                </Button>
+              </div>
+            </div>
+            
+            
+            {galleryLoading ? (
+              <div className="flex justify-center items-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                <span className="ml-3 text-gray-600">Loading gallery...</span>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+                {galleryLogos.map((logo) => (
+                  <div
+                    key={logo.id}
+                    onClick={() => handleLogoClick(logo)}
+                    className="group cursor-pointer bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors border border-gray-200 hover:border-blue-300"
+                  >
+                    <div className="aspect-square mb-3 bg-white rounded-lg flex items-center justify-center overflow-hidden">
+                      <Image
+                        src={logo.public_url}
+                        alt={`${logo.flow.team_name} Logo`}
+                        width={128}
+                        height={128}
+                        className="max-w-full max-h-full object-contain"
+                        onError={(e) => {
+                          e.currentTarget.src = '/placeholder-logo.png';
+                        }}
+                      />
+                    </div>
+                    <div className="text-center">
+                      <h3 className="text-sm font-medium text-gray-900 truncate">
+                        {logo.flow.team_name}
+                      </h3>
+                      <p className="text-xs text-gray-500">
+                        {logo.flow.sport}
+                      </p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        Variant {logo.variant_number}
+                      </p>
+                      {logo.asset_packs.length > 0 && (
+                        <div className="mt-2">
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            {logo.asset_packs.length} Asset Pack{logo.asset_packs.length !== 1 ? 's' : ''}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {!galleryLoading && galleryLogos.length === 0 && (
+              <div className="text-center py-12">
+                <div className="text-gray-400 mb-4">
+                  <svg className="mx-auto h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No logos found</h3>
+                <p className="text-gray-500">Click &quot;Refresh Gallery&quot; to load logos from the database.</p>
+              </div>
+            )}
+          </div>
+        )}
 
       </div>
 
@@ -942,6 +1445,14 @@ export default function AdminDashboard() {
         flowId={selectedFlowId}
         isOpen={showFlowDetails}
         onClose={handleCloseFlowDetails}
+      />
+
+      {/* Asset Pack Modal */}
+      <AssetPackModal
+        logo={selectedLogo}
+        isOpen={showAssetPackModal}
+        onClose={handleCloseAssetPackModal}
+        onGoToResult={handleGoToResult}
       />
     </div>
   );

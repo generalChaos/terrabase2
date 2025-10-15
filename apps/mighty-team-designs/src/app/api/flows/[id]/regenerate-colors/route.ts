@@ -28,7 +28,7 @@ export async function POST(
       );
     }
 
-    const teamLogos = flow.logo_variants || [];
+    const teamLogos = (flow as any).team_logos || [];
     console.log(`🎨 Found ${teamLogos.length} logos to process`);
 
     const results = [];
@@ -47,7 +47,12 @@ export async function POST(
           },
           body: JSON.stringify({
             image_url: logo.public_url,
-            max_colors: 15
+            mode: 'logo', // Use logo mode for better background detection
+            max_edge: 1024,
+            k_lo: 4,
+            k_hi: 10,
+            min_cluster_pct: 0.8,
+            dilate_alpha: true
           })
         });
 
@@ -67,7 +72,28 @@ export async function POST(
           colors: colorData.swatches.map((swatch: any) => swatch.hex),
           frequencies: colorData.swatches.map((swatch: any) => swatch.percent),
           percentages: colorData.swatches.map((swatch: any) => swatch.percent),
-          total_pixels_analyzed: 1048576 // 1024x1024
+          total_pixels_analyzed: 1048576, // 1024x1024
+          // Add role-based colors for UI compatibility
+          roles: colorData.roles ? {
+            background: colorData.roles.background ? { 
+              hex: colorData.roles.background.hex, 
+              percent: colorData.roles.background.percent 
+            } : null,
+            surface: colorData.roles.surface ? { 
+              hex: colorData.roles.surface.hex, 
+              percent: colorData.roles.surface.percent 
+            } : null,
+            primary: colorData.roles.primary ? { 
+              hex: colorData.roles.primary.hex, 
+              percent: colorData.roles.primary.percent 
+            } : null,
+            accent: colorData.roles.accent ? { 
+              hex: colorData.roles.accent.hex, 
+              percent: colorData.roles.accent.percent 
+            } : null
+          } : null,
+          confidence_scores: colorData.confidence_scores || null,
+          assignment_reasons: colorData.assignment_reasons || null
         };
 
         // Update the logo_asset_packs table
