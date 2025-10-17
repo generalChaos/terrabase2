@@ -211,7 +211,7 @@ export function FlowDetailsModal({ flowId, isOpen, onClose }: FlowDetailsModalPr
       }
 
       // Call the asset pack generation API
-      const response = await fetch('/api/asset-packs', {
+      const response = await fetch('/api/asset-packs/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
