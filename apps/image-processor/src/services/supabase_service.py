@@ -16,7 +16,11 @@ class SupabaseService:
     """Service for accessing Supabase storage and database"""
     
     def __init__(self):
-        self.supabase_url = os.getenv("SUPABASE_URL", "http://127.0.0.1:54321")
+        # Use environment-aware Supabase URL fallback
+        self.supabase_url = os.getenv("SUPABASE_URL") or (
+            "https://csjzzhibbavtelupqugc.supabase.co" if os.getenv("NODE_ENV") == "production" 
+            else "http://127.0.0.1:54321"
+        )
         # Try multiple environment variable names for the service key
         self.supabase_key = (os.getenv("SUPABASE_SERVICE_KEY") or 
                            os.getenv("SUPABASE_SERVICE_ROLE_KEY") or 
