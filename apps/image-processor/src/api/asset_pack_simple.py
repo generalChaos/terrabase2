@@ -3,6 +3,7 @@ Asset Pack Creation API endpoints - Simplified version without logging
 """
 
 import logging
+import os
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from typing import Optional, List
@@ -102,7 +103,12 @@ async def create_asset_pack(request: AssetPackRequest):
                 else:
                     # Fallback to URL approach
                     logo_source = "url"
-                    logo_url = f"http://127.0.0.1:54321/storage/v1/object/public/{logo_data.get('storage_bucket', 'team-logos') if logo_data else 'team-logos'}/{logo_data.get('file_path') if logo_data else ''}"
+                    # Use environment-aware Supabase URL fallback
+                    supabase_url = (os.getenv("SUPABASE_URL") or (
+                        "https://csjzzhibbavtelupqugc.supabase.co" if os.getenv("NODE_ENV") == "production" 
+                        else "http://127.0.0.1:54321"
+                    )).rstrip('/')
+                    logo_url = f"{supabase_url}/storage/v1/object/public/{logo_data.get('storage_bucket', 'team-logos') if logo_data else 'team-logos'}/{logo_data.get('file_path') if logo_data else ''}"
                     print(f"DEBUG: Falling back to URL approach: {logo_url}")
             else:
                 return AssetPackResponse(
@@ -125,7 +131,7 @@ async def create_asset_pack(request: AssetPackRequest):
         
         # Step 1: Skip cleanup for AI-generated logos (they already have transparent backgrounds)
         print(f"DEBUG: Skipping logo cleanup for AI-generated logo - using original directly")
-        clean_logo_url = logo_url if request.logo_url else f"http://127.0.0.1:54321/storage/v1/object/public/{logo_data.get('storage_bucket', 'team-logos') if logo_data else 'team-logos'}/{logo_data.get('file_path') if logo_data else ''}"
+        clean_logo_url = logo_url if request.logo_url else f"{supabase_url}/storage/v1/object/public/{logo_data.get('storage_bucket', 'team-logos') if logo_data else 'team-logos'}/{logo_data.get('file_path') if logo_data else ''}"
         print(f"DEBUG: Using original logo as clean logo: {clean_logo_url}")
         
         # Step 1.5: Analyze colors from the clean logo
