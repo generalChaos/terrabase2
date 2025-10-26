@@ -1,29 +1,25 @@
 'use client';
 
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useCallback, useRef } from 'react';
 import { useQuestionnaire } from '@/contexts/QuestionnaireContext';
 import { Button } from '@/components/ui/Button';
 import { QuestionCard } from './QuestionCard';
 
 export function Round2Form() {
   const { state, dispatch, updateFlow, getQuestions, generateQuestions } = useQuestionnaire();
-  const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
   const hasLoadedQuestions = useRef(false);
 
   const loadQuestions = useCallback(async () => {
-    if (hasLoadedQuestions.current || isGeneratingQuestions) return;
+    if (hasLoadedQuestions.current || state.isLoading) return;
     
     try {
-      setIsGeneratingQuestions(true);
       hasLoadedQuestions.current = true;
       await getQuestions(state.round1Answers.sport, 'youth');
     } catch (error) {
       console.error('Error loading questions:', error);
       hasLoadedQuestions.current = false; // Reset on error
-    } finally {
-      setIsGeneratingQuestions(false);
     }
-  }, [getQuestions, state.round1Answers.sport, isGeneratingQuestions]);
+  }, [getQuestions, state.round1Answers.sport, state.isLoading]);
 
   useEffect(() => {
     if (state.round2Questions.length === 0 && state.round1Answers.sport && !hasLoadedQuestions.current) {
@@ -40,12 +36,9 @@ export function Round2Form() {
 
   const handleGenerateQuestions = async () => {
     try {
-      setIsGeneratingQuestions(true);
       await generateQuestions();
     } catch (error) {
       console.error('Error generating questions:', error);
-    } finally {
-      setIsGeneratingQuestions(false);
     }
   };
 
@@ -78,7 +71,7 @@ export function Round2Form() {
     }
   });
 
-  if (isGeneratingQuestions) {
+  if (state.isLoading && state.round2Questions.length === 0) {
     return (
       <div className="max-w-2xl mx-auto text-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
@@ -106,9 +99,9 @@ export function Round2Form() {
           <Button
             onClick={loadQuestions}
             className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
-            disabled={isGeneratingQuestions}
+            disabled={state.isLoading}
           >
-            {isGeneratingQuestions ? 'Loading...' : 'Load Questions'}
+            {state.isLoading ? 'Loading...' : 'Load Questions'}
           </Button>
           
           <div className="text-gray-500">or</div>
@@ -116,9 +109,9 @@ export function Round2Form() {
           <Button
             onClick={handleGenerateQuestions}
             className="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
-            disabled={isGeneratingQuestions}
+            disabled={state.isLoading}
           >
-            {isGeneratingQuestions ? 'Generating...' : 'Generate AI Questions'}
+            {state.isLoading ? 'Generating...' : 'Generate AI Questions'}
           </Button>
         </div>
       </div>
@@ -152,9 +145,9 @@ export function Round2Form() {
         <Button
           onClick={handleGenerateQuestions}
           className="bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
-          disabled={isGeneratingQuestions}
+          disabled={state.isLoading}
         >
-          {isGeneratingQuestions ? 'Generating...' : 'Generate New Questions'}
+          {state.isLoading ? 'Generating...' : 'Generate New Questions'}
         </Button>
 
         <Button
