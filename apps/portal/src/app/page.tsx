@@ -8,7 +8,7 @@ export default function Home() {
     <div className="min-h-screen">
       {/* Header with background image and space gradient */}
       <div className="header-bg relative">
-        <div className="container mx-auto px-4 py-16 relative z-10">
+        <div className="container mx-auto px-4 py-8 relative z-10">
           {/* Header */}
           <div className="text-center mb-16">
             <div className="mb-8">
@@ -21,7 +21,7 @@ export default function Home() {
                 priority
               />
             </div>
-            <p className="text-xl text-slate-300 max-w-2xl mx-auto">
+            <p className="text-xl text-slate-300 max-w-2xl mx-auto backdrop-blur-sm bg-white/5 px-4 py-2 rounded-lg">
               A collection of innovative applications and tools showcasing modern web development
             </p>
           </div>
@@ -114,9 +114,33 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Supabase Test */}
-        <div className="max-w-2xl mx-auto mt-16">
-          <SupabaseTest />
+        {/* Bio Section */}
+        <div className="max-w-2xl mx-auto mt-16 bg-white/10 backdrop-blur-sm rounded-xl p-8 border border-white/20">
+          <div className="mb-4">
+            <h3 className="text-2xl font-semibold text-white mb-1">Ricardo Velasco</h3>
+            <p className="text-lg text-slate-300">Engineering Manager / Fullstack Software Engineer</p>
+          </div>
+          <p className="text-slate-300 leading-relaxed">
+            I tinker for fun, learning CAD, 3D-printing small wins like a coupler that fixed a leak. When I'm not painting with watercolors or playing board games, I'm collecting national park memories (Bear Gulch at Pinnacles!) and hosting our annual multi-family Channel Islands trip as the campfire's "Fire Marshal."
+          </p>
+          <div className="mt-6 flex gap-3">
+            <a 
+              href="/resume/Ricardo_Velasco_Resume_Senior_FullStack_IC_102025.pdf"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <ExternalLink className="w-4 h-4" />
+              View Resume
+            </a>
+            <a 
+              href="mailto:velasco.rico@gmail.com"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            >
+              <ExternalLink className="w-4 h-4" />
+              Contact
+            </a>
+          </div>
         </div>
 
         {/* Footer */}
