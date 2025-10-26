@@ -1,7 +1,6 @@
 import { ExternalLink, Github, Code, Zap } from "lucide-react";
 import Image from "next/image";
 import config from "@/lib/config";
-import SupabaseTest from "@/components/supabase-test";
 
 export default function Home() {
   return (
