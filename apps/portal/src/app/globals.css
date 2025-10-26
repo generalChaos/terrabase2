@@ -23,7 +23,6 @@ body {
   background-size: cover;
   background-position: center;
   background-blend-mode: overlay;
-  min-height: 560px;
   position: relative;
   overflow: hidden;
 }
