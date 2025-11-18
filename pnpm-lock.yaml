@@ -553,6 +553,49 @@ importers:
         specifier: ^5.5.0
         version: 5.9.2
 
+  apps/portfolio:
+    dependencies:
+      lucide-react:
+        specifier: ^0.539.0
+        version: 0.539.0(react@19.1.0)
+      next:
+        specifier: 15.4.6
+        version: 15.4.6(react-dom@19.1.0)(react@19.1.0)
+      react:
+        specifier: 19.1.0
+        version: 19.1.0
+      react-dom:
+        specifier: 19.1.0
+        version: 19.1.0(react@19.1.0)
+    devDependencies:
+      '@types/node':
+        specifier: ^20
+        version: 20.19.11
+      '@types/react':
+        specifier: ^19
+        version: 19.1.10
+      '@types/react-dom':
+        specifier: ^19
+        version: 19.1.7(@types/react@19.1.10)
+      autoprefixer:
+        specifier: ^10.4.0
+        version: 10.4.21(postcss@8.5.6)
+      eslint:
+        specifier: ^9.0.0
+        version: 9.33.0
+      eslint-config-next:
+        specifier: 15.4.6
+        version: 15.4.6(eslint@9.33.0)(typescript@5.9.2)
+      postcss:
+        specifier: ^8.4.0
+        version: 8.5.6
+      tailwindcss:
+        specifier: ^3.4.0
+        version: 3.4.17
+      typescript:
+        specifier: ^5.5.0
+        version: 5.9.2
+
 packages:
 
   /@adobe/css-tools@4.4.4:
