@@ -255,6 +255,14 @@ export default function Home() {
               <span className="tag">Brand Generator</span>
             </div>
             <div className="project-links">
+              <a 
+                href="https://team-logo.terrabase2.com/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="project-link-button"
+              >
+                Live Demo
+              </a>
               <button 
                 className="project-link-button"
                 onClick={() => setIsMightyTeamCaseStudyOpen(true)}
